@@ -577,11 +577,10 @@ function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
             <ul className="space-y-2">
-              {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR'].map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">{item}</a>
-                </li>
-              ))}
+              <li><Link href="/privacy" className="text-sm text-gray-400 hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/privacy" className="text-sm text-gray-400 hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Cookie Policy</a></li>
+              <li><a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">GDPR</a></li>
             </ul>
           </div>
         </div>
