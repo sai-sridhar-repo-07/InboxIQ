@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronRight, CheckSquare, Paperclip } from 'lucide-react';
+import { ChevronRight, CheckSquare, Paperclip, X } from 'lucide-react';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
 import type { Email } from '@/lib/types';
 import PriorityBadge from './PriorityBadge';
 import CategoryBadge from './CategoryBadge';
+import { emailsApi } from '@/lib/api';
 
 interface EmailCardProps {
   email: Email;
   className?: string;
+  onDismiss?: (id: string) => void;
 }
 
 // Gradient colors for avatars based on first letter
@@ -28,9 +32,23 @@ function getGradient(name: string) {
   return AVATAR_GRADIENTS[code];
 }
 
-export default function EmailCard({ email, className }: EmailCardProps) {
+export default function EmailCard({ email, className, onDismiss }: EmailCardProps) {
   const router = useRouter();
+  const [dismissing, setDismissing] = useState(false);
   const handleClick = () => router.push(`/email/${email.id}`);
+
+  const handleDismiss = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDismissing(true);
+    try {
+      await emailsApi.deleteEmail(email.id);
+      onDismiss?.(email.id);
+      toast.success('Email removed — won\'t sync again');
+    } catch {
+      toast.error('Failed to remove email');
+      setDismissing(false);
+    }
+  };
 
   const analysis  = email.ai_analysis;
   const senderName = email.from_name || email.from_email || '?';
@@ -41,8 +59,9 @@ export default function EmailCard({ email, className }: EmailCardProps) {
     <div
       onClick={handleClick}
       className={clsx(
-        'card card-hover group flex cursor-pointer items-start gap-3 sm:gap-4 p-3 sm:p-4',
+        'card card-hover group flex cursor-pointer items-start gap-3 sm:gap-4 p-3 sm:p-4 relative',
         !email.is_read && 'border-l-4 border-l-primary-500',
+        dismissing && 'opacity-40 pointer-events-none',
         className
       )}
       role="button"
@@ -78,6 +97,13 @@ export default function EmailCard({ email, className }: EmailCardProps) {
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <span className="text-xs text-gray-400 sm:hidden">{timeAgo}</span>
+            <button
+              onClick={handleDismiss}
+              className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all duration-150"
+              title="Remove — won't sync again"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
             <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-primary-400 transition-all duration-150 group-hover:translate-x-0.5" />
           </div>
         </div>

@@ -135,11 +135,11 @@ export default function EmailDetailPage() {
 
   const handleDelete = async () => {
     if (!emailId) return;
-    if (!confirm('Delete this email from InboxIQ? This cannot be undone.')) return;
+    if (!confirm('Remove this email from InboxIQ? It will not be synced again.')) return;
     setIsDeleting(true);
     try {
       await emailsApi.deleteEmail(emailId);
-      toast.success('Email deleted');
+      toast.success('Email removed — won\'t sync again');
       router.push('/dashboard');
     } catch {
       toast.error('Failed to delete email');

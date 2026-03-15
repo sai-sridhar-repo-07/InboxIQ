@@ -118,6 +118,7 @@ async def get_emails(user_id: str, filters: EmailFilter) -> list[dict]:
             supabase.table("emails")
             .select("*")
             .eq("user_id", user_id)
+            .neq("dismissed", True)
             .order(sort_col, desc=sort_desc)
             .range(filters.offset, filters.offset + filters.limit - 1)
         )
@@ -138,6 +139,7 @@ async def count_emails(user_id: str, filters: EmailFilter) -> int:
             supabase.table("emails")
             .select("id", count="exact")
             .eq("user_id", user_id)
+            .neq("dismissed", True)
         )
         query = _apply_email_filters(query, filters)
         result = query.execute()
@@ -207,12 +209,17 @@ async def update_email_analysis(email_id: str, analysis: dict) -> dict | None:
 
 
 async def delete_email(email_id: str, user_id: str) -> bool:
-    """Delete an email if it belongs to the given user."""
+    """
+    Soft-delete an email by marking it as dismissed.
+
+    The row is kept in the DB so the gmail_message_id duplicate-check in the
+    sync pipeline will still find it and never re-import the email.
+    """
     try:
         supabase = get_supabase()
-        supabase.table("emails").delete().eq("id", email_id).eq(
-            "user_id", user_id
-        ).execute()
+        supabase.table("emails").update({"dismissed": True}).eq(
+            "id", email_id
+        ).eq("user_id", user_id).execute()
         return True
     except Exception as exc:
         logger.error("delete_email error (email_id=%s): %s", email_id, exc)
@@ -234,6 +241,7 @@ async def get_email_stats(user_id: str) -> dict:
             supabase.table("emails")
             .select("category, priority, processed")
             .eq("user_id", user_id)
+            .neq("dismissed", True)
             .execute()
         )
         rows = all_result.data or []
@@ -325,6 +333,7 @@ async def get_unprocessed_email_ids(user_id: str) -> list[str]:
             .select("id")
             .eq("user_id", user_id)
             .eq("processed", False)
+            .neq("dismissed", True)
             .limit(50)
             .execute()
         )
@@ -411,6 +420,7 @@ async def get_priority_inbox(user_id: str) -> dict:
             supabase.table("emails")
             .select("*")
             .eq("user_id", user_id)
+            .neq("dismissed", True)
             .order("priority", desc=True)
             .order("received_at", desc=True)
             .limit(200)

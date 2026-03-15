@@ -244,7 +244,7 @@ export default function EmailListPage() {
           ) : (
             <div className="space-y-2">
               {emails.map((email) => (
-                <EmailCard key={email.id} email={email} />
+                <EmailCard key={email.id} email={email} onDismiss={() => mutate()} />
               ))}
             </div>
           )}
