@@ -216,9 +216,23 @@ async def _handle_payment_failed(invoice: dict) -> None:
 # Status query
 # ---------------------------------------------------------------------------
 
+PLAN_LIMITS = {
+    "free": 5,
+    "pro": None,
+    "agency": None,
+}
+
+PLAN_DETAILS = {
+    "free":   {"name": "Free",   "price_monthly": 0},
+    "pro":    {"name": "Pro",    "price_monthly": 29},
+    "agency": {"name": "Agency", "price_monthly": 79},
+}
+
+
 async def get_subscription_status(user_id: str) -> dict:
-    """Return the current plan and subscription info for a user."""
+    """Return the current plan, subscription info, and email usage for a user."""
     try:
+        from datetime import datetime, timezone
         supabase = get_supabase()
         result = (
             supabase.table("user_profiles")
@@ -233,21 +247,50 @@ async def get_subscription_status(user_id: str) -> dict:
 
         stripe_status = None
         current_period_end = None
+        cancel_at_period_end = False
         if subscription_id:
             try:
                 sub = stripe.Subscription.retrieve(subscription_id)
                 stripe_status = sub.get("status")
                 current_period_end = sub.get("current_period_end")
+                cancel_at_period_end = sub.get("cancel_at_period_end", False)
             except Exception:
                 pass
 
+        # Count emails processed this calendar month
+        now = datetime.now(timezone.utc)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        usage_result = (
+            supabase.table("emails")
+            .select("id", count="exact")
+            .eq("user_id", user_id)
+            .gte("created_at", month_start)
+            .execute()
+        )
+        emails_used = usage_result.count or 0
+
+        email_limit = PLAN_LIMITS.get(plan, 5)
+
         return {
-            "plan": plan,
-            "stripe_status": stripe_status,
+            "current_plan": plan,
+            "plan_details": PLAN_DETAILS.get(plan, PLAN_DETAILS["free"]),
+            "subscription_status": stripe_status or ("active" if plan != "free" else "none"),
+            "stripe_subscription_id": subscription_id,
             "current_period_end": current_period_end,
-            "stripe_customer_id": profile.get("stripe_customer_id"),
+            "cancel_at_period_end": cancel_at_period_end,
+            "emails_used_this_month": emails_used,
+            "email_limit": email_limit,
         }
 
     except Exception as exc:
         logger.error("get_subscription_status error (user_id=%s): %s", user_id, exc)
-        return {"plan": "free", "stripe_status": None, "current_period_end": None}
+        return {
+            "current_plan": "free",
+            "plan_details": PLAN_DETAILS["free"],
+            "subscription_status": "none",
+            "stripe_subscription_id": None,
+            "current_period_end": None,
+            "cancel_at_period_end": False,
+            "emails_used_this_month": 0,
+            "email_limit": 5,
+        }

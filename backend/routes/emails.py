@@ -14,6 +14,7 @@ from models.email import EmailFilter, EmailResponse
 from services import email_service
 from services.ai_processor import process_email
 from services.gmail_service import send_gmail_reply, get_email_attachments, get_attachment_data
+from services.stripe_service import PLAN_LIMITS
 from workers.email_listener import _process_user_emails
 
 logger = logging.getLogger(__name__)
@@ -73,14 +74,49 @@ async def email_analytics(current_user: Annotated[dict, Depends(get_current_user
     return await email_service.get_analytics(user_id=_current_user_id(current_user))
 
 
+async def _get_emails_used_this_month(user_id: str) -> int:
+    from datetime import timezone
+    supabase = get_supabase()
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+    result = (
+        supabase.table("emails")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .gte("created_at", month_start)
+        .execute()
+    )
+    return result.count or 0
+
+
+async def _get_user_plan(user_id: str) -> str:
+    supabase = get_supabase()
+    result = supabase.table("user_profiles").select("plan").eq("id", user_id).single().execute()
+    return (result.data or {}).get("plan", "free")
+
+
 @router.post("/bulk-process", status_code=status.HTTP_202_ACCEPTED)
 async def bulk_process_emails(
     background_tasks: BackgroundTasks,
     current_user: Annotated[dict, Depends(get_current_user)],
 ):
-    """Queue AI processing for all unprocessed emails."""
+    """Queue AI processing for all unprocessed emails, respecting plan limits."""
     user_id = _current_user_id(current_user)
+    plan = await _get_user_plan(user_id)
+    limit = PLAN_LIMITS.get(plan)  # None = unlimited
+
     email_ids = await email_service.get_unprocessed_email_ids(user_id=user_id)
+
+    if limit is not None:
+        used = await _get_emails_used_this_month(user_id)
+        remaining = max(0, limit - used)
+        email_ids = email_ids[:remaining]
+        if not email_ids:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail=f"Monthly limit of {limit} emails reached. Upgrade to Pro for unlimited processing.",
+            )
+
     for email_id in email_ids:
         email = await email_service.get_email(email_id=email_id, user_id=user_id)
         if email:
@@ -260,6 +296,17 @@ async def trigger_ai_processing(
 ):
     """Manually trigger AI processing for a specific email."""
     user_id = _current_user_id(current_user)
+
+    plan = await _get_user_plan(user_id)
+    limit = PLAN_LIMITS.get(plan)
+    if limit is not None:
+        used = await _get_emails_used_this_month(user_id)
+        if used >= limit:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail=f"Monthly limit of {limit} emails reached. Upgrade to Pro for unlimited processing.",
+            )
+
     email = await email_service.get_email(email_id=email_id, user_id=user_id)
     if not email:
         raise HTTPException(

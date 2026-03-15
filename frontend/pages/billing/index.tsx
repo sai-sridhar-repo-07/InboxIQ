@@ -26,10 +26,10 @@ const PLANS: Plan[] = [
     id: 'free',
     name: 'Free',
     price_monthly: 0,
-    email_limit: 100,
+    email_limit: 5,
     gmail_accounts: 1,
     features: [
-      '100 emails/month',
+      '5 emails/month',
       '1 Gmail account',
       'Basic AI categorization',
       'Action item extraction',
