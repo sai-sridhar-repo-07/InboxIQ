@@ -84,7 +84,7 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
   };
 
   return (
-    <div className="card p-4 sm:p-5 border-primary-100 dark:border-gray-700 bg-gradient-to-br from-primary-50/50 to-white dark:from-gray-800 dark:to-gray-900 animate-slide-up">
+    <div className="card p-4 sm:p-5 border-primary-100 dark:border-primary-800/50 bg-gradient-to-br from-primary-50/50 to-white dark:from-primary-950/60 dark:to-gray-900 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
@@ -107,7 +107,7 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
       </div>
 
       {/* Progress bar */}
-      <div className="mb-4 h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700">
+      <div className="mb-4 h-1.5 w-full rounded-full bg-gray-100 dark:bg-primary-900/50">
         <div
           className="h-full rounded-full bg-primary-500 transition-all duration-700"
           style={{ width: `${(completedCount / STEPS.length) * 100}%` }}
@@ -122,7 +122,7 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
             <div
               key={step.id}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
-                done ? 'bg-green-50 dark:bg-green-900/30 dark:border dark:border-green-800/40' : 'bg-white dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600'
+                done ? 'bg-green-50 dark:bg-primary-900/40 dark:border dark:border-primary-700/40' : 'bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60'
               }`}
             >
               {done
@@ -130,7 +130,7 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
                 : <Circle className="h-4 w-4 text-gray-300 flex-shrink-0" />
               }
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${done ? 'text-green-700 dark:text-green-400 line-through decoration-green-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                <p className={`text-sm font-medium ${done ? 'text-green-700 dark:text-primary-300 line-through decoration-green-400 dark:decoration-primary-500' : 'text-gray-800 dark:text-gray-200'}`}>
                   {step.label}
                 </p>
                 {!done && (
