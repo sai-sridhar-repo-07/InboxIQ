@@ -55,22 +55,27 @@ export default function Layout({ children, title }: LayoutProps) {
   const user = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLDivElement>(null);
 
   // Close sidebar on route change
   useEffect(() => { setSidebarOpen(false); }, [router.pathname]);
 
-  // Close profile dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
       }
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setBellOpen(false);
+      }
     }
-    if (profileOpen) document.addEventListener('mousedown', handleOutsideClick);
+    if (profileOpen || bellOpen) document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [profileOpen]);
+  }, [profileOpen, bellOpen]);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -211,9 +216,27 @@ export default function Layout({ children, title }: LayoutProps) {
 
           <div className="flex items-center gap-1.5">
             {/* Bell */}
-            <button className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors relative">
-              <Bell className="h-5 w-5" />
-            </button>
+            <div className="relative" ref={bellRef}>
+              <button
+                onClick={() => setBellOpen(!bellOpen)}
+                className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors relative"
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
+              </button>
+              {bellOpen && (
+                <div className="absolute right-0 mt-2 w-72 rounded-xl bg-white border border-gray-200 shadow-lg py-1 z-50 animate-slide-down">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900">Notifications</p>
+                  </div>
+                  <div className="py-6 text-center">
+                    <Bell className="mx-auto h-8 w-8 text-gray-200 mb-2" />
+                    <p className="text-sm text-gray-500">No new notifications</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Urgent email alerts will appear here</p>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Profile dropdown */}
             <div className="relative" ref={profileRef}>

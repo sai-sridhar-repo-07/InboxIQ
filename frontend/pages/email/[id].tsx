@@ -99,6 +99,13 @@ export default function EmailDetailPage() {
     emailsApi.markAsRead(emailId).catch(() => {});
   }, [emailId, email?.id]);
 
+  // Mark onboarding "reply" step done when user views an email with an AI draft
+  useEffect(() => {
+    if (replyDraft && typeof window !== 'undefined') {
+      localStorage.setItem('onboarding_reply_done', 'true');
+    }
+  }, [replyDraft]);
+
   // Load attachments once email is loaded
   useEffect(() => {
     if (!emailId || !email) return;

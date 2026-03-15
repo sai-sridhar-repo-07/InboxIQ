@@ -258,7 +258,37 @@ async def get_email_stats(user_id: str) -> dict:
             if not row.get("processed"):
                 unprocessed += 1
 
+        processed = total - unprocessed
+
+        # Count action items
+        action_items_count = 0
+        try:
+            actions_result = (
+                supabase.table("actions")
+                .select("id", count="exact")
+                .in_("email_id", [
+                    r["id"] for r in
+                    supabase.table("emails").select("id").eq("user_id", user_id).execute().data or []
+                ])
+                .eq("status", "pending")
+                .execute()
+            )
+            action_items_count = actions_result.count or 0
+        except Exception:
+            pass
+
         return {
+            # Fields the frontend/dashboard expects
+            "total_emails": total,
+            "urgent_count": by_category.get("urgent", 0),
+            "needs_response_count": by_category.get("needs_response", 0),
+            "action_items_count": action_items_count,
+            "processed_today": processed,
+            "avg_priority_score": 0,
+            "category_breakdown": by_category,
+            "emails_this_week": total,
+            "emails_last_week": 0,
+            # Keep legacy fields too
             "total": total,
             "unprocessed": unprocessed,
             "by_category": by_category,
@@ -267,7 +297,12 @@ async def get_email_stats(user_id: str) -> dict:
 
     except Exception as exc:
         logger.error("get_email_stats error (user_id=%s): %s", user_id, exc)
-        return {"total": 0, "unprocessed": 0, "by_category": {}, "by_priority": {}}
+        return {
+            "total_emails": 0, "urgent_count": 0, "needs_response_count": 0,
+            "action_items_count": 0, "processed_today": 0, "avg_priority_score": 0,
+            "category_breakdown": {}, "emails_this_week": 0, "emails_last_week": 0,
+            "total": 0, "unprocessed": 0, "by_category": {}, "by_priority": {},
+        }
 
 
 async def mark_email_read(email_id: str, user_id: str) -> bool:
