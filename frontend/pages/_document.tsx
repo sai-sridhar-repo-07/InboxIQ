@@ -12,6 +12,8 @@ export default function Document() {
         />
         <link rel="icon" href="/favicon.ico" />
         <meta name="description" content="InboxIQ - AI-Powered Email Command Center for service businesses" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#2563eb" />
       </Head>
       <body>
         <Main />

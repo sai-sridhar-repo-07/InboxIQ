@@ -101,11 +101,13 @@ async def process_email(email: dict) -> dict | None:
     company_description = "a professional service business"
     tone = "professional and friendly"
     slack_webhook_url = ""
+    vacation_mode = False
+    vacation_message = ""
 
     try:
         profile_result = (
             supabase.table("user_profiles")
-            .select("company_description, tone_preference, slack_webhook_url")
+            .select("company_description, tone_preference, slack_webhook_url, vacation_mode, vacation_message")
             .eq("id", user_id)
             .single()
             .execute()
@@ -117,6 +119,8 @@ async def process_email(email: dict) -> dict | None:
             )
             tone = profile.get("tone_preference") or tone
             slack_webhook_url = profile.get("slack_webhook_url") or ""
+            vacation_mode = bool(profile.get("vacation_mode", False))
+            vacation_message = profile.get("vacation_message") or ""
     except Exception as exc:
         logger.warning("Could not fetch user profile for user_id=%s: %s", user_id, exc)
 
@@ -152,6 +156,16 @@ async def process_email(email: dict) -> dict | None:
         logger.error("generate_reply failed for email_id=%s: %s", email_id, exc)
         draft_text = "Thank you for your email. We will get back to you shortly."
         confidence = 0.3
+
+    # ------------------------------------------------------------------
+    # Step 6a – Prepend vacation auto-reply note if vacation mode is on
+    # ------------------------------------------------------------------
+    if vacation_mode:
+        auto_reply_note = vacation_message.strip() if vacation_message else (
+            "I am currently out of the office and will respond when I return."
+        )
+        vacation_prefix = f"[Auto-Reply Note]: {auto_reply_note}\n\n---\n\n"
+        draft_text = vacation_prefix + draft_text
 
     # ------------------------------------------------------------------
     # Step 6b – Persist reply draft

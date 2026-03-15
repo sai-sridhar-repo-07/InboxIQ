@@ -38,6 +38,7 @@ export interface Email {
   received_at: string;
   is_read: boolean;
   is_starred: boolean;
+  snooze_until?: string | null;
   labels: string[];
   ai_analysis?: AIAnalysis;
   action_count?: number;
@@ -125,6 +126,8 @@ export interface UserSettings {
   auto_process_emails: boolean;
   priority_threshold: number; // 1-10, emails above this are "urgent"
   slack_webhook_url?: string;
+  vacation_mode?: boolean;
+  vacation_message?: string;
   created_at: string;
   updated_at: string;
 }

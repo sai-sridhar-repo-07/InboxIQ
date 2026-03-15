@@ -24,8 +24,11 @@ import {
   Image as ImageIcon,
   FileSpreadsheet,
   File,
+  Star,
+  AlarmClock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import clsx from 'clsx';
 import Layout from '@/components/Layout';
 import PriorityBadge from '@/components/PriorityBadge';
 import CategoryBadge from '@/components/CategoryBadge';
@@ -33,6 +36,7 @@ import ActionItem from '@/components/ActionItem';
 import ReplyEditor from '@/components/ReplyEditor';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import AttachmentViewer from '@/components/AttachmentViewer';
+import SnoozeModal from '@/components/SnoozeModal';
 import { useEmail, useEmailActions, useReplyDraft } from '@/lib/hooks';
 import { emailsApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
@@ -76,6 +80,9 @@ export default function EmailDetailPage() {
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [isReprocessing, setIsReprocessing]   = useState(false);
   const [isDeleting, setIsDeleting]           = useState(false);
+  const [isStarring, setIsStarring]           = useState(false);
+  const [isStarred, setIsStarred]             = useState<boolean | null>(null);
+  const [snoozeOpen, setSnoozeOpen]           = useState(false);
   const [actions, setActions]                 = useState<Action[]>([]);
   const [attachments, setAttachments]         = useState<Attachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
@@ -130,6 +137,23 @@ export default function EmailDetailPage() {
       toast.error('Failed to re-process email');
     } finally {
       setIsReprocessing(false);
+    }
+  };
+
+  const handleStar = async () => {
+    if (!emailId || !email) return;
+    const currentStarred = isStarred !== null ? isStarred : email.is_starred;
+    const next = !currentStarred;
+    setIsStarred(next); // optimistic
+    setIsStarring(true);
+    try {
+      await emailsApi.starEmail(emailId, next);
+      await mutateEmail();
+    } catch {
+      setIsStarred(currentStarred); // revert
+      toast.error('Failed to update star');
+    } finally {
+      setIsStarring(false);
     }
   };
 
@@ -203,6 +227,14 @@ export default function EmailDetailPage() {
           onClose={() => setViewingAttachment(null)}
         />
       )}
+      {snoozeOpen && emailId && (
+        <SnoozeModal
+          emailId={emailId}
+          currentSnooze={email?.snooze_until ?? null}
+          onSnoozed={() => { setSnoozeOpen(false); mutateEmail(); }}
+          onClose={() => setSnoozeOpen(false)}
+        />
+      )}
       <Head><title>{email.subject} — InboxIQ</title></Head>
       <Layout title="Email Detail">
         <div className="max-w-4xl mx-auto space-y-4 animate-fade-in">
@@ -224,6 +256,37 @@ export default function EmailDetailPage() {
                 <span className="hidden sm:inline">{isReprocessing ? 'Processing…' : 'Re-process with AI'}</span>
                 <span className="sm:hidden">{isReprocessing ? '…' : 'AI'}</span>
               </button>
+
+              {/* Star button */}
+              <button
+                onClick={handleStar}
+                disabled={isStarring}
+                className="btn-secondary text-sm"
+                title={(isStarred !== null ? isStarred : email.is_starred) ? 'Unstar' : 'Star'}
+              >
+                <Star
+                  className={clsx(
+                    'h-4 w-4',
+                    (isStarred !== null ? isStarred : email.is_starred)
+                      ? 'text-amber-400 fill-amber-400'
+                      : 'text-gray-400'
+                  )}
+                />
+                <span className="hidden sm:inline ml-1.5">
+                  {(isStarred !== null ? isStarred : email.is_starred) ? 'Starred' : 'Star'}
+                </span>
+              </button>
+
+              {/* Snooze button */}
+              <button
+                onClick={() => setSnoozeOpen(true)}
+                className="btn-secondary text-sm"
+                title="Snooze"
+              >
+                <AlarmClock className="h-4 w-4 text-blue-500" />
+                <span className="hidden sm:inline ml-1.5">Snooze</span>
+              </button>
+
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}

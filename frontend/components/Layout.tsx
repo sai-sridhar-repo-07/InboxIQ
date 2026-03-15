@@ -16,10 +16,13 @@ import {
   Bell,
   User,
   BarChart2,
+  AlarmClock,
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
+import ThemeToggle from './ThemeToggle';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 
 interface NavItem {
   label: string;
@@ -30,6 +33,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard',  icon: LayoutDashboard },
   { label: 'Inbox',     href: '/email',      icon: Inbox },
+  { label: 'Snoozed',   href: '/snoozed',   icon: AlarmClock },
   { label: 'Actions',   href: '/actions',    icon: CheckSquare },
   { label: 'Analytics', href: '/analytics',  icon: BarChart2 },
   { label: 'Settings',  href: '/settings',   icon: Settings },
@@ -40,6 +44,7 @@ const navItems: NavItem[] = [
 const mobileNavItems: NavItem[] = [
   { label: 'Home',      href: '/dashboard',  icon: LayoutDashboard },
   { label: 'Inbox',     href: '/email',      icon: Inbox },
+  { label: 'Snoozed',   href: '/snoozed',   icon: AlarmClock },
   { label: 'Actions',   href: '/actions',    icon: CheckSquare },
   { label: 'Analytics', href: '/analytics',  icon: BarChart2 },
   { label: 'Settings',  href: '/settings',   icon: Settings },
@@ -57,8 +62,23 @@ export default function Layout({ children, title }: LayoutProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
+
+  // Keyboard shortcut: ? opens shortcuts modal
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if (e.key === '?') {
+        e.preventDefault();
+        setShortcutsOpen(true);
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Close sidebar on route change
   useEffect(() => { setSidebarOpen(false); }, [router.pathname]);
@@ -215,6 +235,9 @@ export default function Layout({ children, title }: LayoutProps) {
           </div>
 
           <div className="flex items-center gap-1.5">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* Bell */}
             <div className="relative" ref={bellRef}>
               <button
@@ -305,6 +328,9 @@ export default function Layout({ children, title }: LayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       {/* ── Mobile Bottom Navigation ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white border-t border-gray-200 safe-area-pb">

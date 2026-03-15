@@ -1,7 +1,8 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSessionContext } from '@supabase/auth-helpers-react';
+import useSWR from 'swr';
 import {
   Mail,
   AlertCircle,
@@ -12,7 +13,9 @@ import {
   Loader2,
   ExternalLink,
   Zap,
+  AlarmClock,
 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import StatsCard from '@/components/StatsCard';
@@ -24,7 +27,6 @@ import { DashboardSkeleton } from '@/components/SkeletonLoader';
 import { ErrorCard } from '@/components/ErrorBoundary';
 import { usePriorityInbox, useEmailStats, useGmailStatus } from '@/lib/hooks';
 import { integrationsApi, emailsApi } from '@/lib/api';
-import { useState } from 'react';
 import type { Email } from '@/lib/types';
 
 function GmailConnectBanner({ onConnect }: { onConnect: () => void }) {
@@ -70,6 +72,11 @@ export default function DashboardPage() {
   const { data: priorityInbox, error: inboxError, isLoading: inboxLoading, mutate: mutateInbox } = usePriorityInbox();
   const { data: stats, isLoading: statsLoading, mutate: mutateStats } = useEmailStats();
   const { data: gmailStatus } = useGmailStatus();
+  const { data: followUps } = useSWR<Email[]>(
+    session ? 'follow-ups' : null,
+    () => emailsApi.getFollowUps(),
+    { revalidateOnFocus: false }
+  );
 
   useEffect(() => {
     if (!sessionLoading && !session) {
@@ -229,6 +236,29 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
+
+          {/* Follow-up Needed section */}
+          {followUps && followUps.length > 0 && (
+            <div className="animate-slide-up">
+              <div className="flex items-center gap-2 mb-3">
+                <AlarmClock className="h-4 w-4 text-amber-600" />
+                <h2 className="text-base font-semibold text-gray-900">Follow-up Needed</h2>
+                <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-100">
+                  {followUps.length}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {followUps.slice(0, 5).map((email: Email) => (
+                  <div key={email.id} className="relative">
+                    <EmailCard email={email} />
+                    <span className="absolute top-3 right-10 text-xs text-amber-600 font-medium">
+                      {formatDistanceToNow(new Date(email.received_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {isLoading ? (
             <DashboardSkeleton />

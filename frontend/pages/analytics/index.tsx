@@ -2,7 +2,8 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useSessionContext } from '@supabase/auth-helpers-react';
-import { BarChart2, TrendingUp, Mail, CheckCircle, Inbox, RefreshCw } from 'lucide-react';
+import { BarChart2, TrendingUp, Mail, CheckCircle, Inbox, RefreshCw, Users } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import Layout from '@/components/Layout';
 import { StatsCardSkeleton } from '@/components/SkeletonLoader';
 import { ErrorCard } from '@/components/ErrorBoundary';
@@ -18,6 +19,29 @@ type Analytics = {
   by_priority: Record<string, number>;
   emails_per_day: Array<{ day: string; count: number }>;
 };
+
+type SenderInsight = {
+  sender_email: string;
+  sender_name: string;
+  count: number;
+  last_email_at: string;
+  categories: Record<string, number>;
+};
+
+const SENDER_GRADIENTS = [
+  'from-blue-400 to-blue-600',
+  'from-violet-400 to-violet-600',
+  'from-emerald-400 to-emerald-600',
+  'from-rose-400 to-rose-600',
+  'from-amber-400 to-amber-600',
+  'from-cyan-400 to-cyan-600',
+  'from-fuchsia-400 to-fuchsia-600',
+  'from-teal-400 to-teal-600',
+];
+function senderGradient(name: string) {
+  const code = (name.charCodeAt(0) || 0) % SENDER_GRADIENTS.length;
+  return SENDER_GRADIENTS[code];
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   urgent:         '#ef4444',
@@ -137,6 +161,7 @@ export default function AnalyticsPage() {
   const router = useRouter();
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [senderInsights, setSenderInsights] = useState<SenderInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -148,8 +173,12 @@ export default function AnalyticsPage() {
   const load = async () => {
     try {
       setError(false);
-      const data = await emailsApi.getAnalytics();
+      const [data, insights] = await Promise.all([
+        emailsApi.getAnalytics(),
+        emailsApi.getSenderInsights().catch(() => []),
+      ]);
       setAnalytics(data);
+      setSenderInsights(insights);
     } catch {
       setError(true);
     } finally {
@@ -280,6 +309,65 @@ export default function AnalyticsPage() {
               </div>
             )}
           </div>
+
+          {/* Top Senders */}
+          {(loading || senderInsights.length > 0) && (
+            <div className="card p-5 animate-slide-up stagger-5">
+              <div className="flex items-center gap-2 mb-5">
+                <Users className="h-4 w-4 text-primary-600" />
+                <h2 className="text-sm font-semibold text-gray-900">Top Senders</h2>
+              </div>
+              {loading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="skeleton h-9 w-9 rounded-full" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="skeleton h-3.5 w-1/3 rounded" />
+                        <div className="skeleton h-3 w-1/2 rounded" />
+                      </div>
+                      <div className="skeleton h-6 w-10 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {senderInsights.slice(0, 10).map((sender, i) => {
+                    const topCategory = Object.entries(sender.categories).sort((a, b) => b[1] - a[1])[0]?.[0];
+                    const gradient = senderGradient(sender.sender_name || sender.sender_email);
+                    return (
+                      <div
+                        key={sender.sender_email}
+                        className="flex items-center gap-3 rounded-xl p-3 hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="text-xs font-medium text-gray-400 w-4 shrink-0">{i + 1}</span>
+                        <div className={`h-9 w-9 shrink-0 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-sm font-semibold shadow-sm`}>
+                          {(sender.sender_name || sender.sender_email)[0].toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {sender.sender_name || sender.sender_email}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">{sender.sender_email}</p>
+                        </div>
+                        {topCategory && (
+                          <span className="shrink-0 rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 capitalize hidden sm:inline">
+                            {topCategory.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-400 shrink-0 hidden sm:inline">
+                          {formatDistanceToNow(new Date(sender.last_email_at), { addSuffix: true })}
+                        </span>
+                        <span className="shrink-0 rounded-full bg-primary-50 border border-primary-100 px-2.5 py-1 text-xs font-bold text-primary-700">
+                          {sender.count}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       </Layout>

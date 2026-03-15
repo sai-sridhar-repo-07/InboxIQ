@@ -1,8 +1,11 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSessionContext } from '@supabase/auth-helpers-react';
-import { Search, Filter, X, Mail, ChevronLeft, ChevronRight, RefreshCw, Zap, Loader2 } from 'lucide-react';
+import {
+  Search, Filter, X, Mail, ChevronLeft, ChevronRight, RefreshCw, Zap, Loader2,
+  CheckSquare, Download, Layers, List,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import EmailCard from '@/components/EmailCard';
@@ -11,9 +14,10 @@ import EmptyState from '@/components/EmptyState';
 import { InboxSkeleton } from '@/components/SkeletonLoader';
 import { ErrorCard } from '@/components/ErrorBoundary';
 import CategoryBadge from '@/components/CategoryBadge';
+import BatchActionBar from '@/components/BatchActionBar';
 import { useEmails } from '@/lib/hooks';
 import { emailsApi } from '@/lib/api';
-import type { EmailCategory, PriorityLevel } from '@/lib/types';
+import type { EmailCategory, PriorityLevel, Email } from '@/lib/types';
 import clsx from 'clsx';
 
 const CATEGORIES: EmailCategory[] = [
@@ -32,16 +36,24 @@ export default function EmailListPage() {
   const router = useRouter();
   const { session, isLoading: sessionLoading } = useSessionContext();
 
-  const [syncing, setSyncing]             = useState(false);
+  const [syncing, setSyncing]               = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState<EmailCategory | undefined>(
+  const [exportingCSV, setExportingCSV]     = useState(false);
+  const [search, setSearch]                 = useState('');
+  const [category, setCategory]             = useState<EmailCategory | undefined>(
     (router.query.category as EmailCategory) || undefined
   );
-  const [priorityLevel, setPriorityLevel] = useState<PriorityLevel | undefined>(
+  const [priorityLevel, setPriorityLevel]   = useState<PriorityLevel | undefined>(
     (router.query.priority_level as PriorityLevel) || undefined
   );
-  const [page, setPage] = useState(1);
+  const [page, setPage]                     = useState(1);
+
+  // Selection state
+  const [selectionMode, setSelectionMode]   = useState(false);
+  const [selectedIds, setSelectedIds]       = useState<Set<string>>(new Set());
+
+  // Thread view state
+  const [threadView, setThreadView]         = useState(false);
 
   useEffect(() => {
     if (!sessionLoading && !session) {
@@ -73,11 +85,30 @@ export default function EmailListPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  // Thread grouping
+  const displayEmails: Array<Email & { threadCount?: number }> = useMemo(() => {
+    if (!threadView) return emails;
+    const threadMap = new Map<string, Email[]>();
+    emails.forEach((email) => {
+      const tid = email.gmail_thread_id || email.id;
+      if (!threadMap.has(tid)) threadMap.set(tid, []);
+      threadMap.get(tid)!.push(email);
+    });
+    const result: Array<Email & { threadCount?: number }> = [];
+    threadMap.forEach((group) => {
+      const newest = group.reduce((a, b) =>
+        new Date(a.received_at) > new Date(b.received_at) ? a : b
+      );
+      result.push({ ...newest, threadCount: group.length > 1 ? group.length : undefined });
+    });
+    result.sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime());
+    return result;
+  }, [emails, threadView]);
+
   const handleSync = async () => {
     setSyncing(true);
     try {
       await emailsApi.syncEmails();
-      // Poll for new emails every 5s for up to 60s while sync runs
       let attempts = 0;
       const poll = setInterval(async () => {
         await mutate();
@@ -102,6 +133,18 @@ export default function EmailListPage() {
     }
   };
 
+  const handleExportCSV = async () => {
+    setExportingCSV(true);
+    try {
+      await emailsApi.exportCSV();
+      toast.success('Export started!');
+    } catch {
+      toast.error('Failed to export emails');
+    } finally {
+      setExportingCSV(false);
+    }
+  };
+
   const clearFilters = () => {
     setCategory(undefined);
     setPriorityLevel(undefined);
@@ -111,6 +154,19 @@ export default function EmailListPage() {
   };
 
   const hasActiveFilters = !!(category || priorityLevel || search);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  };
+
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
 
   return (
     <>
@@ -209,23 +265,64 @@ export default function EmailListPage() {
             </div>
           )}
 
-          {/* Bulk process button */}
-          <div className="flex items-center justify-between">
+          {/* Action bar */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="text-sm text-gray-500">{total > 0 ? `${total.toLocaleString()} email${total !== 1 ? 's' : ''}` : ''}</p>
-            <button onClick={handleBulkProcess} disabled={bulkProcessing} className="btn-secondary text-sm">
-              {bulkProcessing
-                ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                : <Zap className="h-4 w-4 mr-1.5" />}
-              {bulkProcessing ? 'Processing…' : 'Process All with AI'}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Thread toggle */}
+              <button
+                onClick={() => setThreadView((v) => !v)}
+                className={clsx('btn-secondary text-sm', threadView && 'bg-primary-50 border-primary-300 text-primary-700')}
+                title="Toggle thread view"
+              >
+                {threadView ? <List className="h-4 w-4 mr-1.5" /> : <Layers className="h-4 w-4 mr-1.5" />}
+                {threadView ? 'All' : 'Threads'}
+              </button>
+
+              {/* Select mode */}
+              <button
+                onClick={() => {
+                  if (selectionMode) { exitSelection(); } else { setSelectionMode(true); }
+                }}
+                className={clsx('btn-secondary text-sm', selectionMode && 'bg-primary-50 border-primary-300 text-primary-700')}
+              >
+                <CheckSquare className="h-4 w-4 mr-1.5" />
+                {selectionMode ? 'Cancel' : 'Select'}
+              </button>
+
+              {/* Export CSV */}
+              <button onClick={handleExportCSV} disabled={exportingCSV} className="btn-secondary text-sm">
+                {exportingCSV
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  : <Download className="h-4 w-4 mr-1.5" />}
+                Export CSV
+              </button>
+
+              {/* Process all */}
+              <button onClick={handleBulkProcess} disabled={bulkProcessing} className="btn-secondary text-sm">
+                {bulkProcessing
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  : <Zap className="h-4 w-4 mr-1.5" />}
+                {bulkProcessing ? 'Processing…' : 'Process All with AI'}
+              </button>
+            </div>
           </div>
+
+          {/* Batch action bar */}
+          {selectionMode && selectedIds.size > 0 && (
+            <BatchActionBar
+              selectedIds={selectedIds}
+              onCancel={exitSelection}
+              onComplete={() => { exitSelection(); mutate(); }}
+            />
+          )}
 
           {/* Email list */}
           {isLoading ? (
             <InboxSkeleton />
           ) : error ? (
             <ErrorCard message="Failed to load emails. Check your Gmail connection." onRetry={() => mutate()} />
-          ) : emails.length === 0 ? (
+          ) : displayEmails.length === 0 ? (
             <EmptyState
               icon={Mail}
               title={hasActiveFilters ? 'No emails match your filters' : 'No emails yet'}
@@ -243,8 +340,21 @@ export default function EmailListPage() {
             />
           ) : (
             <div className="space-y-2">
-              {emails.map((email) => (
-                <EmailCard key={email.id} email={email} onDismiss={() => mutate()} />
+              {displayEmails.map((email) => (
+                <div key={email.id} className="relative">
+                  <EmailCard
+                    email={email}
+                    onDismiss={() => mutate()}
+                    selected={selectionMode ? selectedIds.has(email.id) : undefined}
+                    onToggleSelect={selectionMode ? () => toggleSelect(email.id) : undefined}
+                  />
+                  {/* Thread badge */}
+                  {email.threadCount && email.threadCount > 1 && (
+                    <span className="absolute bottom-3 right-8 inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 pointer-events-none">
+                      {email.threadCount} in thread
+                    </span>
+                  )}
+                </div>
               ))}
             </div>
           )}

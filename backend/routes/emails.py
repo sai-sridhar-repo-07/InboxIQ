@@ -1,8 +1,11 @@
+import csv
+import io
 import logging
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
 from database import get_supabase
@@ -119,6 +122,117 @@ async def sync_emails(
     """Manually trigger a Gmail sync for the current user."""
     background_tasks.add_task(_process_user_emails, _current_user_id(current_user))
     return {"message": "Gmail sync started."}
+
+
+# ---------------------------------------------------------------------------
+# New feature models
+# ---------------------------------------------------------------------------
+
+class StarBody(BaseModel):
+    starred: bool
+
+
+class SnoozeBody(BaseModel):
+    snooze_until: datetime | None = None
+
+
+class BulkEmailIds(BaseModel):
+    email_ids: list[str]
+
+
+# ---------------------------------------------------------------------------
+# New feature routes (must be before /{email_id} catch-all)
+# ---------------------------------------------------------------------------
+
+@router.patch("/{email_id}/star", status_code=status.HTTP_204_NO_CONTENT)
+async def star_email(
+    email_id: str,
+    body: StarBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Toggle the starred flag on an email."""
+    await email_service.toggle_star(
+        email_id=email_id,
+        user_id=_current_user_id(current_user),
+        starred=body.starred,
+    )
+    return None
+
+
+@router.patch("/{email_id}/snooze", status_code=status.HTTP_204_NO_CONTENT)
+async def snooze_email(
+    email_id: str,
+    body: SnoozeBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Set or clear the snooze_until timestamp on an email."""
+    await email_service.snooze_email(
+        email_id=email_id,
+        user_id=_current_user_id(current_user),
+        snooze_until=body.snooze_until,
+    )
+    return None
+
+
+@router.get("/snoozed")
+async def get_snoozed_emails(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Return emails that are currently snoozed (snooze_until in the future)."""
+    return await email_service.get_snoozed_emails(user_id=_current_user_id(current_user))
+
+
+@router.post("/bulk-dismiss")
+async def bulk_dismiss(
+    body: BulkEmailIds,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Set dismissed=true on all given email IDs."""
+    count = await email_service.bulk_dismiss(
+        user_id=_current_user_id(current_user), email_ids=body.email_ids
+    )
+    return {"dismissed": count}
+
+
+@router.post("/bulk-read")
+async def bulk_mark_read(
+    body: BulkEmailIds,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Set is_read=true on all given email IDs."""
+    count = await email_service.bulk_mark_read(
+        user_id=_current_user_id(current_user), email_ids=body.email_ids
+    )
+    return {"updated": count}
+
+
+@router.get("/export")
+async def export_emails_csv(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Export all non-dismissed emails as a CSV file."""
+    rows = await email_service.get_export_emails(user_id=_current_user_id(current_user))
+
+    output = io.StringIO()
+    fieldnames = ["id", "subject", "sender", "received_at", "category", "priority",
+                  "ai_summary", "is_read", "processed"]
+    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="emails.csv"'},
+    )
+
+
+@router.get("/sender-insights")
+async def sender_insights(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Return top 10 senders by email count with category breakdown."""
+    return await email_service.get_sender_insights(user_id=_current_user_id(current_user))
+
+
+@router.get("/follow-ups")
+async def follow_ups(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Return processed emails needing follow-up older than 2 days."""
+    return await email_service.get_follow_up_emails(user_id=_current_user_id(current_user))
 
 
 @router.get("/{email_id}")

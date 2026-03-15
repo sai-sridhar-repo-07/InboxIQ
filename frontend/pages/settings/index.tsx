@@ -14,6 +14,7 @@ import {
   Trash2,
   TestTube2,
   Mail,
+  Plane,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
@@ -23,12 +24,13 @@ import { settingsApi, integrationsApi } from '@/lib/api';
 import type { UserSettings, TonePreference, NotificationFrequency } from '@/lib/types';
 import clsx from 'clsx';
 
-type Tab = 'profile' | 'integrations' | 'notifications';
+type Tab = 'profile' | 'integrations' | 'notifications' | 'vacation';
 
 const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'profile', label: 'Profile & AI', icon: User },
   { id: 'integrations', label: 'Integrations', icon: Link2 },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'vacation', label: 'Vacation', icon: Plane },
 ];
 
 // ─── Profile Tab ──────────────────────────────────────────────────────────────
@@ -488,6 +490,97 @@ function NotificationsTab({
   );
 }
 
+// ─── Vacation Tab ─────────────────────────────────────────────────────────────
+function VacationTab({
+  settings,
+  onSave,
+}: {
+  settings: UserSettings;
+  onSave: (data: Partial<UserSettings>) => Promise<void>;
+}) {
+  const [form, setForm] = useState({
+    vacation_mode: settings.vacation_mode ?? false,
+    vacation_message: settings.vacation_message ?? '',
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+      <div className="card p-6">
+        <div className="flex items-start gap-3 mb-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50">
+            <Plane className="h-5 w-5 text-sky-500" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900">Vacation / Out of Office</h3>
+            <p className="text-sm text-gray-500 mt-0.5">Automatically reply to emails while you&apos;re away</p>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div className="flex items-center justify-between py-3 border-b border-gray-100">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Enable vacation auto-reply</p>
+              <p className="text-xs text-gray-500 mt-0.5">Send automatic replies to incoming emails</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, vacation_mode: !form.vacation_mode })}
+              className={clsx(
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                form.vacation_mode ? 'bg-primary-600' : 'bg-gray-200'
+              )}
+              role="switch"
+              aria-checked={form.vacation_mode}
+            >
+              <span
+                className={clsx(
+                  'inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform',
+                  form.vacation_mode ? 'translate-x-5' : 'translate-x-0'
+                )}
+              />
+            </button>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Auto-reply message
+            </label>
+            <textarea
+              value={form.vacation_message}
+              onChange={(e) => setForm({ ...form, vacation_message: e.target.value })}
+              rows={5}
+              className="input-field resize-none"
+              placeholder="Hi, I'm currently out of office and will return on [date]. I'll reply to your email as soon as possible."
+              disabled={!form.vacation_mode}
+            />
+            <p className="mt-1.5 text-xs text-gray-400">
+              This message will be sent automatically when vacation mode is enabled.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button type="submit" disabled={isSaving} className="btn-primary gap-2">
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {isSaving ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const router = useRouter();
@@ -556,6 +649,9 @@ export default function SettingsPage() {
               )}
               {activeTab === 'notifications' && (
                 <NotificationsTab settings={settings} onSave={handleSave} />
+              )}
+              {activeTab === 'vacation' && (
+                <VacationTab settings={settings} onSave={handleSave} />
               )}
             </>
           ) : (

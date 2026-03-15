@@ -132,6 +132,60 @@ export const emailsApi = {
     const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     return `${base}/api/emails/${id}/attachments/${attachmentId}/download?filename=${encodeURIComponent(filename)}&mime_type=${encodeURIComponent(mimeType)}`;
   },
+
+  starEmail: async (id: string, starred: boolean): Promise<void> => {
+    await api.patch(`/api/emails/${id}/star`, { starred });
+  },
+
+  snoozeEmail: async (id: string, snoozeUntil: string | null): Promise<void> => {
+    await api.patch(`/api/emails/${id}/snooze`, { snooze_until: snoozeUntil });
+  },
+
+  getSnoozed: async (): Promise<Email[]> => {
+    const { data } = await api.get('/api/emails/snoozed');
+    return data;
+  },
+
+  bulkDismiss: async (ids: string[]): Promise<{ dismissed: number }> => {
+    const { data } = await api.post('/api/emails/bulk-dismiss', { email_ids: ids });
+    return data;
+  },
+
+  bulkMarkRead: async (ids: string[]): Promise<{ updated: number }> => {
+    const { data } = await api.post('/api/emails/bulk-read', { email_ids: ids });
+    return data;
+  },
+
+  getFollowUps: async (): Promise<Email[]> => {
+    const { data } = await api.get('/api/emails/follow-ups');
+    return data;
+  },
+
+  getSenderInsights: async (): Promise<Array<{
+    sender_email: string;
+    sender_name: string;
+    count: number;
+    last_email_at: string;
+    categories: Record<string, number>;
+  }>> => {
+    const { data } = await api.get('/api/emails/sender-insights');
+    return data;
+  },
+
+  exportCSV: async (): Promise<void> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const res = await fetch(`${base}/api/emails/export`, {
+      headers: { Authorization: `Bearer ${session?.access_token}` },
+    });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inboxiq-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 // ─── Actions Endpoints ────────────────────────────────────────────────────────

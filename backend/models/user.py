@@ -25,6 +25,8 @@ class UserUpdate(BaseModel):
     notification_frequency: Optional[str] = None
     auto_process_emails: Optional[bool] = None
     priority_threshold: Optional[int] = None
+    vacation_mode: Optional[bool] = None
+    vacation_message: Optional[str] = None
 
 
 class ReplyDraftResponse(BaseModel):

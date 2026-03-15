@@ -1,6 +1,6 @@
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from database import get_supabase
@@ -76,8 +76,10 @@ def _normalize_email(row: dict) -> dict:
         "body_text": body_text,
         "body_html": None,
         "gmail_thread_id": row.get("thread_id"),
-        "is_read": False,
-        "is_starred": False,
+        "is_read": row.get("is_read", False),
+        "is_starred": row.get("starred", False),
+        "starred": row.get("starred", False),
+        "snooze_until": row.get("snooze_until"),
         "labels": [],
         "ai_analysis": ai_analysis,
         "updated_at": row.get("created_at", ""),
@@ -124,7 +126,13 @@ async def get_emails(user_id: str, filters: EmailFilter) -> list[dict]:
         )
         query = _apply_email_filters(query, filters)
         result = query.execute()
-        return [_normalize_email(r) for r in (result.data or [])]
+        now = datetime.now(timezone.utc)
+        rows = [
+            _normalize_email(r) for r in (result.data or [])
+            if not r.get("snooze_until") or
+            datetime.fromisoformat(r["snooze_until"].replace("Z", "+00:00")) <= now
+        ]
+        return rows
 
     except Exception as exc:
         logger.error("get_emails error (user_id=%s): %s", user_id, exc)
@@ -137,13 +145,19 @@ async def count_emails(user_id: str, filters: EmailFilter) -> int:
         supabase = get_supabase()
         query = (
             supabase.table("emails")
-            .select("id", count="exact")
+            .select("id, snooze_until")
             .eq("user_id", user_id)
             .neq("dismissed", True)
         )
         query = _apply_email_filters(query, filters)
         result = query.execute()
-        return result.count or 0
+        now = datetime.now(timezone.utc)
+        rows = [
+            r for r in (result.data or [])
+            if not r.get("snooze_until") or
+            datetime.fromisoformat(r["snooze_until"].replace("Z", "+00:00")) <= now
+        ]
+        return len(rows)
     except Exception as exc:
         logger.error("count_emails error (user_id=%s): %s", user_id, exc)
         return 0
@@ -426,7 +440,12 @@ async def get_priority_inbox(user_id: str) -> dict:
             .limit(200)
             .execute()
         )
-        rows = [_normalize_email(r) for r in (result.data or [])]
+        now = datetime.now(timezone.utc)
+        rows = [
+            _normalize_email(r) for r in (result.data or [])
+            if not r.get("snooze_until") or
+            datetime.fromisoformat(r["snooze_until"].replace("Z", "+00:00")) <= now
+        ]
 
         def cat(r):
             return _CATEGORY_MAP.get(r.get("category") or "", "other")
@@ -446,3 +465,183 @@ async def get_priority_inbox(user_id: str) -> dict:
     except Exception as exc:
         logger.error("get_priority_inbox error (user_id=%s): %s", user_id, exc)
         return {"urgent": [], "important": [], "other": []}
+
+
+# ---------------------------------------------------------------------------
+# New feature service functions
+# ---------------------------------------------------------------------------
+
+async def toggle_star(email_id: str, user_id: str, starred: bool) -> bool:
+    """Toggle the starred flag on an email."""
+    try:
+        supabase = get_supabase()
+        supabase.table("emails").update({"starred": starred}).eq(
+            "id", email_id
+        ).eq("user_id", user_id).execute()
+        return True
+    except Exception as exc:
+        logger.error("toggle_star error (email_id=%s): %s", email_id, exc)
+        return False
+
+
+async def snooze_email(email_id: str, user_id: str, snooze_until) -> bool:
+    """Set or clear the snooze_until timestamp on an email."""
+    try:
+        supabase = get_supabase()
+        value = snooze_until.isoformat() if hasattr(snooze_until, "isoformat") else snooze_until
+        supabase.table("emails").update({"snooze_until": value}).eq(
+            "id", email_id
+        ).eq("user_id", user_id).execute()
+        return True
+    except Exception as exc:
+        logger.error("snooze_email error (email_id=%s): %s", email_id, exc)
+        return False
+
+
+async def get_snoozed_emails(user_id: str) -> list[dict]:
+    """Return emails that are currently snoozed (snooze_until in the future)."""
+    try:
+        supabase = get_supabase()
+        result = (
+            supabase.table("emails")
+            .select("*")
+            .eq("user_id", user_id)
+            .neq("dismissed", True)
+            .not_.is_("snooze_until", "null")
+            .execute()
+        )
+        now = datetime.now(timezone.utc)
+        snoozed = [
+            _normalize_email(r) for r in (result.data or [])
+            if r.get("snooze_until") and
+            datetime.fromisoformat(r["snooze_until"].replace("Z", "+00:00")) > now
+        ]
+        return snoozed
+    except Exception as exc:
+        logger.error("get_snoozed_emails error (user_id=%s): %s", user_id, exc)
+        return []
+
+
+async def bulk_dismiss(user_id: str, email_ids: list[str]) -> int:
+    """Set dismissed=true on all given email IDs belonging to the user."""
+    if not email_ids:
+        return 0
+    try:
+        supabase = get_supabase()
+        result = (
+            supabase.table("emails")
+            .update({"dismissed": True})
+            .eq("user_id", user_id)
+            .in_("id", email_ids)
+            .execute()
+        )
+        return len(result.data or [])
+    except Exception as exc:
+        logger.error("bulk_dismiss error (user_id=%s): %s", user_id, exc)
+        return 0
+
+
+async def bulk_mark_read(user_id: str, email_ids: list[str]) -> int:
+    """Set is_read=true on all given email IDs belonging to the user."""
+    if not email_ids:
+        return 0
+    try:
+        supabase = get_supabase()
+        result = (
+            supabase.table("emails")
+            .update({"is_read": True})
+            .eq("user_id", user_id)
+            .in_("id", email_ids)
+            .execute()
+        )
+        return len(result.data or [])
+    except Exception as exc:
+        logger.error("bulk_mark_read error (user_id=%s): %s", user_id, exc)
+        return 0
+
+
+async def get_export_emails(user_id: str) -> list[dict]:
+    """Fetch all non-dismissed emails for CSV export (max 2000)."""
+    try:
+        supabase = get_supabase()
+        result = (
+            supabase.table("emails")
+            .select("id, subject, sender, received_at, category, priority, ai_summary, is_read, processed")
+            .eq("user_id", user_id)
+            .neq("dismissed", True)
+            .order("received_at", desc=True)
+            .limit(2000)
+            .execute()
+        )
+        return result.data or []
+    except Exception as exc:
+        logger.error("get_export_emails error (user_id=%s): %s", user_id, exc)
+        return []
+
+
+async def get_sender_insights(user_id: str) -> list[dict]:
+    """Return top 10 senders by email count with category breakdown."""
+    try:
+        supabase = get_supabase()
+        result = (
+            supabase.table("emails")
+            .select("sender, received_at, category")
+            .eq("user_id", user_id)
+            .neq("dismissed", True)
+            .execute()
+        )
+        rows = result.data or []
+
+        sender_map: dict[str, dict] = {}
+        for row in rows:
+            sender_raw = row.get("sender", "") or ""
+            from_name, from_email = _parse_sender(sender_raw)
+            key = from_email or sender_raw
+            if key not in sender_map:
+                sender_map[key] = {
+                    "sender_email": from_email or sender_raw,
+                    "sender_name": from_name,
+                    "count": 0,
+                    "last_email_at": "",
+                    "categories": {},
+                }
+            entry = sender_map[key]
+            entry["count"] += 1
+            received = row.get("received_at", "") or ""
+            if received > entry["last_email_at"]:
+                entry["last_email_at"] = received
+            cat = _CATEGORY_MAP.get(row.get("category") or "", "other")
+            entry["categories"][cat] = entry["categories"].get(cat, 0) + 1
+
+        top10 = sorted(sender_map.values(), key=lambda x: x["count"], reverse=True)[:10]
+        return top10
+    except Exception as exc:
+        logger.error("get_sender_insights error (user_id=%s): %s", user_id, exc)
+        return []
+
+
+async def get_follow_up_emails(user_id: str) -> list[dict]:
+    """Return processed emails needing follow-up that are older than 2 days."""
+    try:
+        from datetime import timedelta
+        supabase = get_supabase()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+        follow_up_categories = [
+            "needs_response", "follow_up", "urgent_client_request", "quote_request",
+        ]
+        result = (
+            supabase.table("emails")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("processed", True)
+            .neq("dismissed", True)
+            .in_("category", follow_up_categories)
+            .lt("received_at", cutoff)
+            .order("received_at", desc=True)
+            .limit(10)
+            .execute()
+        )
+        return [_normalize_email(r) for r in (result.data or [])]
+    except Exception as exc:
+        logger.error("get_follow_up_emails error (user_id=%s): %s", user_id, exc)
+        return []
