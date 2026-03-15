@@ -7,6 +7,7 @@ from ai.classifier import classify_email
 from ai.reply_generator import generate_reply
 from ai.embeddings import find_similar_replies, store_reply_embedding
 from services.slack_service import send_urgent_alert
+from services.gmail_service import get_email_attachments
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +39,26 @@ async def process_email(email: dict) -> dict | None:
         return None
 
     # ------------------------------------------------------------------
+    # Step 0 – Fetch attachment metadata so AI knows what's attached
+    # ------------------------------------------------------------------
+    attachment_filenames: list[str] = []
+    gmail_message_id = email.get("gmail_message_id")
+    if gmail_message_id:
+        try:
+            attachments_meta = await get_email_attachments(
+                user_id=user_id, gmail_message_id=gmail_message_id
+            )
+            attachment_filenames = [a["filename"] for a in attachments_meta if a.get("filename")]
+        except Exception as exc:
+            logger.warning("Could not fetch attachments for email_id=%s: %s", email_id, exc)
+
+    # ------------------------------------------------------------------
     # Step 1 – Classify
     # ------------------------------------------------------------------
     try:
-        analysis = await classify_email(subject=subject, sender=sender, body=body)
+        analysis = await classify_email(
+            subject=subject, sender=sender, body=body, attachments=attachment_filenames
+        )
     except Exception as exc:
         logger.error("classify_email failed for email_id=%s: %s", email_id, exc)
         analysis = {
@@ -129,6 +146,7 @@ async def process_email(email: dict) -> dict | None:
             company_description=company_description,
             tone=tone,
             similar_replies=similar_replies,
+            attachments=attachment_filenames,
         )
     except Exception as exc:
         logger.error("generate_reply failed for email_id=%s: %s", email_id, exc)

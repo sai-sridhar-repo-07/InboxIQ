@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, Circle, X, ChevronRight, Zap } from 'lucide-react';
+import { CheckCircle, Circle, X, ChevronRight, Zap, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface Step {
@@ -50,9 +50,11 @@ interface Props {
   hasProcessed: boolean;
   onSync: () => void;
   onProcessAll: () => void;
+  isSyncing?: boolean;
+  isBulkProcessing?: boolean;
 }
 
-export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProcessed, onSync, onProcessAll }: Props) {
+export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProcessed, onSync, onProcessAll, isSyncing, isBulkProcessing }: Props) {
   const [dismissed, setDismissed] = useState(false);
   const [replyDone, setReplyDone] = useState(false);
 
@@ -135,20 +137,25 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
                   <p className="text-xs text-gray-400 mt-0.5">{step.description}</p>
                 )}
               </div>
-              {!done && step.action && (
-                step.href ? (
+              {!done && step.action && (() => {
+                const isLoading = step.id === 'sync' ? isSyncing : step.id === 'process' ? isBulkProcessing : false;
+                return step.href ? (
                   <Link href={step.href} className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0">
                     {step.action} <ChevronRight className="h-3 w-3" />
                   </Link>
                 ) : (
                   <button
                     onClick={step.id === 'sync' ? onSync : onProcessAll}
-                    className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0"
+                    disabled={!!isLoading}
+                    className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 flex-shrink-0 disabled:opacity-60"
                   >
-                    {step.action} <ChevronRight className="h-3 w-3" />
+                    {isLoading
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <>{step.action} <ChevronRight className="h-3 w-3" /></>
+                    }
                   </button>
-                )
-              )}
+                );
+              })()}
             </div>
           );
         })}

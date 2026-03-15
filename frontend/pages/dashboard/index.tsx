@@ -65,6 +65,7 @@ export default function DashboardPage() {
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [isRefreshing, setIsRefreshing]     = useState(false);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { data: priorityInbox, error: inboxError, isLoading: inboxLoading, mutate: mutateInbox } = usePriorityInbox();
   const { data: stats, isLoading: statsLoading, mutate: mutateStats } = useEmailStats();
@@ -78,6 +79,21 @@ export default function DashboardPage() {
 
   if (sessionLoading) return <LoadingSpinner fullPage />;
   if (!session) return null;
+
+  const handleSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    const loadingToast = toast.loading('Syncing emails…');
+    try {
+      await emailsApi.syncEmails();
+      await Promise.all([mutateInbox(), mutateStats()]);
+      toast.success('Emails synced!', { id: loadingToast });
+    } catch {
+      toast.error('Failed to sync emails. Check your Gmail connection.', { id: loadingToast });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleConnectGmail = async () => {
     try {
@@ -131,8 +147,10 @@ export default function DashboardPage() {
             gmailConnected={gmailStatus?.connected ?? false}
             hasEmails={(stats?.total_emails ?? 0) > 0}
             hasProcessed={(stats?.total_emails ?? 0) > 0 && (stats?.urgent_count ?? 0) + (stats?.needs_response_count ?? 0) > 0}
-            onSync={async () => { await emailsApi.syncEmails(); await Promise.all([mutateInbox(), mutateStats()]); }}
+            onSync={handleSync}
             onProcessAll={handleBulkProcess}
+            isSyncing={isSyncing}
+            isBulkProcessing={isBulkProcessing}
           />
 
           {/* Gmail connect banner */}

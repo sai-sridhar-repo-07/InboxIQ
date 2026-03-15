@@ -19,19 +19,25 @@ Analyze the following email and return a JSON object with exactly these fields:
 Email Subject: {subject}
 From: {sender}
 Email Body:
-{body}
+{body}{attachments_section}
 
 Return ONLY valid JSON, no other text."""
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
-async def classify_email(subject: str, sender: str, body: str) -> dict:
+async def classify_email(subject: str, sender: str, body: str, attachments: list[str] | None = None) -> dict:
     """Classify an email using Claude and return structured analysis."""
     try:
+        attachments_section = ""
+        if attachments:
+            names = ", ".join(attachments)
+            attachments_section = f"\n\nAttachments included in this email: {names}"
+
         prompt = CLASSIFICATION_PROMPT.format(
             subject=subject,
             sender=sender,
             body=body[:3000],
+            attachments_section=attachments_section,
         )
 
         response = await client.messages.create(

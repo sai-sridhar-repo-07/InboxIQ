@@ -15,7 +15,7 @@ Preferred Tone: {tone}
 
 Original Email from {sender}:
 Subject: {subject}
-Body: {body}
+Body: {body}{attachments_section}
 
 Previous similar replies for context:
 {similar_replies}
@@ -31,7 +31,7 @@ Preferred Tone: {tone}
 
 Original Email from {sender}:
 Subject: {subject}
-Body: {body}
+Body: {body}{attachments_section}
 
 User's instructions for this reply:
 {instructions}
@@ -48,6 +48,7 @@ async def generate_reply(
     tone: str = "professional and friendly",
     similar_replies: list | None = None,
     user_instructions: str | None = None,
+    attachments: list[str] | None = None,
 ) -> tuple[str, float]:
     """
     Generate an AI reply draft using Claude.
@@ -60,6 +61,11 @@ async def generate_reply(
     (draft_text, confidence_score)
     """
     try:
+        attachments_section = ""
+        if attachments:
+            names = ", ".join(attachments)
+            attachments_section = f"\nAttachments included in this email: {names}"
+
         if user_instructions:
             prompt = GUIDED_REPLY_PROMPT.format(
                 company_description=company_description,
@@ -67,6 +73,7 @@ async def generate_reply(
                 sender=sender,
                 subject=subject,
                 body=body[:2000],
+                attachments_section=attachments_section,
                 instructions=user_instructions,
             )
         else:
@@ -81,6 +88,7 @@ async def generate_reply(
                 sender=sender,
                 subject=subject,
                 body=body[:2000],
+                attachments_section=attachments_section,
                 similar_replies=similar_context,
             )
 

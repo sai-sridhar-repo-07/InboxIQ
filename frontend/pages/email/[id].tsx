@@ -19,6 +19,7 @@ import {
   CheckSquare,
   Paperclip,
   Download,
+  Eye,
   FileText,
   Image as ImageIcon,
   FileSpreadsheet,
@@ -31,6 +32,7 @@ import CategoryBadge from '@/components/CategoryBadge';
 import ActionItem from '@/components/ActionItem';
 import ReplyEditor from '@/components/ReplyEditor';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import AttachmentViewer from '@/components/AttachmentViewer';
 import { useEmail, useEmailActions, useReplyDraft } from '@/lib/hooks';
 import { emailsApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
@@ -77,6 +79,7 @@ export default function EmailDetailPage() {
   const [actions, setActions]                 = useState<Action[]>([]);
   const [attachments, setAttachments]         = useState<Attachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [viewingAttachment, setViewingAttachment] = useState<Attachment | null>(null);
 
   const { data: email, error: emailError, isLoading: emailLoading, mutate: mutateEmail } = useEmail(emailId);
   const { data: rawActions, isLoading: actionsLoading } = useEmailActions(emailId);
@@ -186,6 +189,13 @@ export default function EmailDetailPage() {
 
   return (
     <>
+      {viewingAttachment && emailId && (
+        <AttachmentViewer
+          attachment={viewingAttachment}
+          emailId={emailId}
+          onClose={() => setViewingAttachment(null)}
+        />
+      )}
       <Head><title>{email.subject} — InboxIQ</title></Head>
       <Layout title="Email Detail">
         <div className="max-w-4xl mx-auto space-y-4 animate-fade-in">
@@ -303,13 +313,22 @@ export default function EmailDetailPage() {
                             <p className="text-xs font-medium text-gray-800 truncate">{att.filename}</p>
                             <p className="text-xs text-gray-400">{formatBytes(att.size)}</p>
                           </div>
-                          <button
-                            onClick={() => handleDownloadAttachment(att)}
-                            className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-100 transition-colors"
-                            title="Download"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              onClick={() => setViewingAttachment(att)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-100 transition-colors"
+                              title="View"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDownloadAttachment(att)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-100 transition-colors"
+                              title="Download"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
