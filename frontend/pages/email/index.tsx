@@ -2,11 +2,14 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useSessionContext } from '@supabase/auth-helpers-react';
-import { Search, Filter, X, Mail, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Search, Filter, X, Mail, ChevronLeft, ChevronRight, RefreshCw, Zap, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import EmailCard from '@/components/EmailCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
+import { InboxSkeleton } from '@/components/SkeletonLoader';
+import { ErrorCard } from '@/components/ErrorBoundary';
 import CategoryBadge from '@/components/CategoryBadge';
 import { useEmails } from '@/lib/hooks';
 import { emailsApi } from '@/lib/api';
@@ -29,7 +32,8 @@ export default function EmailListPage() {
   const router = useRouter();
   const { session, isLoading: sessionLoading } = useSessionContext();
 
-  const [syncing, setSyncing] = useState(false);
+  const [syncing, setSyncing]             = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<EmailCategory | undefined>(
     (router.query.category as EmailCategory) || undefined
@@ -82,6 +86,19 @@ export default function EmailListPage() {
       }, 5000);
     } catch {
       setSyncing(false);
+    }
+  };
+
+  const handleBulkProcess = async () => {
+    setBulkProcessing(true);
+    try {
+      const { count } = await emailsApi.bulkProcess();
+      await mutate();
+      toast.success(count > 0 ? `Processing ${count} emails with AI…` : 'All emails already processed!');
+    } catch {
+      toast.error('Failed to start bulk processing');
+    } finally {
+      setBulkProcessing(false);
     }
   };
 
@@ -192,15 +209,22 @@ export default function EmailListPage() {
             </div>
           )}
 
+          {/* Bulk process button */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">{total > 0 ? `${total.toLocaleString()} email${total !== 1 ? 's' : ''}` : ''}</p>
+            <button onClick={handleBulkProcess} disabled={bulkProcessing} className="btn-secondary text-sm">
+              {bulkProcessing
+                ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                : <Zap className="h-4 w-4 mr-1.5" />}
+              {bulkProcessing ? 'Processing…' : 'Process All with AI'}
+            </button>
+          </div>
+
           {/* Email list */}
           {isLoading ? (
-            <div className="flex justify-center py-16">
-              <LoadingSpinner size="lg" />
-            </div>
+            <InboxSkeleton />
           ) : error ? (
-            <div className="card p-8 text-center">
-              <p className="text-sm text-gray-600">Failed to load emails. Check your Gmail connection.</p>
-            </div>
+            <ErrorCard message="Failed to load emails. Check your Gmail connection." onRetry={() => mutate()} />
           ) : emails.length === 0 ? (
             <EmptyState
               icon={Mail}

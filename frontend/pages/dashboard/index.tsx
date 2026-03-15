@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Loader2,
   ExternalLink,
+  Zap,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
@@ -18,6 +19,9 @@ import StatsCard from '@/components/StatsCard';
 import EmailCard from '@/components/EmailCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
+import OnboardingChecklist from '@/components/OnboardingChecklist';
+import { DashboardSkeleton } from '@/components/SkeletonLoader';
+import { ErrorCard } from '@/components/ErrorBoundary';
 import { usePriorityInbox, useEmailStats, useGmailStatus } from '@/lib/hooks';
 import { integrationsApi, emailsApi } from '@/lib/api';
 import { useState } from 'react';
@@ -59,7 +63,8 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
 export default function DashboardPage() {
   const router = useRouter();
   const { session, isLoading: sessionLoading } = useSessionContext();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing]     = useState(false);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   const { data: priorityInbox, error: inboxError, isLoading: inboxLoading, mutate: mutateInbox } = usePriorityInbox();
   const { data: stats, isLoading: statsLoading, mutate: mutateStats } = useEmailStats();
@@ -95,6 +100,19 @@ export default function DashboardPage() {
     }
   };
 
+  const handleBulkProcess = async () => {
+    setIsBulkProcessing(true);
+    try {
+      const { count } = await emailsApi.bulkProcess();
+      await Promise.all([mutateInbox(), mutateStats()]);
+      toast.success(count > 0 ? `Processing ${count} emails with AI…` : 'All emails already processed!');
+    } catch {
+      toast.error('Failed to start bulk processing');
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
   const urgent = priorityInbox?.urgent ?? [];
   const needsResponse = priorityInbox?.needs_response ?? [];
   const followUp = priorityInbox?.follow_up ?? [];
@@ -108,6 +126,15 @@ export default function DashboardPage() {
       </Head>
       <Layout title="Dashboard">
         <div className="max-w-6xl mx-auto space-y-6">
+          {/* Onboarding checklist */}
+          <OnboardingChecklist
+            gmailConnected={gmailStatus?.connected ?? false}
+            hasEmails={(stats?.total_emails ?? 0) > 0}
+            hasProcessed={(stats?.total_emails ?? 0) > 0 && (stats?.urgent_count ?? 0) + (stats?.needs_response_count ?? 0) > 0}
+            onSync={async () => { await emailsApi.syncEmails(); await Promise.all([mutateInbox(), mutateStats()]); }}
+            onProcessAll={handleBulkProcess}
+          />
+
           {/* Gmail connect banner */}
           {gmailStatus && !gmailStatus.connected && (
             <GmailConnectBanner onConnect={handleConnectGmail} />
@@ -157,33 +184,38 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Refresh button */}
-          <div className="flex items-center justify-between">
+          {/* Inbox header with actions */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h2 className="text-lg font-semibold text-gray-900">Priority Inbox</h2>
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="btn-secondary text-sm gap-2"
-            >
-              {isRefreshing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              Refresh
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleBulkProcess}
+                disabled={isBulkProcessing}
+                className="btn-secondary text-sm"
+              >
+                {isBulkProcessing
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  : <Zap className="h-4 w-4 mr-1.5" />}
+                <span className="hidden sm:inline">{isBulkProcessing ? 'Processing…' : 'Process All'}</span>
+                <span className="sm:hidden">AI</span>
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="btn-secondary text-sm"
+              >
+                {isRefreshing
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <RefreshCw className="h-4 w-4" />}
+                <span className="ml-1.5 hidden sm:inline">Refresh</span>
+              </button>
+            </div>
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center py-16">
-              <LoadingSpinner size="lg" />
-            </div>
+            <DashboardSkeleton />
           ) : inboxError ? (
-            <div className="card p-8 text-center">
-              <AlertTriangle className="mx-auto h-10 w-10 text-amber-400 mb-3" />
-              <p className="text-sm font-medium text-gray-700">Failed to load emails</p>
-              <p className="mt-1 text-xs text-gray-500">Check your Gmail connection in Settings.</p>
-            </div>
+            <ErrorCard message="Failed to load emails. Check your Gmail connection in Settings." onRetry={() => { mutateInbox(); mutateStats(); }} />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Urgent */}

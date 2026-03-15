@@ -3,18 +3,20 @@ import { useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { Toaster } from 'react-hot-toast';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import '@/styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
   const [supabaseClient] = useState(() => createClientComponentClient());
 
   return (
-    <SessionContextProvider
-      supabaseClient={supabaseClient}
-      initialSession={pageProps.initialSession}
-    >
-      <Component {...pageProps} />
-      <Toaster
+    <ErrorBoundary>
+      <SessionContextProvider
+        supabaseClient={supabaseClient}
+        initialSession={pageProps.initialSession}
+      >
+        <Component {...pageProps} />
+        <Toaster
         position="top-right"
         toastOptions={{
           duration: 4000,
@@ -33,7 +35,8 @@ export default function App({ Component, pageProps }: AppProps) {
             iconTheme: { primary: '#ef4444', secondary: '#fff' },
           },
         }}
-      />
-    </SessionContextProvider>
+        />
+      </SessionContextProvider>
+    </ErrorBoundary>
   );
 }

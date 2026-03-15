@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Bell,
   User,
+  BarChart2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -27,11 +28,21 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Inbox',     href: '/email',     icon: Inbox },
-  { label: 'Actions',   href: '/actions',   icon: CheckSquare },
-  { label: 'Settings',  href: '/settings',  icon: Settings },
-  { label: 'Billing',   href: '/billing',   icon: CreditCard },
+  { label: 'Dashboard', href: '/dashboard',  icon: LayoutDashboard },
+  { label: 'Inbox',     href: '/email',      icon: Inbox },
+  { label: 'Actions',   href: '/actions',    icon: CheckSquare },
+  { label: 'Analytics', href: '/analytics',  icon: BarChart2 },
+  { label: 'Settings',  href: '/settings',   icon: Settings },
+  { label: 'Billing',   href: '/billing',    icon: CreditCard },
+];
+
+// Mobile bottom nav — only the 4 most important
+const mobileNavItems: NavItem[] = [
+  { label: 'Home',      href: '/dashboard',  icon: LayoutDashboard },
+  { label: 'Inbox',     href: '/email',      icon: Inbox },
+  { label: 'Actions',   href: '/actions',    icon: CheckSquare },
+  { label: 'Analytics', href: '/analytics',  icon: BarChart2 },
+  { label: 'Settings',  href: '/settings',   icon: Settings },
 ];
 
 interface LayoutProps {
@@ -266,11 +277,44 @@ export default function Layout({ children, title }: LayoutProps) {
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6 page-enter">
+        {/* Page content — extra bottom padding on mobile for bottom nav */}
+        <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 page-enter">
           {children}
         </main>
       </div>
+
+      {/* ── Mobile Bottom Navigation ── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white border-t border-gray-200 safe-area-pb">
+        <div className="flex items-center justify-around px-1 py-1">
+          {mobileNavItems.map((item) => {
+            const isActive = router.pathname.startsWith(item.href);
+            const { icon: Icon } = item;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={clsx(
+                  'flex flex-1 flex-col items-center gap-0.5 rounded-lg py-2 px-1 transition-all duration-150',
+                  isActive ? 'text-primary-600' : 'text-gray-400'
+                )}
+              >
+                <div className={clsx(
+                  'flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-150',
+                  isActive ? 'bg-primary-50 scale-110' : 'hover:bg-gray-50'
+                )}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <span className={clsx(
+                  'text-[10px] font-medium leading-none',
+                  isActive ? 'text-primary-600' : 'text-gray-400'
+                )}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

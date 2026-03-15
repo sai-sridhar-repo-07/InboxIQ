@@ -64,6 +64,37 @@ async def list_emails(
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
+@router.get("/analytics")
+async def email_analytics(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Return analytics data for charts."""
+    return await email_service.get_analytics(user_id=_current_user_id(current_user))
+
+
+@router.post("/bulk-process", status_code=status.HTTP_202_ACCEPTED)
+async def bulk_process_emails(
+    background_tasks: BackgroundTasks,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Queue AI processing for all unprocessed emails."""
+    user_id = _current_user_id(current_user)
+    email_ids = await email_service.get_unprocessed_email_ids(user_id=user_id)
+    for email_id in email_ids:
+        email = await email_service.get_email(email_id=email_id, user_id=user_id)
+        if email:
+            background_tasks.add_task(process_email, email)
+    return {"message": f"Queued {len(email_ids)} emails for AI processing.", "count": len(email_ids)}
+
+
+@router.patch("/{email_id}/read", status_code=status.HTTP_204_NO_CONTENT)
+async def mark_as_read(
+    email_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Mark an email as read."""
+    await email_service.mark_email_read(email_id=email_id, user_id=_current_user_id(current_user))
+    return None
+
+
 @router.get("/stats")
 async def email_stats(current_user: Annotated[dict, Depends(get_current_user)]):
     """Return aggregate email statistics for the current user."""

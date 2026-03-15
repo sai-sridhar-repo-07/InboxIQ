@@ -96,6 +96,28 @@ export const emailsApi = {
     await api.post('/api/emails/sync');
   },
 
+  bulkProcess: async (): Promise<{ count: number }> => {
+    const { data } = await api.post('/api/emails/bulk-process');
+    return data;
+  },
+
+  markAsRead: async (id: string): Promise<void> => {
+    await api.patch(`/api/emails/${id}/read`);
+  },
+
+  getAnalytics: async (): Promise<{
+    total_emails: number;
+    processed_emails: number;
+    unread_emails: number;
+    processing_rate: number;
+    by_category: Record<string, number>;
+    by_priority: Record<string, number>;
+    emails_per_day: Array<{ day: string; count: number }>;
+  }> => {
+    const { data } = await api.get('/api/emails/analytics');
+    return data;
+  },
+
   generateReply: async (id: string, instructions: string): Promise<{ draft_content: string; confidence_score: number }> => {
     const { data } = await api.post(`/api/emails/${id}/generate-reply`, { instructions });
     return data;

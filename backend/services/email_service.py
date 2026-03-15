@@ -270,6 +270,99 @@ async def get_email_stats(user_id: str) -> dict:
         return {"total": 0, "unprocessed": 0, "by_category": {}, "by_priority": {}}
 
 
+async def mark_email_read(email_id: str, user_id: str) -> bool:
+    """Mark an email as read."""
+    try:
+        supabase = get_supabase()
+        supabase.table("emails").update({"is_read": True}).eq("id", email_id).eq("user_id", user_id).execute()
+        return True
+    except Exception as exc:
+        logger.error("mark_email_read error: %s", exc)
+        return False
+
+
+async def get_unprocessed_email_ids(user_id: str) -> list[str]:
+    """Return IDs of unprocessed emails for a user (max 50)."""
+    try:
+        supabase = get_supabase()
+        result = (
+            supabase.table("emails")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("processed", False)
+            .limit(50)
+            .execute()
+        )
+        return [r["id"] for r in (result.data or [])]
+    except Exception as exc:
+        logger.error("get_unprocessed_email_ids error: %s", exc)
+        return []
+
+
+async def get_analytics(user_id: str) -> dict:
+    """Return analytics data for the user's emails."""
+    from datetime import timedelta, timezone
+    try:
+        supabase = get_supabase()
+        result = (
+            supabase.table("emails")
+            .select("category, priority, processed, received_at, is_read")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        rows = result.data or []
+
+        # Category breakdown
+        by_category: dict[str, int] = {}
+        for row in rows:
+            cat = _CATEGORY_MAP.get(row.get("category") or "", "other")
+            by_category[cat] = by_category.get(cat, 0) + 1
+
+        # Priority breakdown
+        by_priority = {"high": 0, "medium": 0, "low": 0}
+        for row in rows:
+            p = row.get("priority") or 0
+            if p >= 8:   by_priority["high"] += 1
+            elif p >= 5: by_priority["medium"] += 1
+            else:        by_priority["low"] += 1
+
+        # Emails per day (last 7 days)
+        now = datetime.now(timezone.utc)
+        daily: dict[str, int] = {}
+        for i in range(6, -1, -1):
+            day = (now - timedelta(days=i)).strftime("%a")
+            daily[day] = 0
+        for row in rows:
+            try:
+                received = datetime.fromisoformat(row["received_at"].replace("Z", "+00:00"))
+                delta = (now - received).days
+                if 0 <= delta <= 6:
+                    day = received.strftime("%a")
+                    if day in daily:
+                        daily[day] += 1
+            except Exception:
+                pass
+
+        # Processing rate
+        total = len(rows)
+        processed = sum(1 for r in rows if r.get("processed"))
+        unread = sum(1 for r in rows if not r.get("is_read"))
+
+        return {
+            "total_emails": total,
+            "processed_emails": processed,
+            "unread_emails": unread,
+            "processing_rate": round((processed / total * 100) if total else 0, 1),
+            "by_category": by_category,
+            "by_priority": by_priority,
+            "emails_per_day": [{"day": k, "count": v} for k, v in daily.items()],
+        }
+    except Exception as exc:
+        logger.error("get_analytics error: %s", exc)
+        return {"total_emails": 0, "processed_emails": 0, "unread_emails": 0,
+                "processing_rate": 0, "by_category": {}, "by_priority": {}, "emails_per_day": []}
+
+
 async def get_priority_inbox(user_id: str) -> dict:
     """
     Return emails organised into three priority sections:
@@ -290,11 +383,20 @@ async def get_priority_inbox(user_id: str) -> dict:
         )
         rows = [_normalize_email(r) for r in (result.data or [])]
 
-        urgent = [r for r in rows if (r.get("priority") or 0) >= 8]
-        important = [r for r in rows if 5 <= (r.get("priority") or 0) < 8]
-        other = [r for r in rows if (r.get("priority") or 0) < 5]
+        def cat(r):
+            return _CATEGORY_MAP.get(r.get("category") or "", "other")
 
-        return {"urgent": urgent, "important": important, "other": other}
+        urgent       = [r for r in rows if cat(r) == "urgent"]
+        needs_resp   = [r for r in rows if cat(r) == "needs_response"]
+        follow_up    = [r for r in rows if cat(r) == "follow_up"]
+        low_priority = [r for r in rows if cat(r) in ("fyi", "newsletter", "other", "spam")]
+
+        return {
+            "urgent": urgent,
+            "needs_response": needs_resp,
+            "follow_up": follow_up,
+            "low_priority": low_priority,
+        }
 
     except Exception as exc:
         logger.error("get_priority_inbox error (user_id=%s): %s", user_id, exc)

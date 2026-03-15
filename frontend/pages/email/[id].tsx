@@ -90,6 +90,12 @@ export default function EmailDetailPage() {
     if (rawActions) setActions(rawActions);
   }, [rawActions]);
 
+  // Mark email as read when opened
+  useEffect(() => {
+    if (!emailId || !email) return;
+    emailsApi.markAsRead(emailId).catch(() => {});
+  }, [emailId, email?.id]);
+
   // Load attachments once email is loaded
   useEffect(() => {
     if (!emailId || !email) return;
