@@ -132,8 +132,9 @@ export default function BillingPage() {
 
   const currentPlan = billing?.current_plan ?? 'free';
   const statusInfo = statusConfig[billing?.subscription_status ?? 'none'];
+  const emailsUsed = billing?.emails_used_this_month ?? 0;
   const usagePercent = billing?.email_limit
-    ? Math.min((billing.emails_used_this_month / billing.email_limit) * 100, 100)
+    ? Math.min((emailsUsed / billing.email_limit) * 100, 100)
     : 0;
 
   return (
@@ -194,7 +195,7 @@ export default function BillingPage() {
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Usage This Month</span>
                   </div>
                   <span className="text-sm text-gray-600 dark:text-gray-400 tabular-nums">
-                    <strong className="text-gray-900 dark:text-gray-100">{billing.emails_used_this_month.toLocaleString()}</strong>
+                    <strong className="text-gray-900 dark:text-gray-100">{emailsUsed.toLocaleString()}</strong>
                     {billing.email_limit ? (
                       <> / {billing.email_limit.toLocaleString()}</>
                     ) : (
@@ -219,7 +220,7 @@ export default function BillingPage() {
                     </div>
                     <div className="mt-1.5 flex justify-between text-xs text-gray-400 dark:text-gray-500">
                       <span>{Math.round(usagePercent)}% used</span>
-                      <span>{(billing.email_limit - billing.emails_used_this_month).toLocaleString()} remaining</span>
+                      <span>{(billing.email_limit - emailsUsed).toLocaleString()} remaining</span>
                     </div>
                     {usagePercent >= 80 && (
                       <div className="mt-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 flex items-start gap-2">
