@@ -66,7 +66,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 function DonutChart({ data }: { data: Record<string, number> }) {
   const total = Object.values(data).reduce((s, v) => s + v, 0);
   if (total === 0) return (
-    <div className="flex items-center justify-center h-40 text-gray-400 text-sm">No data yet</div>
+    <div className="flex items-center justify-center h-40 text-gray-400 dark:text-gray-500 text-sm">No data yet</div>
   );
 
   // Build conic-gradient
@@ -92,10 +92,10 @@ function DonutChart({ data }: { data: Record<string, number> }) {
           className="h-36 w-36 rounded-full"
           style={{ background: `conic-gradient(${gradient})` }}
         />
-        <div className="absolute inset-0 m-auto flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-sm" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+        <div className="absolute inset-0 m-auto flex h-20 w-20 items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow-sm" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
           <div className="text-center">
-            <p className="text-xl font-bold text-gray-900">{total}</p>
-            <p className="text-xs text-gray-400">total</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{total}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">total</p>
           </div>
         </div>
       </div>
@@ -106,11 +106,11 @@ function DonutChart({ data }: { data: Record<string, number> }) {
           <div key={s.key} className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ background: s.color }} />
-              <span className="text-xs text-gray-600 truncate">{CATEGORY_LABELS[s.key] || s.key}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{CATEGORY_LABELS[s.key] || s.key}</span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-xs font-semibold text-gray-900">{s.value}</span>
-              <span className="text-xs text-gray-400 w-8 text-right">{s.pct.toFixed(0)}%</span>
+              <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">{s.value}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 w-8 text-right">{s.pct.toFixed(0)}%</span>
             </div>
           </div>
         ))}
@@ -125,14 +125,14 @@ function BarChartComponent({ data }: { data: Array<{ day: string; count: number 
     <div className="flex items-end justify-between gap-1 h-32 px-1">
       {data.map((d) => (
         <div key={d.day} className="flex flex-1 flex-col items-center gap-1">
-          <span className="text-xs font-semibold text-gray-700">{d.count > 0 ? d.count : ''}</span>
+          <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{d.count > 0 ? d.count : ''}</span>
           <div className="w-full flex items-end justify-center">
             <div
               className="w-full rounded-t-md bg-primary-500 transition-all duration-700 hover:bg-primary-600 min-h-[4px]"
               style={{ height: `${Math.max((d.count / max) * 96, d.count > 0 ? 4 : 2)}px` }}
             />
           </div>
-          <span className="text-xs text-gray-400">{d.day}</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">{d.day}</span>
         </div>
       ))}
     </div>
@@ -144,10 +144,10 @@ function PriorityBar({ label, value, total, color }: { label: string; value: num
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
-        <span className="font-medium text-gray-700">{label}</span>
-        <span className="text-gray-500">{value} <span className="text-gray-400">({pct.toFixed(0)}%)</span></span>
+        <span className="font-medium text-gray-700 dark:text-gray-300">{label}</span>
+        <span className="text-gray-500 dark:text-gray-400">{value} <span className="text-gray-400 dark:text-gray-500">({pct.toFixed(0)}%)</span></span>
       </div>
-      <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+      <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${pct}%`, background: color }}
@@ -209,8 +209,8 @@ export default function AnalyticsPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Email Analytics</h1>
-              <p className="text-sm text-gray-500 mt-0.5">Insights into your inbox patterns</p>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Email Analytics</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Insights into your inbox patterns</p>
             </div>
             <button onClick={handleRefresh} disabled={refreshing} className="btn-secondary text-sm">
               <RefreshCw className={`h-4 w-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
@@ -234,12 +234,12 @@ export default function AnalyticsPage() {
                   return (
                     <div key={i} className={`card p-4 animate-slide-up stagger-${i + 1}`}>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-medium text-gray-500">{stat.label}</span>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{stat.label}</span>
                         <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.bg}`}>
                           <Icon className={`h-4 w-4 ${stat.color}`} />
                         </div>
                       </div>
-                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</p>
                     </div>
                   );
                 })}
@@ -254,7 +254,7 @@ export default function AnalyticsPage() {
             <div className="card p-5 animate-slide-up stagger-2">
               <div className="flex items-center gap-2 mb-5">
                 <BarChart2 className="h-4 w-4 text-primary-600" />
-                <h2 className="text-sm font-semibold text-gray-900">Emails by Category</h2>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Emails by Category</h2>
               </div>
               {loading ? (
                 <div className="space-y-2">
@@ -274,7 +274,7 @@ export default function AnalyticsPage() {
             <div className="card p-5 animate-slide-up stagger-3">
               <div className="flex items-center gap-2 mb-5">
                 <TrendingUp className="h-4 w-4 text-green-600" />
-                <h2 className="text-sm font-semibold text-gray-900">Emails Last 7 Days</h2>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Emails Last 7 Days</h2>
               </div>
               {loading ? (
                 <div className="flex items-end gap-1 h-32">
@@ -295,7 +295,7 @@ export default function AnalyticsPage() {
           <div className="card p-5 animate-slide-up stagger-4">
             <div className="flex items-center gap-2 mb-5">
               <TrendingUp className="h-4 w-4 text-amber-600" />
-              <h2 className="text-sm font-semibold text-gray-900">Priority Breakdown</h2>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Priority Breakdown</h2>
             </div>
             {loading ? (
               <div className="space-y-4">
@@ -315,7 +315,7 @@ export default function AnalyticsPage() {
             <div className="card p-5 animate-slide-up stagger-5">
               <div className="flex items-center gap-2 mb-5">
                 <Users className="h-4 w-4 text-primary-600" />
-                <h2 className="text-sm font-semibold text-gray-900">Top Senders</h2>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Top Senders</h2>
               </div>
               {loading ? (
                 <div className="space-y-3">
@@ -338,24 +338,24 @@ export default function AnalyticsPage() {
                     return (
                       <div
                         key={sender.sender_email}
-                        className="flex items-center gap-3 rounded-xl p-3 hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 rounded-xl p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
-                        <span className="text-xs font-medium text-gray-400 w-4 shrink-0">{i + 1}</span>
+                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-4 shrink-0">{i + 1}</span>
                         <div className={`h-9 w-9 shrink-0 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-sm font-semibold shadow-sm`}>
                           {(sender.sender_name || sender.sender_email)[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                             {sender.sender_name || sender.sender_email}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">{sender.sender_email}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{sender.sender_email}</p>
                         </div>
                         {topCategory && (
-                          <span className="shrink-0 rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 capitalize hidden sm:inline">
+                          <span className="shrink-0 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 capitalize hidden sm:inline">
                             {topCategory.replace(/_/g, ' ')}
                           </span>
                         )}
-                        <span className="text-xs text-gray-400 shrink-0 hidden sm:inline">
+                        <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 hidden sm:inline">
                           {formatDistanceToNow(new Date(sender.last_email_at), { addSuffix: true })}
                         </span>
                         <span className="shrink-0 rounded-full bg-primary-50 border border-primary-100 px-2.5 py-1 text-xs font-bold text-primary-700">

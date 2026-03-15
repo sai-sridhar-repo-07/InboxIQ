@@ -92,22 +92,22 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
             <Zap className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
               {allDone ? '🎉 You\'re all set!' : 'Get started with InboxIQ'}
             </h3>
-            <p className="text-xs text-gray-500">{completedCount} of {STEPS.length} steps complete</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{completedCount} of {STEPS.length} steps complete</p>
           </div>
         </div>
         <button
           onClick={handleDismiss}
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Progress bar */}
-      <div className="mb-4 h-1.5 w-full rounded-full bg-gray-100">
+      <div className="mb-4 h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700">
         <div
           className="h-full rounded-full bg-primary-500 transition-all duration-700"
           style={{ width: `${(completedCount / STEPS.length) * 100}%` }}
@@ -122,7 +122,7 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
             <div
               key={step.id}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
-                done ? 'bg-green-50' : 'bg-white border border-gray-100'
+                done ? 'bg-green-50 dark:bg-green-900/20' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700'
               }`}
             >
               {done
@@ -130,11 +130,11 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
                 : <Circle className="h-4 w-4 text-gray-300 flex-shrink-0" />
               }
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${done ? 'text-green-700 line-through decoration-green-400' : 'text-gray-800'}`}>
+                <p className={`text-sm font-medium ${done ? 'text-green-700 dark:text-green-400 line-through decoration-green-400' : 'text-gray-800 dark:text-gray-200'}`}>
                   {step.label}
                 </p>
                 {!done && (
-                  <p className="text-xs text-gray-400 mt-0.5">{step.description}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{step.description}</p>
                 )}
               </div>
               {!done && step.action && (() => {

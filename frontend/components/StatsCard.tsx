@@ -42,8 +42,8 @@ export default function StatsCard({
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="mt-1.5 text-3xl font-bold text-gray-900 tabular-nums">{value}</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+          <p className="mt-1.5 text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{value}</p>
           {trend && (
             <div className="mt-2 flex items-center gap-1">
               {trendPositive && <TrendingUp className="h-3.5 w-3.5 text-green-500" />}
@@ -54,7 +54,7 @@ export default function StatsCard({
                   'text-xs font-medium',
                   trendPositive && 'text-green-600',
                   trendNegative && 'text-red-600',
-                  !trendPositive && !trendNegative && 'text-gray-500'
+                  !trendPositive && !trendNegative && 'text-gray-500 dark:text-gray-400'
                 )}
               >
                 {trendPositive && '+'}

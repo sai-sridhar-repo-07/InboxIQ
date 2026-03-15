@@ -201,7 +201,7 @@ export default function EmailListPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <Filter className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
               <select
                 value={category ?? ''}
                 onChange={(e) => {
@@ -235,7 +235,7 @@ export default function EmailListPage() {
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="flex-shrink-0 rounded-lg p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="flex-shrink-0 rounded-lg p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   title="Clear filters"
                 >
                   <X className="h-4 w-4" />
@@ -247,27 +247,27 @@ export default function EmailListPage() {
           {/* Active filter chips */}
           {hasActiveFilters && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-gray-500">Filters:</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Filters:</span>
               {category && (
                 <CategoryBadge category={category} size="sm" />
               )}
               {priorityLevel && (
-                <span className="rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700 capitalize">
+                <span className="rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-300 capitalize">
                   {priorityLevel} priority
                 </span>
               )}
               {search && (
-                <span className="rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700">
+                <span className="rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-300">
                   &ldquo;{search}&rdquo;
                 </span>
               )}
-              <span className="text-xs text-gray-400">{total.toLocaleString()} result{total !== 1 ? 's' : ''}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">{total.toLocaleString()} result{total !== 1 ? 's' : ''}</span>
             </div>
           )}
 
           {/* Action bar */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <p className="text-sm text-gray-500">{total > 0 ? `${total.toLocaleString()} email${total !== 1 ? 's' : ''}` : ''}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{total > 0 ? `${total.toLocaleString()} email${total !== 1 ? 's' : ''}` : ''}</p>
             <div className="flex items-center gap-2 flex-wrap">
               {/* Thread toggle */}
               <button
@@ -362,14 +362,14 @@ export default function EmailListPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 Page {page} of {totalPages} · {total.toLocaleString()} emails
               </p>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="rounded-lg border border-gray-200 dark:border-gray-700 p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -382,8 +382,8 @@ export default function EmailListPage() {
                       className={clsx(
                         'min-w-[36px] rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
                         pageNum === page
-                          ? 'border-primary-500 bg-primary-50 text-primary-700'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                       )}
                     >
                       {pageNum}
@@ -393,7 +393,7 @@ export default function EmailListPage() {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
-                  className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="rounded-lg border border-gray-200 dark:border-gray-700 p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>

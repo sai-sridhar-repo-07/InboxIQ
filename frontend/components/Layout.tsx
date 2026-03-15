@@ -127,14 +127,14 @@ export default function Layout({ children, title }: LayoutProps) {
               'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
               `animate-slide-in-left stagger-${i + 1}`,
               isActive
-                ? 'bg-primary-50 text-primary-700 shadow-sm'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:translate-x-0.5'
+                ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 hover:translate-x-0.5'
             )}
           >
             <Icon
               className={clsx(
                 'h-5 w-5 flex-shrink-0 transition-colors duration-150',
-                isActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-600'
+                isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'
               )}
             />
             {item.label}
@@ -146,20 +146,20 @@ export default function Layout({ children, title }: LayoutProps) {
   );
 
   const UserSection = () => (
-    <div className="border-t border-gray-100 p-3">
+    <div className="border-t border-gray-100 dark:border-gray-700 p-3">
       <div className="mb-1 flex items-center gap-3 rounded-lg px-2 py-2">
         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-sm font-bold shadow-sm">
           {userInitials}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-gray-900">{displayName}</p>
-          <p className="truncate text-xs text-gray-500">{userEmail}</p>
+          <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{displayName}</p>
+          <p className="truncate text-xs text-gray-500 dark:text-gray-400">{userEmail}</p>
         </div>
       </div>
       <button
         onClick={handleSignOut}
         disabled={signingOut}
-        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-150"
+        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all duration-150"
       >
         <LogOut className="h-4 w-4" />
         {signingOut ? 'Signing out…' : 'Sign out'}
@@ -168,16 +168,16 @@ export default function Layout({ children, title }: LayoutProps) {
   );
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
 
       {/* ── Desktop Sidebar ── */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 lg:bg-white lg:fixed lg:inset-y-0">
+      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 dark:border-gray-700 lg:bg-white dark:lg:bg-gray-900 lg:fixed lg:inset-y-0">
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-4 py-5 animate-fade-in">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm">
             <Zap className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-bold text-gray-900">InboxIQ</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">InboxIQ</span>
         </div>
 
         <div className="flex flex-1 flex-col overflow-y-auto">
@@ -193,17 +193,17 @@ export default function Layout({ children, title }: LayoutProps) {
             className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm animate-fade-in"
             onClick={() => setSidebarOpen(false)}
           />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white flex flex-col shadow-2xl animate-slide-in-left">
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 flex flex-col shadow-2xl animate-slide-in-left">
             <div className="flex items-center justify-between px-4 pt-4 pb-2">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700">
                   <Zap className="h-4 w-4 text-white" />
                 </div>
-                <span className="text-lg font-bold text-gray-900">InboxIQ</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">InboxIQ</span>
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors"
+                className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -220,17 +220,17 @@ export default function Layout({ children, title }: LayoutProps) {
       <div className="flex flex-1 flex-col lg:pl-64">
 
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gray-200 bg-white/95 backdrop-blur-sm px-4 lg:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm px-4 lg:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors lg:hidden"
+              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors lg:hidden"
               aria-label="Open sidebar"
             >
               <Menu className="h-5 w-5" />
             </button>
             {title && (
-              <h1 className="text-base font-semibold text-gray-900 sm:text-lg truncate">{title}</h1>
+              <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg truncate">{title}</h1>
             )}
           </div>
 
@@ -242,20 +242,20 @@ export default function Layout({ children, title }: LayoutProps) {
             <div className="relative" ref={bellRef}>
               <button
                 onClick={() => setBellOpen(!bellOpen)}
-                className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors relative"
+                className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors relative"
                 aria-label="Notifications"
               >
                 <Bell className="h-5 w-5" />
               </button>
               {bellOpen && (
-                <div className="absolute right-0 mt-2 w-72 rounded-xl bg-white border border-gray-200 shadow-lg py-1 z-50 animate-slide-down">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-sm font-semibold text-gray-900">Notifications</p>
+                <div className="absolute right-0 mt-2 w-72 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg py-1 z-50 animate-slide-down">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</p>
                   </div>
                   <div className="py-6 text-center">
-                    <Bell className="mx-auto h-8 w-8 text-gray-200 mb-2" />
-                    <p className="text-sm text-gray-500">No new notifications</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Urgent email alerts will appear here</p>
+                    <Bell className="mx-auto h-8 w-8 text-gray-200 dark:text-gray-600 mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No new notifications</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Urgent email alerts will appear here</p>
                   </div>
                 </div>
               )}
@@ -272,11 +272,11 @@ export default function Layout({ children, title }: LayoutProps) {
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white border border-gray-200 shadow-lg py-1 z-50 animate-slide-down">
+                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg py-1 z-50 animate-slide-down">
                   {/* User info header */}
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">{userEmail}</p>
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{displayName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{userEmail}</p>
                   </div>
 
                   {/* Menu items */}
@@ -284,30 +284,30 @@ export default function Layout({ children, title }: LayoutProps) {
                     <Link
                       href="/settings"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <Settings className="h-4 w-4 text-gray-400" />
+                      <Settings className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       Settings
                     </Link>
                     <Link
                       href="/billing"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <CreditCard className="h-4 w-4 text-gray-400" />
+                      <CreditCard className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       Billing
                     </Link>
                     <Link
                       href="/settings"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <User className="h-4 w-4 text-gray-400" />
+                      <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       Profile
                     </Link>
                   </div>
 
-                  <div className="border-t border-gray-100 py-1">
+                  <div className="border-t border-gray-100 dark:border-gray-700 py-1">
                     <button
                       onClick={handleSignOut}
                       disabled={signingOut}
@@ -333,7 +333,7 @@ export default function Layout({ children, title }: LayoutProps) {
       <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       {/* ── Mobile Bottom Navigation ── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white border-t border-gray-200 safe-area-pb">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 safe-area-pb">
         <div className="flex items-center justify-around px-1 py-1">
           {mobileNavItems.map((item) => {
             const isActive = router.pathname.startsWith(item.href);
@@ -349,7 +349,7 @@ export default function Layout({ children, title }: LayoutProps) {
               >
                 <div className={clsx(
                   'flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-150',
-                  isActive ? 'bg-primary-50 scale-110' : 'hover:bg-gray-50'
+                  isActive ? 'bg-primary-50 dark:bg-primary-900/30 scale-110' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                 )}>
                   <Icon className="h-4 w-4" />
                 </div>

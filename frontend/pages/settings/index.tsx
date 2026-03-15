@@ -66,10 +66,10 @@ function ProfileTab({
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <div className="card p-6">
-        <h3 className="text-base font-semibold text-gray-900 mb-5">Business Context</h3>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">Business Context</h3>
         <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Company / Business Description
             </label>
             <textarea
@@ -79,7 +79,7 @@ function ProfileTab({
               className="input-field resize-none"
               placeholder="Describe your business so AI can draft better replies... e.g. 'We are a web design agency specializing in e-commerce for small businesses. We value quick responses and professional communication.'"
             />
-            <p className="mt-1.5 text-xs text-gray-400">
+            <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
               This context helps AI draft better replies and understand your email priorities.
             </p>
           </div>
@@ -87,8 +87,8 @@ function ProfileTab({
       </div>
 
       <div className="card p-6">
-        <h3 className="text-base font-semibold text-gray-900 mb-1">Reply Tone Preference</h3>
-        <p className="text-sm text-gray-500 mb-5">How should AI draft your email replies?</p>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Reply Tone Preference</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">How should AI draft your email replies?</p>
         <div className="space-y-3">
           {tones.map((tone) => (
             <label
@@ -96,8 +96,8 @@ function ProfileTab({
               className={clsx(
                 'flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors',
                 form.tone_preference === tone.value
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
               )}
             >
               <input
@@ -109,8 +109,8 @@ function ProfileTab({
                 className="mt-0.5 text-primary-600 focus:ring-primary-500"
               />
               <div>
-                <p className="text-sm font-semibold text-gray-900">{tone.label}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{tone.description}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{tone.label}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{tone.description}</p>
               </div>
             </label>
           ))}
@@ -210,8 +210,8 @@ function IntegrationsTab({
               <Mail className="h-5 w-5 text-red-500" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-gray-900">Gmail</h3>
-              <p className="text-sm text-gray-500">Connect Gmail to sync and process emails</p>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Gmail</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Connect Gmail to sync and process emails</p>
             </div>
           </div>
           {gmailStatus?.connected ? (
@@ -220,7 +220,7 @@ function IntegrationsTab({
               Connected
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
               <AlertCircle className="h-3.5 w-3.5" />
               Not connected
             </span>
@@ -229,15 +229,15 @@ function IntegrationsTab({
 
         {gmailStatus?.connected ? (
           <div className="space-y-3">
-            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700">
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 text-sm text-gray-700 dark:text-gray-300">
               <p><span className="font-medium">Account:</span> {gmailStatus.email}</p>
               {gmailStatus.last_sync && (
-                <p className="mt-0.5 text-gray-500">
+                <p className="mt-0.5 text-gray-500 dark:text-gray-400">
                   Last synced: {new Date(gmailStatus.last_sync).toLocaleString()}
                 </p>
               )}
               {gmailStatus.total_synced !== undefined && (
-                <p className="mt-0.5 text-gray-500">Total emails synced: {gmailStatus.total_synced.toLocaleString()}</p>
+                <p className="mt-0.5 text-gray-500 dark:text-gray-400">Total emails synced: {gmailStatus.total_synced.toLocaleString()}</p>
               )}
             </div>
             <button
@@ -276,14 +276,14 @@ function IntegrationsTab({
             <Bell className="h-5 w-5 text-purple-500" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-900">Slack Notifications</h3>
-            <p className="text-sm text-gray-500">Get notified in Slack for urgent emails</p>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Slack Notifications</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Get notified in Slack for urgent emails</p>
           </div>
         </div>
 
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Slack Webhook URL
             </label>
             <input
@@ -293,7 +293,7 @@ function IntegrationsTab({
               placeholder="https://hooks.slack.com/services/..."
               className="input-field"
             />
-            <p className="mt-1.5 text-xs text-gray-400">
+            <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
               Create a webhook at{' '}
               <a
                 href="https://api.slack.com/messaging/webhooks"
@@ -378,10 +378,10 @@ function NotificationsTab({
     checked: boolean;
     onChange: (v: boolean) => void;
   }) => (
-    <div className="flex items-start justify-between gap-4 py-4 border-b border-gray-100 last:border-0">
+    <div className="flex items-start justify-between gap-4 py-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <div>
-        <p className="text-sm font-medium text-gray-900">{label}</p>
-        <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
       </div>
       <button
         type="button"
@@ -406,8 +406,8 @@ function NotificationsTab({
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <div className="card p-6">
-        <h3 className="text-base font-semibold text-gray-900 mb-1">Notification Preferences</h3>
-        <p className="text-sm text-gray-500 mb-4">Control how and when InboxIQ notifies you.</p>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Notification Preferences</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Control how and when InboxIQ notifies you.</p>
 
         <ToggleRow
           label="Email Notifications"
@@ -430,7 +430,7 @@ function NotificationsTab({
       </div>
 
       <div className="card p-6">
-        <h3 className="text-base font-semibold text-gray-900 mb-4">Notification Frequency</h3>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Notification Frequency</h3>
         <div className="grid grid-cols-2 gap-2">
           {frequencies.map((freq) => (
             <label
@@ -438,8 +438,8 @@ function NotificationsTab({
               className={clsx(
                 'flex items-center gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors',
                 form.notification_frequency === freq.value
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
               )}
             >
               <input
@@ -450,15 +450,15 @@ function NotificationsTab({
                 onChange={() => setForm({ ...form, notification_frequency: freq.value })}
                 className="text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-sm font-medium text-gray-700">{freq.label}</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{freq.label}</span>
             </label>
           ))}
         </div>
       </div>
 
       <div className="card p-6">
-        <h3 className="text-base font-semibold text-gray-900 mb-1">Priority Threshold</h3>
-        <p className="text-sm text-gray-500 mb-4">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Priority Threshold</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Emails scoring above this threshold will be flagged as urgent.
         </p>
         <div className="flex items-center gap-4">
@@ -468,13 +468,13 @@ function NotificationsTab({
             max={10}
             value={form.priority_threshold}
             onChange={(e) => setForm({ ...form, priority_threshold: Number(e.target.value) })}
-            className="flex-1 h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-primary-600"
+            className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary-600"
           />
           <span className="w-16 text-center rounded-lg bg-primary-50 border border-primary-200 px-3 py-1.5 text-sm font-bold text-primary-700">
             {form.priority_threshold}/10
           </span>
         </div>
-        <div className="mt-2 flex justify-between text-xs text-gray-400">
+        <div className="mt-2 flex justify-between text-xs text-gray-400 dark:text-gray-500">
           <span>More alerts (1)</span>
           <span>Fewer alerts (10)</span>
         </div>
@@ -522,16 +522,16 @@ function VacationTab({
             <Plane className="h-5 w-5 text-sky-500" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-900">Vacation / Out of Office</h3>
-            <p className="text-sm text-gray-500 mt-0.5">Automatically reply to emails while you&apos;re away</p>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Vacation / Out of Office</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Automatically reply to emails while you&apos;re away</p>
           </div>
         </div>
 
         <div className="space-y-5">
-          <div className="flex items-center justify-between py-3 border-b border-gray-100">
+          <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
             <div>
-              <p className="text-sm font-medium text-gray-900">Enable vacation auto-reply</p>
-              <p className="text-xs text-gray-500 mt-0.5">Send automatic replies to incoming emails</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Enable vacation auto-reply</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Send automatic replies to incoming emails</p>
             </div>
             <button
               type="button"
@@ -553,7 +553,7 @@ function VacationTab({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Auto-reply message
             </label>
             <textarea
@@ -564,7 +564,7 @@ function VacationTab({
               placeholder="Hi, I'm currently out of office and will return on [date]. I'll reply to your email as soon as possible."
               disabled={!form.vacation_mode}
             />
-            <p className="mt-1.5 text-xs text-gray-400">
+            <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
               This message will be sent automatically when vacation mode is enabled.
             </p>
           </div>
@@ -617,7 +617,7 @@ export default function SettingsPage() {
       <Layout title="Settings">
         <div className="max-w-4xl mx-auto">
           {/* Tab nav */}
-          <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+          <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
             {tabs.map((tab) => {
               const { icon: Icon } = tab;
               return (
@@ -627,8 +627,8 @@ export default function SettingsPage() {
                   className={clsx(
                     'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all',
                     activeTab === tab.id
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -657,7 +657,7 @@ export default function SettingsPage() {
           ) : (
             <div className="card p-12 text-center">
               <AlertCircle className="mx-auto h-10 w-10 text-amber-400 mb-3" />
-              <p className="text-sm text-gray-600">Could not load settings. Please refresh the page.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Could not load settings. Please refresh the page.</p>
             </div>
           )}
         </div>

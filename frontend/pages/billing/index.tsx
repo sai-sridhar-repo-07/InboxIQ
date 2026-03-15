@@ -150,7 +150,7 @@ export default function BillingPage() {
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <Crown className="h-5 w-5 text-amber-500" />
-                    <h2 className="text-lg font-bold text-gray-900">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                       {billing.plan_details?.name ?? currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} Plan
                     </h2>
                     <span className={clsx('rounded-full px-2.5 py-0.5 text-xs font-semibold', statusInfo.classes)}>
@@ -158,9 +158,9 @@ export default function BillingPage() {
                     </span>
                   </div>
                   {billing.current_period_end && (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {billing.cancel_at_period_end ? 'Cancels on' : 'Renews on'}{' '}
-                      <strong className="text-gray-700">
+                      <strong className="text-gray-700 dark:text-gray-300">
                         {new Date(billing.current_period_end).toLocaleDateString('en-US', {
                           month: 'long',
                           day: 'numeric',
@@ -187,14 +187,14 @@ export default function BillingPage() {
               </div>
 
               {/* Usage */}
-              <div className="mt-6 pt-5 border-t border-gray-100">
+              <div className="mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <BarChart2 className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700">Email Usage This Month</span>
+                    <BarChart2 className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Usage This Month</span>
                   </div>
-                  <span className="text-sm text-gray-600 tabular-nums">
-                    <strong className="text-gray-900">{billing.emails_used_this_month.toLocaleString()}</strong>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 tabular-nums">
+                    <strong className="text-gray-900 dark:text-gray-100">{billing.emails_used_this_month.toLocaleString()}</strong>
                     {billing.email_limit ? (
                       <> / {billing.email_limit.toLocaleString()}</>
                     ) : (
@@ -204,7 +204,7 @@ export default function BillingPage() {
                 </div>
                 {billing.email_limit ? (
                   <>
-                    <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className={clsx(
                           'h-full rounded-full transition-all',
@@ -217,14 +217,14 @@ export default function BillingPage() {
                         style={{ width: `${usagePercent}%` }}
                       />
                     </div>
-                    <div className="mt-1.5 flex justify-between text-xs text-gray-400">
+                    <div className="mt-1.5 flex justify-between text-xs text-gray-400 dark:text-gray-500">
                       <span>{Math.round(usagePercent)}% used</span>
                       <span>{(billing.email_limit - billing.emails_used_this_month).toLocaleString()} remaining</span>
                     </div>
                     {usagePercent >= 80 && (
-                      <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 flex items-start gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-amber-700">
+                      <div className="mt-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
                           You're approaching your email limit. Consider upgrading to Pro for unlimited emails.
                         </p>
                       </div>
@@ -242,13 +242,13 @@ export default function BillingPage() {
           {billingError && (
             <div className="card p-6 text-center">
               <AlertTriangle className="mx-auto h-8 w-8 text-amber-400 mb-2" />
-              <p className="text-sm text-gray-600">Unable to load billing information. Please refresh.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Unable to load billing information. Please refresh.</p>
             </div>
           )}
 
           {/* Plans grid */}
           <div>
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Available Plans</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Available Plans</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {PLANS.map((plan) => {
                 const isCurrent = plan.id === currentPlan;
@@ -263,8 +263,8 @@ export default function BillingPage() {
                     className={clsx(
                       'relative rounded-xl border p-5 flex flex-col',
                       isCurrent
-                        ? 'border-primary-400 bg-primary-50 shadow-md'
-                        : 'border-gray-200 bg-white hover:border-gray-300 shadow-sm',
+                        ? 'border-primary-400 bg-primary-50 dark:bg-primary-900/20 shadow-md'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm',
                       isPopular && !isCurrent && 'ring-1 ring-primary-200'
                     )}
                   >
@@ -285,7 +285,7 @@ export default function BillingPage() {
 
                     <div className="flex items-center gap-2 mb-3">
                       <div className={clsx('flex h-8 w-8 items-center justify-center rounded-lg',
-                        plan.id === 'agency' ? 'bg-purple-100' : plan.id === 'pro' ? 'bg-primary-100' : 'bg-gray-100'
+                        plan.id === 'agency' ? 'bg-purple-100 dark:bg-purple-900/30' : plan.id === 'pro' ? 'bg-primary-100 dark:bg-primary-900/30' : 'bg-gray-100 dark:bg-gray-700'
                       )}>
                         {plan.id === 'agency' ? (
                           <Crown className="h-4 w-4 text-purple-600" />
@@ -296,10 +296,10 @@ export default function BillingPage() {
                         )}
                       </div>
                       <div>
-                        <h3 className="text-base font-bold text-gray-900">{plan.name}</h3>
+                        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{plan.name}</h3>
                         <div className="flex items-baseline gap-0.5">
-                          <span className="text-xl font-extrabold text-gray-900">${plan.price_monthly}</span>
-                          <span className="text-xs text-gray-400">/mo</span>
+                          <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">${plan.price_monthly}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">/mo</span>
                         </div>
                       </div>
                     </div>
@@ -308,7 +308,7 @@ export default function BillingPage() {
                       {plan.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2 text-sm">
                           <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-gray-600">{feature}</span>
+                          <span className="text-gray-600 dark:text-gray-400">{feature}</span>
                         </li>
                       ))}
                     </ul>
@@ -325,7 +325,7 @@ export default function BillingPage() {
                           'w-full rounded-lg py-2.5 text-sm font-semibold transition-all flex items-center justify-center gap-2',
                           isHigher
                             ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm'
-                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                         )}
                       >
                         {loadingPlan === plan.id ? (
@@ -350,19 +350,19 @@ export default function BillingPage() {
 
           {/* FAQ / notes */}
           <div className="card p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Billing FAQ</h3>
-            <div className="space-y-3 text-sm text-gray-600">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Billing FAQ</h3>
+            <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
               <div>
-                <p className="font-medium text-gray-800">Can I cancel any time?</p>
-                <p className="text-gray-500 mt-0.5">Yes. You can cancel your subscription at any time. Your access continues until the end of your billing period.</p>
+                <p className="font-medium text-gray-800 dark:text-gray-200">Can I cancel any time?</p>
+                <p className="text-gray-500 dark:text-gray-400 mt-0.5">Yes. You can cancel your subscription at any time. Your access continues until the end of your billing period.</p>
               </div>
               <div>
-                <p className="font-medium text-gray-800">How are emails counted?</p>
-                <p className="text-gray-500 mt-0.5">Each email processed by AI counts as one email. Your count resets on the 1st of each month.</p>
+                <p className="font-medium text-gray-800 dark:text-gray-200">How are emails counted?</p>
+                <p className="text-gray-500 dark:text-gray-400 mt-0.5">Each email processed by AI counts as one email. Your count resets on the 1st of each month.</p>
               </div>
               <div>
-                <p className="font-medium text-gray-800">What happens if I exceed my limit?</p>
-                <p className="text-gray-500 mt-0.5">On the Free plan, AI processing pauses until the next month or you upgrade. Pro and Agency have no limits.</p>
+                <p className="font-medium text-gray-800 dark:text-gray-200">What happens if I exceed my limit?</p>
+                <p className="text-gray-500 dark:text-gray-400 mt-0.5">On the Free plan, AI processing pauses until the next month or you upgrade. Pro and Agency have no limits.</p>
               </div>
             </div>
           </div>

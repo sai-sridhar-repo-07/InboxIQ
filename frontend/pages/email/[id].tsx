@@ -69,7 +69,7 @@ function getFileColor(mimeType: string): string {
   if (mimeType.includes('pdf'))        return 'text-red-500 bg-red-50';
   if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return 'text-green-600 bg-green-50';
   if (mimeType.includes('word') || mimeType.includes('document')) return 'text-blue-500 bg-blue-50';
-  return 'text-gray-500 bg-gray-100';
+  return 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700';
 }
 
 export default function EmailDetailPage() {
@@ -208,8 +208,8 @@ export default function EmailDetailPage() {
           </button>
           <div className="card p-12 text-center">
             <AlertTriangle className="mx-auto h-12 w-12 text-amber-400 mb-4" />
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Email not found</h2>
-            <p className="text-sm text-gray-500">This email may have been deleted or is not accessible.</p>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Email not found</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">This email may have been deleted or is not accessible.</p>
           </div>
         </div>
       </Layout>
@@ -290,7 +290,7 @@ export default function EmailDetailPage() {
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50 active:scale-95"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50 active:scale-95"
               >
                 {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 <span className="hidden sm:inline">Delete</span>
@@ -305,15 +305,15 @@ export default function EmailDetailPage() {
                 {(email.from_name || email.from_email || '?')[0].toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-base sm:text-xl font-bold text-gray-900 leading-snug break-words">
+                <h1 className="text-base sm:text-xl font-bold text-gray-900 dark:text-gray-100 leading-snug break-words">
                   {email.subject}
                 </h1>
-                <div className="mt-2 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1.5 sm:gap-3 text-sm text-gray-600">
+                <div className="mt-2 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1.5 sm:gap-3 text-sm text-gray-600 dark:text-gray-400">
                   <span className="flex items-center gap-1.5">
                     <User className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                    <strong className="font-medium text-gray-900 truncate">{email.from_name || email.from_email}</strong>
+                    <strong className="font-medium text-gray-900 dark:text-gray-100 truncate">{email.from_name || email.from_email}</strong>
                     {email.from_name && (
-                      <span className="text-gray-400 text-xs hidden sm:inline">({email.from_email})</span>
+                      <span className="text-gray-400 dark:text-gray-500 text-xs hidden sm:inline">({email.from_email})</span>
                     )}
                   </span>
                   <span className="flex items-center gap-1.5">
@@ -323,7 +323,7 @@ export default function EmailDetailPage() {
                   {email.to_email && (
                     <span className="flex items-center gap-1.5 hidden sm:flex">
                       <Mail className="h-3.5 w-3.5 text-gray-400" />
-                      <span className="text-gray-500 text-sm truncate max-w-[200px]">{email.to_email}</span>
+                      <span className="text-gray-500 dark:text-gray-400 text-sm truncate max-w-[200px]">{email.to_email}</span>
                     </span>
                   )}
                 </div>
@@ -339,14 +339,14 @@ export default function EmailDetailPage() {
             </div>
 
             {/* Email body */}
-            <div className="mt-5 border-t border-gray-100 pt-5">
+            <div className="mt-5 border-t border-gray-100 dark:border-gray-700 pt-5">
               {email.body_html ? (
                 <div
-                  className="prose prose-sm max-w-none text-gray-700 leading-relaxed overflow-x-auto"
+                  className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed overflow-x-auto"
                   dangerouslySetInnerHTML={{ __html: email.body_html }}
                 />
               ) : (
-                <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 leading-relaxed break-words">
+                <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 dark:text-gray-300 leading-relaxed break-words">
                   {email.body_text || email.snippet}
                 </pre>
               )}
@@ -354,15 +354,15 @@ export default function EmailDetailPage() {
 
             {/* Attachments */}
             {(attachmentsLoading || attachments.length > 0) && (
-              <div className="mt-5 border-t border-gray-100 pt-5">
+              <div className="mt-5 border-t border-gray-100 dark:border-gray-700 pt-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Paperclip className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">
+                  <Paperclip className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Attachments {attachments.length > 0 && `(${attachments.length})`}
                   </span>
                 </div>
                 {attachmentsLoading ? (
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Loading attachments…
                   </div>
@@ -374,14 +374,14 @@ export default function EmailDetailPage() {
                       return (
                         <div
                           key={att.attachment_id}
-                          className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 group hover:border-primary-200 hover:bg-primary-50 transition-colors"
+                          className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 group hover:border-primary-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
                         >
                           <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${colorClass}`}>
                             <FileIcon className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-medium text-gray-800 truncate">{att.filename}</p>
-                            <p className="text-xs text-gray-400">{formatBytes(att.size)}</p>
+                            <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{att.filename}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{formatBytes(att.size)}</p>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <button
@@ -416,20 +416,20 @@ export default function EmailDetailPage() {
               <div className="card p-4 sm:p-5 animate-slide-up stagger-2">
                 <div className="flex items-center gap-2 mb-4">
                   <Brain className="h-4 w-4 text-purple-600" />
-                  <h2 className="text-sm font-semibold text-gray-900">AI Analysis</h2>
-                  <span className="ml-auto text-xs text-gray-400">
+                  <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">AI Analysis</h2>
+                  <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
                     {Math.round(analysis.confidence * 100)}% confidence
                   </span>
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Summary</p>
-                    <p className="text-sm text-gray-700 leading-relaxed">{analysis.summary}</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Summary</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{analysis.summary}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Priority Score</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Priority Score</p>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-700 ${
                             analysis.priority_score >= 7 ? 'bg-red-500'
@@ -439,27 +439,27 @@ export default function EmailDetailPage() {
                           style={{ width: `${(analysis.priority_score / 10) * 100}%` }}
                         />
                       </div>
-                      <span className="text-sm font-bold text-gray-900 w-8 text-right">
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100 w-8 text-right">
                         {analysis.priority_score}/10
                       </span>
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Sentiment</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Sentiment</p>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
-                      analysis.sentiment === 'positive' ? 'bg-green-50 text-green-700 border border-green-200'
-                      : analysis.sentiment === 'negative' ? 'bg-red-50 text-red-700 border border-red-200'
-                      : 'bg-gray-100 text-gray-600 border border-gray-200'
+                      analysis.sentiment === 'positive' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
+                      : analysis.sentiment === 'negative' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600'
                     }`}>
                       {analysis.sentiment}
                     </span>
                   </div>
                   {analysis.key_topics && analysis.key_topics.length > 0 && (
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Key Topics</p>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Key Topics</p>
                       <div className="flex flex-wrap gap-1.5">
                         {analysis.key_topics.map((topic) => (
-                          <span key={topic} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+                          <span key={topic} className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">
                             <Tag className="h-3 w-3" />{topic}
                           </span>
                         ))}
@@ -474,8 +474,8 @@ export default function EmailDetailPage() {
             <div className="card p-4 sm:p-5 animate-slide-up stagger-3">
               <div className="flex items-center gap-2 mb-4">
                 <List className="h-4 w-4 text-green-600" />
-                <h2 className="text-sm font-semibold text-gray-900">Action Items</h2>
-                <span className="ml-auto rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Action Items</h2>
+                <span className="ml-auto rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
                   {actions.length}
                 </span>
               </div>
@@ -483,9 +483,9 @@ export default function EmailDetailPage() {
                 <div className="flex justify-center py-8"><LoadingSpinner /></div>
               ) : actions.length === 0 ? (
                 <div className="py-8 text-center">
-                  <CheckSquare className="mx-auto h-8 w-8 text-gray-300 mb-2" />
-                  <p className="text-sm text-gray-500">No action items extracted</p>
-                  <p className="text-xs text-gray-400 mt-1">Re-process the email to generate action items</p>
+                  <CheckSquare className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600 mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No action items extracted</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Re-process the email to generate action items</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -503,7 +503,7 @@ export default function EmailDetailPage() {
           <div className="animate-slide-up stagger-4">
             <div className="flex items-center gap-2 mb-3">
               <MessageSquare className="h-4 w-4 text-blue-600" />
-              <h2 className="text-base font-semibold text-gray-900">AI Reply Draft</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">AI Reply Draft</h2>
             </div>
             <ReplyEditor emailId={email.id} draft={replyDraft} onSent={() => mutateEmail()} />
           </div>

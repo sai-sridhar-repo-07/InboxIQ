@@ -21,37 +21,37 @@ const categoryConfig: Record<
 > = {
   urgent: {
     label: 'Urgent',
-    classes: 'bg-red-100 text-red-700 border border-red-200',
+    classes: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800',
     Icon: AlertCircle,
   },
   needs_response: {
     label: 'Needs Response',
-    classes: 'bg-blue-100 text-blue-700 border border-blue-200',
+    classes: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
     Icon: MessageSquare,
   },
   follow_up: {
     label: 'Follow Up',
-    classes: 'bg-amber-100 text-amber-700 border border-amber-200',
+    classes: 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800',
     Icon: Clock,
   },
   fyi: {
     label: 'FYI',
-    classes: 'bg-purple-100 text-purple-700 border border-purple-200',
+    classes: 'bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800',
     Icon: Info,
   },
   newsletter: {
     label: 'Newsletter',
-    classes: 'bg-gray-100 text-gray-600 border border-gray-200',
+    classes: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600',
     Icon: Mail,
   },
   spam: {
     label: 'Spam',
-    classes: 'bg-orange-100 text-orange-700 border border-orange-200',
+    classes: 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800',
     Icon: AlertTriangle,
   },
   other: {
     label: 'Other',
-    classes: 'bg-slate-100 text-slate-600 border border-slate-200',
+    classes: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600',
     Icon: Tag,
   },
 };

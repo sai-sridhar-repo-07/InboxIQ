@@ -124,21 +124,21 @@ export default function EmailCard({ email, className, onDismiss, selected, onTog
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={clsx(
                   'text-sm truncate max-w-[160px] sm:max-w-none',
-                  !email.is_read ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'
+                  !email.is_read ? 'font-bold text-gray-900 dark:text-gray-100' : 'font-semibold text-gray-700 dark:text-gray-300'
                 )}>
                   {senderName}
                 </span>
-                <span className="text-xs text-gray-400 flex-shrink-0 hidden sm:inline">{timeAgo}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 hidden sm:inline">{timeAgo}</span>
               </div>
               <p className={clsx(
                 'mt-0.5 text-sm leading-snug line-clamp-1',
-                !email.is_read ? 'text-gray-900 font-medium' : 'text-gray-600'
+                !email.is_read ? 'text-gray-900 dark:text-gray-100 font-medium' : 'text-gray-600 dark:text-gray-400'
               )}>
                 {email.subject}
               </p>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-xs text-gray-400 sm:hidden">{timeAgo}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 sm:hidden">{timeAgo}</span>
               {/* Star button */}
               <button
                 onClick={handleStar}
@@ -146,7 +146,7 @@ export default function EmailCard({ email, className, onDismiss, selected, onTog
                   'rounded p-0.5 transition-all duration-150',
                   starred
                     ? 'text-amber-400'
-                    : 'opacity-0 group-hover:opacity-100 text-gray-300 group-hover:text-gray-400 hover:text-amber-400'
+                    : 'opacity-0 group-hover:opacity-100 text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500 hover:text-amber-400'
                 )}
                 title={starred ? 'Unstar' : 'Star'}
               >
@@ -155,7 +155,7 @@ export default function EmailCard({ email, className, onDismiss, selected, onTog
               {/* Snooze button */}
               <button
                 onClick={handleSnoozeClick}
-                className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-gray-300 hover:text-blue-400 hover:bg-blue-50 transition-all duration-150"
+                className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-150"
                 title="Snooze"
               >
                 <AlarmClock className="h-3.5 w-3.5" />
@@ -163,18 +163,18 @@ export default function EmailCard({ email, className, onDismiss, selected, onTog
               {/* Dismiss button */}
               <button
                 onClick={handleDismiss}
-                className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all duration-150"
+                className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-gray-300 dark:text-gray-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-150"
                 title="Remove — won't sync again"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
-              <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-primary-400 transition-all duration-150 group-hover:translate-x-0.5" />
+              <ChevronRight className="h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-primary-400 transition-all duration-150 group-hover:translate-x-0.5" />
             </div>
           </div>
 
           {/* AI Summary */}
           {analysis?.summary && (
-            <p className="mt-1.5 text-xs text-gray-500 line-clamp-2 leading-relaxed hidden sm:block">
+            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed hidden sm:block">
               {analysis.summary}
             </p>
           )}
@@ -194,7 +194,7 @@ export default function EmailCard({ email, className, onDismiss, selected, onTog
               </span>
             )}
             {(email as any).has_attachments && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 border border-gray-200">
+              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
                 <Paperclip className="h-3 w-3" />
                 Attachments
               </span>

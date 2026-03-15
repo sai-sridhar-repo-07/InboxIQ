@@ -56,7 +56,7 @@ export default function ActionsPage() {
         <div className="max-w-3xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
-            <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+            <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -64,15 +64,15 @@ export default function ActionsPage() {
                   className={clsx(
                     'rounded-lg px-4 py-2 text-sm font-medium transition-all',
                     filterTab === tab.id
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                   )}
                 >
                   {tab.label}
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <Filter className="h-4 w-4" />
               {actions.length} item{actions.length !== 1 ? 's' : ''}
             </div>

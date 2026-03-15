@@ -41,7 +41,7 @@ export default function ActionItem({ action, onUpdate, className }: ActionItemPr
     <div
       className={clsx(
         'flex items-start gap-3 rounded-lg border p-3 transition-colors',
-        isCompleted ? 'border-gray-100 bg-gray-50' : 'border-gray-200 bg-white',
+        isCompleted ? 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800',
         className
       )}
     >
@@ -64,7 +64,7 @@ export default function ActionItem({ action, onUpdate, className }: ActionItemPr
         <p
           className={clsx(
             'text-sm font-medium leading-snug',
-            isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'
+            isCompleted ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-gray-100'
           )}
         >
           {action.description}
@@ -75,9 +75,9 @@ export default function ActionItem({ action, onUpdate, className }: ActionItemPr
             className={clsx(
               'inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize',
               {
-                high: 'bg-red-50 text-red-700',
-                medium: 'bg-amber-50 text-amber-700',
-                low: 'bg-gray-100 text-gray-600',
+                high: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400',
+                medium: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
+                low: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
               }[action.priority]
             )}
           >
@@ -88,7 +88,7 @@ export default function ActionItem({ action, onUpdate, className }: ActionItemPr
             <span
               className={clsx(
                 'inline-flex items-center gap-1 text-xs',
-                isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'
+                isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-400'
               )}
             >
               <Calendar className="h-3 w-3" />
@@ -99,7 +99,7 @@ export default function ActionItem({ action, onUpdate, className }: ActionItemPr
         </div>
 
         {action.notes && (
-          <p className="mt-1.5 text-xs text-gray-500 italic">{action.notes}</p>
+          <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 italic">{action.notes}</p>
         )}
       </div>
     </div>

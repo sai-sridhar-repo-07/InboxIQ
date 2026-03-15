@@ -37,8 +37,8 @@ function GmailConnectBanner({ onConnect }: { onConnect: () => void }) {
           <Mail className="h-5 w-5 text-primary-600" />
         </div>
         <div>
-          <h3 className="font-semibold text-gray-900">Connect your Gmail account</h3>
-          <p className="mt-0.5 text-sm text-gray-600">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Connect your Gmail account</h3>
+          <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">
             Connect Gmail to start AI-powered email triage. Takes less than 60 seconds.
           </p>
         </div>
@@ -54,8 +54,8 @@ function GmailConnectBanner({ onConnect }: { onConnect: () => void }) {
 function SectionHeader({ title, count }: { title: string; count: number }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-      <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+      <span className="rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
         {count}
       </span>
     </div>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
 
           {/* Inbox header with actions */}
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h2 className="text-lg font-semibold text-gray-900">Priority Inbox</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Priority Inbox</h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleBulkProcess}
@@ -242,7 +242,7 @@ export default function DashboardPage() {
             <div className="animate-slide-up">
               <div className="flex items-center gap-2 mb-3">
                 <AlarmClock className="h-4 w-4 text-amber-600" />
-                <h2 className="text-base font-semibold text-gray-900">Follow-up Needed</h2>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Follow-up Needed</h2>
                 <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-100">
                   {followUps.length}
                 </span>

@@ -92,12 +92,12 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
 
   return (
     <div className={clsx('card', className)}>
-      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-amber-500" />
-          <h3 className="text-sm font-semibold text-gray-900">AI Reply Draft</h3>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">AI Reply Draft</h3>
           {confidence !== undefined && (
-            <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 border border-green-200">
+            <span className="rounded-full bg-green-50 dark:bg-green-900/20 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
               {Math.round(confidence * 100)}% confidence
             </span>
           )}
@@ -109,8 +109,8 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
 
       <div className="p-4 space-y-3">
         {/* Instruction input */}
-        <div className="rounded-lg border border-primary-100 bg-primary-50 p-3">
-          <p className="text-xs font-medium text-primary-700 mb-2">Tell AI how to reply</p>
+        <div className="rounded-lg border border-primary-100 dark:border-primary-800 bg-primary-50 dark:bg-primary-900/20 p-3">
+          <p className="text-xs font-medium text-primary-700 dark:text-primary-300 mb-2">Tell AI how to reply</p>
           <div className="flex gap-2">
             <input
               type="text"
@@ -118,7 +118,7 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
               onChange={(e) => setInstructions(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !isGenerating && handleGenerate()}
               placeholder='e.g. "Decline politely" or "Ask for more details by Friday"'
-              className="flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="flex-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
             <button
               onClick={handleGenerate}
@@ -141,12 +141,12 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
           onChange={(e) => handleChange(e.target.value)}
           placeholder="AI-generated reply will appear here. Use the field above to guide the AI, or edit directly."
           rows={8}
-          className="w-full resize-none rounded-lg border border-gray-200 p-3 text-sm text-gray-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors placeholder-gray-400"
+          className="w-full resize-none rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 p-3 text-sm text-gray-800 dark:text-gray-200 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors placeholder-gray-400 dark:placeholder-gray-500"
         />
 
         {/* Character count bar */}
         <div className="flex items-center justify-between">
-          <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden mr-3">
+          <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mr-3">
             <div
               className={clsx(
                 'h-full rounded-full transition-all',
@@ -195,8 +195,8 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
         </div>
 
         {draft?.is_sent && (
-          <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2">
-            <p className="text-xs text-green-700 font-medium">
+          <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-3 py-2">
+            <p className="text-xs text-green-700 dark:text-green-400 font-medium">
               Reply sent {draft.sent_at ? `on ${new Date(draft.sent_at).toLocaleDateString()}` : ''}
             </p>
           </div>
