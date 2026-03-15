@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
+from config import settings
 from database import get_supabase
 from middleware.auth import get_current_user
 from services.gmail_service import (
@@ -62,7 +63,8 @@ async def gmail_callback(request: Request, code: str, state: str):
         )
 
     # Redirect user back to the frontend settings page
-    return RedirectResponse(url="http://localhost:3001/settings?gmail=connected")
+    frontend_url = settings.CORS_ORIGINS[0] if settings.CORS_ORIGINS else "http://localhost:3000"
+    return RedirectResponse(url=f"{frontend_url}/settings?gmail=connected")
 
 
 @router.delete("/gmail/disconnect", status_code=status.HTTP_204_NO_CONTENT)
