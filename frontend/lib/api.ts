@@ -100,6 +100,16 @@ export const emailsApi = {
     const { data } = await api.post(`/api/emails/${id}/generate-reply`, { instructions });
     return data;
   },
+
+  getAttachments: async (id: string): Promise<Array<{ attachment_id: string; message_id: string; filename: string; mime_type: string; size: number }>> => {
+    const { data } = await api.get(`/api/emails/${id}/attachments`);
+    return data;
+  },
+
+  getAttachmentDownloadUrl: (id: string, attachmentId: string, filename: string, mimeType: string): string => {
+    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    return `${base}/api/emails/${id}/attachments/${attachmentId}/download?filename=${encodeURIComponent(filename)}&mime_type=${encodeURIComponent(mimeType)}`;
+  },
 };
 
 // ─── Actions Endpoints ────────────────────────────────────────────────────────

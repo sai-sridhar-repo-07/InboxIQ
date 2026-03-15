@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronRight, CheckSquare } from 'lucide-react';
+import { ChevronRight, CheckSquare, Paperclip } from 'lucide-react';
 import clsx from 'clsx';
 import type { Email } from '@/lib/types';
 import PriorityBadge from './PriorityBadge';
@@ -11,21 +11,37 @@ interface EmailCardProps {
   className?: string;
 }
 
+// Gradient colors for avatars based on first letter
+const AVATAR_GRADIENTS = [
+  'from-blue-400 to-blue-600',
+  'from-violet-400 to-violet-600',
+  'from-emerald-400 to-emerald-600',
+  'from-rose-400 to-rose-600',
+  'from-amber-400 to-amber-600',
+  'from-cyan-400 to-cyan-600',
+  'from-fuchsia-400 to-fuchsia-600',
+  'from-teal-400 to-teal-600',
+];
+
+function getGradient(name: string) {
+  const code = (name.charCodeAt(0) || 0) % AVATAR_GRADIENTS.length;
+  return AVATAR_GRADIENTS[code];
+}
+
 export default function EmailCard({ email, className }: EmailCardProps) {
   const router = useRouter();
+  const handleClick = () => router.push(`/email/${email.id}`);
 
-  const handleClick = () => {
-    router.push(`/email/${email.id}`);
-  };
-
-  const analysis = email.ai_analysis;
-  const timeAgo = formatDistanceToNow(new Date(email.received_at), { addSuffix: true });
+  const analysis  = email.ai_analysis;
+  const senderName = email.from_name || email.from_email || '?';
+  const timeAgo   = formatDistanceToNow(new Date(email.received_at), { addSuffix: true });
+  const gradient  = getGradient(senderName);
 
   return (
     <div
       onClick={handleClick}
       className={clsx(
-        'card group flex cursor-pointer items-start gap-4 p-4 transition-all hover:shadow-md hover:border-gray-300',
+        'card card-hover group flex cursor-pointer items-start gap-3 sm:gap-4 p-3 sm:p-4',
         !email.is_read && 'border-l-4 border-l-primary-500',
         className
       )}
@@ -34,9 +50,9 @@ export default function EmailCard({ email, className }: EmailCardProps) {
       onKeyDown={(e) => e.key === 'Enter' && handleClick()}
     >
       {/* Sender Avatar */}
-      <div className="flex-shrink-0">
-        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-semibold">
-          {(email.from_name || email.from_email || '?')[0].toUpperCase()}
+      <div className="flex-shrink-0 mt-0.5">
+        <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-sm font-semibold shadow-sm`}>
+          {senderName[0].toUpperCase()}
         </div>
       </div>
 
@@ -45,27 +61,36 @@ export default function EmailCard({ email, className }: EmailCardProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={clsx('text-sm font-semibold text-gray-900 truncate', !email.is_read && 'font-bold')}>
-                {email.from_name || email.from_email}
+              <span className={clsx(
+                'text-sm truncate max-w-[160px] sm:max-w-none',
+                !email.is_read ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'
+              )}>
+                {senderName}
               </span>
-              <span className="text-xs text-gray-400 flex-shrink-0">{timeAgo}</span>
+              <span className="text-xs text-gray-400 flex-shrink-0 hidden sm:inline">{timeAgo}</span>
             </div>
-            <p className={clsx('mt-0.5 text-sm truncate', email.is_read ? 'text-gray-700' : 'text-gray-900 font-medium')}>
+            <p className={clsx(
+              'mt-0.5 text-sm leading-snug line-clamp-1',
+              !email.is_read ? 'text-gray-900 font-medium' : 'text-gray-600'
+            )}>
               {email.subject}
             </p>
           </div>
-          <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-500 flex-shrink-0 mt-0.5 transition-colors" />
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className="text-xs text-gray-400 sm:hidden">{timeAgo}</span>
+            <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-primary-400 transition-all duration-150 group-hover:translate-x-0.5" />
+          </div>
         </div>
 
         {/* AI Summary */}
         {analysis?.summary && (
-          <p className="mt-1.5 text-xs text-gray-500 line-clamp-2 leading-relaxed">
+          <p className="mt-1.5 text-xs text-gray-500 line-clamp-2 leading-relaxed hidden sm:block">
             {analysis.summary}
           </p>
         )}
 
         {/* Badges row */}
-        <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+        <div className="mt-2 flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {analysis?.category && (
             <CategoryBadge category={analysis.category} size="sm" />
           )}
@@ -75,7 +100,13 @@ export default function EmailCard({ email, className }: EmailCardProps) {
           {(email.action_count ?? 0) > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700 border border-primary-100">
               <CheckSquare className="h-3 w-3" />
-              {email.action_count} action{(email.action_count ?? 0) > 1 ? 's' : ''}
+              {email.action_count}
+            </span>
+          )}
+          {(email as any).has_attachments && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 border border-gray-200">
+              <Paperclip className="h-3 w-3" />
+              Attachments
             </span>
           )}
         </div>

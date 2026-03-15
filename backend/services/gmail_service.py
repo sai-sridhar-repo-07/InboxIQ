@@ -388,6 +388,66 @@ def _build_raw_message(to: str, subject: str, body: str) -> str:
     return base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
 
 
+async def get_email_attachments(user_id: str, gmail_message_id: str) -> list[dict]:
+    """Return attachment metadata (name, mime_type, size, attachment_id) for an email."""
+    try:
+        tokens = await get_gmail_tokens(user_id)
+        if not tokens:
+            return []
+        creds = _credentials_from_tokens(tokens)
+        if creds.expired and creds.refresh_token:
+            import google.auth.transport.requests as grequests
+            creds.refresh(grequests.Request())
+        service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+        msg = service.users().messages().get(userId="me", id=gmail_message_id, format="full").execute()
+        attachments = []
+        _collect_attachments(msg.get("payload", {}), gmail_message_id, attachments)
+        return attachments
+    except Exception as exc:
+        logger.error("get_email_attachments error: %s", exc)
+        return []
+
+
+def _collect_attachments(payload: dict, message_id: str, result: list) -> None:
+    """Recursively collect attachment parts from a Gmail message payload."""
+    filename = payload.get("filename", "")
+    attachment_id = payload.get("body", {}).get("attachmentId")
+    size = payload.get("body", {}).get("size", 0)
+    mime_type = payload.get("mimeType", "")
+
+    if filename and attachment_id:
+        result.append({
+            "attachment_id": attachment_id,
+            "message_id": message_id,
+            "filename": filename,
+            "mime_type": mime_type,
+            "size": size,
+        })
+
+    for part in payload.get("parts", []):
+        _collect_attachments(part, message_id, result)
+
+
+async def get_attachment_data(user_id: str, gmail_message_id: str, attachment_id: str) -> bytes | None:
+    """Download and return raw attachment bytes from Gmail."""
+    try:
+        tokens = await get_gmail_tokens(user_id)
+        if not tokens:
+            return None
+        creds = _credentials_from_tokens(tokens)
+        service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+        result = service.users().messages().attachments().get(
+            userId="me", messageId=gmail_message_id, id=attachment_id
+        ).execute()
+        data = result.get("data", "")
+        if not data:
+            return None
+        return base64.urlsafe_b64decode(data + "==")
+    except Exception as exc:
+        logger.error("get_attachment_data error: %s", exc)
+        return None
+
+
 async def disconnect_gmail(user_id: str) -> bool:
     """Remove Gmail tokens and mark the user as disconnected."""
     try:

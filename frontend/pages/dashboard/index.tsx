@@ -114,39 +114,47 @@ export default function DashboardPage() {
           )}
 
           {/* Stats row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatsCard
-              title="Total Emails"
-              value={stats?.total_emails ?? 0}
-              icon={Mail}
-              iconColor="text-primary-600"
-              iconBg="bg-primary-50"
-              onClick={() => router.push('/email')}
-            />
-            <StatsCard
-              title="Urgent"
-              value={stats?.urgent_count ?? 0}
-              icon={AlertCircle}
-              iconColor="text-red-600"
-              iconBg="bg-red-50"
-              onClick={() => router.push('/email?category=urgent')}
-            />
-            <StatsCard
-              title="Needs Response"
-              value={stats?.needs_response_count ?? 0}
-              icon={MessageSquare}
-              iconColor="text-amber-600"
-              iconBg="bg-amber-50"
-              onClick={() => router.push('/email?category=needs_response')}
-            />
-            <StatsCard
-              title="Action Items"
-              value={stats?.action_items_count ?? 0}
-              icon={CheckSquare}
-              iconColor="text-green-600"
-              iconBg="bg-green-50"
-              onClick={() => router.push('/actions')}
-            />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="animate-slide-up stagger-1">
+              <StatsCard
+                title="Total Emails"
+                value={stats?.total_emails ?? 0}
+                icon={Mail}
+                iconColor="text-primary-600"
+                iconBg="bg-primary-50"
+                onClick={() => router.push('/email')}
+              />
+            </div>
+            <div className="animate-slide-up stagger-2">
+              <StatsCard
+                title="Urgent"
+                value={stats?.urgent_count ?? 0}
+                icon={AlertCircle}
+                iconColor="text-red-600"
+                iconBg="bg-red-50"
+                onClick={() => router.push('/email?category=urgent')}
+              />
+            </div>
+            <div className="animate-slide-up stagger-3">
+              <StatsCard
+                title="Needs Response"
+                value={stats?.needs_response_count ?? 0}
+                icon={MessageSquare}
+                iconColor="text-amber-600"
+                iconBg="bg-amber-50"
+                onClick={() => router.push('/email?category=needs_response')}
+              />
+            </div>
+            <div className="animate-slide-up stagger-4">
+              <StatsCard
+                title="Action Items"
+                value={stats?.action_items_count ?? 0}
+                icon={CheckSquare}
+                iconColor="text-green-600"
+                iconBg="bg-green-50"
+                onClick={() => router.push('/actions')}
+              />
+            </div>
           </div>
 
           {/* Refresh button */}

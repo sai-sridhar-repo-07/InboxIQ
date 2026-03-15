@@ -2,6 +2,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from database import get_supabase
@@ -9,7 +10,7 @@ from middleware.auth import get_current_user
 from models.email import EmailFilter, EmailResponse
 from services import email_service
 from services.ai_processor import process_email
-from services.gmail_service import send_gmail_reply
+from services.gmail_service import send_gmail_reply, get_email_attachments, get_attachment_data
 from workers.email_listener import _process_user_emails
 
 logger = logging.getLogger(__name__)
@@ -250,6 +251,50 @@ async def send_email_reply(
         pass
 
     return {"success": True, "message": "Reply sent successfully."}
+
+
+@router.get("/{email_id}/attachments")
+async def list_email_attachments(
+    email_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """List attachments for an email."""
+    user_id = _current_user_id(current_user)
+    email = await email_service.get_email(email_id=email_id, user_id=user_id)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found.")
+    gmail_message_id = email.get("gmail_message_id")
+    if not gmail_message_id:
+        return []
+    return await get_email_attachments(user_id=user_id, gmail_message_id=gmail_message_id)
+
+
+@router.get("/{email_id}/attachments/{attachment_id}/download")
+async def download_attachment(
+    email_id: str,
+    attachment_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    filename: str = Query("attachment"),
+    mime_type: str = Query("application/octet-stream"),
+):
+    """Download a Gmail attachment proxied through the backend."""
+    user_id = _current_user_id(current_user)
+    email = await email_service.get_email(email_id=email_id, user_id=user_id)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found.")
+    gmail_message_id = email.get("gmail_message_id")
+    if not gmail_message_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Gmail message ID.")
+    data = await get_attachment_data(
+        user_id=user_id, gmail_message_id=gmail_message_id, attachment_id=attachment_id
+    )
+    if data is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found.")
+    return Response(
+        content=data,
+        media_type=mime_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post("/{email_id}/generate-reply")
