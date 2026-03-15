@@ -50,5 +50,6 @@ jobs:
 
     steps:
       - name: Deploy to Render
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
         run: |
           curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
