@@ -1,0 +1,234 @@
+import logging
+from datetime import datetime, timezone
+
+from config import settings
+from database import get_supabase
+from ai.classifier import classify_email
+from ai.reply_generator import generate_reply
+from ai.embeddings import find_similar_replies, store_reply_embedding
+from services.slack_service import send_urgent_alert
+
+logger = logging.getLogger(__name__)
+
+
+async def process_email(email: dict) -> dict | None:
+    """
+    Full AI processing pipeline for a single email.
+
+    Steps
+    -----
+    1. Classify the email (category, priority, summary, action items).
+    2. Update the email record with classification results.
+    3. Save action items to the actions table.
+    4. Find similar past replies (pgvector).
+    5. Generate a reply draft.
+    6. Persist reply draft and store its embedding for future lookups.
+    7. Send a Slack alert if priority >= URGENCY_THRESHOLD.
+
+    Returns the updated email dict, or None on fatal error.
+    """
+    email_id = email.get("id")
+    user_id = email.get("user_id")
+    subject = email.get("subject", "")
+    sender = email.get("sender", "")
+    body = email.get("body", "")
+
+    if not email_id or not user_id:
+        logger.error("process_email called with incomplete email record: %s", email)
+        return None
+
+    # ------------------------------------------------------------------
+    # Step 1 – Classify
+    # ------------------------------------------------------------------
+    try:
+        analysis = await classify_email(subject=subject, sender=sender, body=body)
+    except Exception as exc:
+        logger.error("classify_email failed for email_id=%s: %s", email_id, exc)
+        analysis = {
+            "category": "informational",
+            "priority_score": 5,
+            "summary": "Classification failed.",
+            "action_items": [],
+            "confidence_score": 0.0,
+        }
+
+    # ------------------------------------------------------------------
+    # Step 2 – Persist classification onto the email row
+    # ------------------------------------------------------------------
+    try:
+        supabase = get_supabase()
+        supabase.table("emails").update(
+            {
+                "category": analysis["category"],
+                "priority": analysis["priority_score"],
+                "ai_summary": analysis["summary"],
+                "confidence_score": analysis["confidence_score"],
+                "processed": True,
+            }
+        ).eq("id", email_id).execute()
+    except Exception as exc:
+        logger.error(
+            "Failed to update email record for email_id=%s: %s", email_id, exc
+        )
+
+    # ------------------------------------------------------------------
+    # Step 3 – Save action items
+    # ------------------------------------------------------------------
+    action_items = analysis.get("action_items", [])
+    if action_items:
+        await _save_action_items(email_id=email_id, action_items=action_items)
+
+    # ------------------------------------------------------------------
+    # Step 4 – Fetch user profile for personalised reply
+    # ------------------------------------------------------------------
+    company_description = "a professional service business"
+    tone = "professional and friendly"
+    slack_webhook_url = ""
+
+    try:
+        profile_result = (
+            supabase.table("user_profiles")
+            .select("company_description, tone_preference, slack_webhook_url")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        if profile_result.data:
+            profile = profile_result.data
+            company_description = (
+                profile.get("company_description") or company_description
+            )
+            tone = profile.get("tone_preference") or tone
+            slack_webhook_url = profile.get("slack_webhook_url") or ""
+    except Exception as exc:
+        logger.warning("Could not fetch user profile for user_id=%s: %s", user_id, exc)
+
+    # ------------------------------------------------------------------
+    # Step 5 – Find similar past replies (pgvector RAG)
+    # ------------------------------------------------------------------
+    similar_replies: list[str] = []
+    try:
+        similar_replies = await find_similar_replies(
+            user_id=user_id,
+            email_text=f"{subject}\n{body}",
+            limit=3,
+        )
+    except Exception as exc:
+        logger.warning("find_similar_replies failed: %s", exc)
+
+    # ------------------------------------------------------------------
+    # Step 6 – Generate reply draft
+    # ------------------------------------------------------------------
+    draft_text = ""
+    confidence = 0.0
+    try:
+        draft_text, confidence = await generate_reply(
+            subject=subject,
+            sender=sender,
+            body=body,
+            company_description=company_description,
+            tone=tone,
+            similar_replies=similar_replies,
+        )
+    except Exception as exc:
+        logger.error("generate_reply failed for email_id=%s: %s", email_id, exc)
+        draft_text = "Thank you for your email. We will get back to you shortly."
+        confidence = 0.3
+
+    # ------------------------------------------------------------------
+    # Step 6b – Persist reply draft
+    # ------------------------------------------------------------------
+    try:
+        supabase.table("reply_drafts").upsert(
+            {
+                "email_id": email_id,
+                "user_id": user_id,
+                "draft_text": draft_text,
+                "confidence": confidence,
+            },
+            on_conflict="email_id",
+        ).execute()
+    except Exception as exc:
+        logger.error("Failed to store reply draft for email_id=%s: %s", email_id, exc)
+
+    # ------------------------------------------------------------------
+    # Step 6c – Store reply embedding for future RAG lookups
+    # ------------------------------------------------------------------
+    try:
+        await store_reply_embedding(
+            user_id=user_id, email_id=email_id, reply_text=draft_text
+        )
+    except Exception as exc:
+        logger.warning(
+            "store_reply_embedding failed for email_id=%s: %s", email_id, exc
+        )
+
+    # ------------------------------------------------------------------
+    # Step 7 – Slack alert for urgent emails
+    # ------------------------------------------------------------------
+    priority = analysis.get("priority_score", 0)
+    if priority >= settings.URGENCY_THRESHOLD and slack_webhook_url:
+        alert_data = {
+            "id": email_id,
+            "subject": subject,
+            "sender": sender,
+            "ai_summary": analysis["summary"],
+            "priority": priority,
+            "category": analysis["category"],
+        }
+        try:
+            await send_urgent_alert(
+                webhook_url=slack_webhook_url, email_data=alert_data
+            )
+        except Exception as exc:
+            logger.warning(
+                "send_urgent_alert failed for email_id=%s: %s", email_id, exc
+            )
+
+    logger.info(
+        "AI processing complete for email_id=%s | category=%s | priority=%s",
+        email_id,
+        analysis["category"],
+        priority,
+    )
+
+    return {
+        **email,
+        "category": analysis["category"],
+        "priority": priority,
+        "ai_summary": analysis["summary"],
+        "confidence_score": analysis["confidence_score"],
+        "processed": True,
+    }
+
+
+async def _save_action_items(email_id: str, action_items: list[dict]) -> None:
+    """Insert extracted action items into the actions table."""
+    try:
+        supabase = get_supabase()
+        rows = []
+        for item in action_items:
+            task = item.get("task", "")
+            if not task:
+                continue
+            deadline_raw = item.get("deadline")
+            deadline = None
+            if deadline_raw:
+                try:
+                    deadline = datetime.fromisoformat(str(deadline_raw))
+                except ValueError:
+                    deadline = None
+            rows.append(
+                {
+                    "email_id": email_id,
+                    "task": task,
+                    "deadline": deadline.isoformat() if deadline else None,
+                    "status": "pending",
+                }
+            )
+        if rows:
+            supabase.table("actions").insert(rows).execute()
+    except Exception as exc:
+        logger.error(
+            "_save_action_items error (email_id=%s): %s", email_id, exc
+        )

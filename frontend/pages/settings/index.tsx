@@ -1,0 +1,571 @@
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
+import { useSessionContext } from '@supabase/auth-helpers-react';
+import {
+  User,
+  Link2,
+  Bell,
+  Save,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  Trash2,
+  TestTube2,
+  Mail,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import Layout from '@/components/Layout';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { useSettings, useGmailStatus } from '@/lib/hooks';
+import { settingsApi, integrationsApi } from '@/lib/api';
+import type { UserSettings, TonePreference, NotificationFrequency } from '@/lib/types';
+import clsx from 'clsx';
+
+type Tab = 'profile' | 'integrations' | 'notifications';
+
+const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'profile', label: 'Profile & AI', icon: User },
+  { id: 'integrations', label: 'Integrations', icon: Link2 },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+];
+
+// ─── Profile Tab ──────────────────────────────────────────────────────────────
+function ProfileTab({
+  settings,
+  onSave,
+}: {
+  settings: UserSettings;
+  onSave: (data: Partial<UserSettings>) => Promise<void>;
+}) {
+  const [form, setForm] = useState({
+    company_description: settings.company_description ?? '',
+    tone_preference: settings.tone_preference ?? 'professional',
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const tones: { value: TonePreference; label: string; description: string }[] = [
+    { value: 'professional', label: 'Professional', description: 'Formal, business-appropriate tone' },
+    { value: 'friendly', label: 'Friendly', description: 'Warm and approachable' },
+    { value: 'concise', label: 'Concise', description: 'Short and to the point' },
+  ];
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+      <div className="card p-6">
+        <h3 className="text-base font-semibold text-gray-900 mb-5">Business Context</h3>
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Company / Business Description
+            </label>
+            <textarea
+              value={form.company_description}
+              onChange={(e) => setForm({ ...form, company_description: e.target.value })}
+              rows={4}
+              className="input-field resize-none"
+              placeholder="Describe your business so AI can draft better replies... e.g. 'We are a web design agency specializing in e-commerce for small businesses. We value quick responses and professional communication.'"
+            />
+            <p className="mt-1.5 text-xs text-gray-400">
+              This context helps AI draft better replies and understand your email priorities.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="card p-6">
+        <h3 className="text-base font-semibold text-gray-900 mb-1">Reply Tone Preference</h3>
+        <p className="text-sm text-gray-500 mb-5">How should AI draft your email replies?</p>
+        <div className="space-y-3">
+          {tones.map((tone) => (
+            <label
+              key={tone.value}
+              className={clsx(
+                'flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors',
+                form.tone_preference === tone.value
+                  ? 'border-primary-500 bg-primary-50'
+                  : 'border-gray-200 hover:border-gray-300 bg-white'
+              )}
+            >
+              <input
+                type="radio"
+                name="tone"
+                value={tone.value}
+                checked={form.tone_preference === tone.value}
+                onChange={() => setForm({ ...form, tone_preference: tone.value })}
+                className="mt-0.5 text-primary-600 focus:ring-primary-500"
+              />
+              <div>
+                <p className="text-sm font-semibold text-gray-900">{tone.label}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{tone.description}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button type="submit" disabled={isSaving} className="btn-primary gap-2">
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {isSaving ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ─── Integrations Tab ─────────────────────────────────────────────────────────
+function IntegrationsTab({
+  settings,
+  onSave,
+}: {
+  settings: UserSettings;
+  onSave: (data: Partial<UserSettings>) => Promise<void>;
+}) {
+  const { data: gmailStatus, mutate: mutateGmail } = useGmailStatus();
+  const [slackWebhook, setSlackWebhook] = useState(settings.slack_webhook_url ?? '');
+  const [isSavingSlack, setIsSavingSlack] = useState(false);
+  const [isTestingSlack, setIsTestingSlack] = useState(false);
+  const [isConnectingGmail, setIsConnectingGmail] = useState(false);
+  const [isDisconnectingGmail, setIsDisconnectingGmail] = useState(false);
+
+  const handleConnectGmail = async () => {
+    setIsConnectingGmail(true);
+    try {
+      const { auth_url } = await integrationsApi.connectGmail();
+      window.location.href = auth_url;
+    } catch {
+      toast.error('Failed to initiate Gmail connection');
+      setIsConnectingGmail(false);
+    }
+  };
+
+  const handleDisconnectGmail = async () => {
+    if (!confirm('Disconnect Gmail? You will stop receiving new emails in InboxIQ.')) return;
+    setIsDisconnectingGmail(true);
+    try {
+      await integrationsApi.disconnectGmail();
+      await mutateGmail();
+      toast.success('Gmail disconnected');
+    } catch {
+      toast.error('Failed to disconnect Gmail');
+    } finally {
+      setIsDisconnectingGmail(false);
+    }
+  };
+
+  const handleSaveSlack = async () => {
+    setIsSavingSlack(true);
+    try {
+      await integrationsApi.saveSlackWebhook(slackWebhook);
+      await onSave({ slack_webhook_url: slackWebhook });
+      toast.success('Slack webhook saved');
+    } catch {
+      toast.error('Failed to save Slack webhook');
+    } finally {
+      setIsSavingSlack(false);
+    }
+  };
+
+  const handleTestSlack = async () => {
+    if (!slackWebhook) {
+      toast.error('Enter a webhook URL first');
+      return;
+    }
+    setIsTestingSlack(true);
+    try {
+      const result = await integrationsApi.testSlackWebhook();
+      if (result.success) {
+        toast.success('Test message sent to Slack!');
+      } else {
+        toast.error(result.message || 'Slack test failed');
+      }
+    } catch {
+      toast.error('Failed to send test message');
+    } finally {
+      setIsTestingSlack(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      {/* Gmail */}
+      <div className="card p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+              <Mail className="h-5 w-5 text-red-500" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-gray-900">Gmail</h3>
+              <p className="text-sm text-gray-500">Connect Gmail to sync and process emails</p>
+            </div>
+          </div>
+          {gmailStatus?.connected ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Connected
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Not connected
+            </span>
+          )}
+        </div>
+
+        {gmailStatus?.connected ? (
+          <div className="space-y-3">
+            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700">
+              <p><span className="font-medium">Account:</span> {gmailStatus.email}</p>
+              {gmailStatus.last_sync && (
+                <p className="mt-0.5 text-gray-500">
+                  Last synced: {new Date(gmailStatus.last_sync).toLocaleString()}
+                </p>
+              )}
+              {gmailStatus.total_synced !== undefined && (
+                <p className="mt-0.5 text-gray-500">Total emails synced: {gmailStatus.total_synced.toLocaleString()}</p>
+              )}
+            </div>
+            <button
+              onClick={handleDisconnectGmail}
+              disabled={isDisconnectingGmail}
+              className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+            >
+              {isDisconnectingGmail ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Disconnect Gmail
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleConnectGmail}
+            disabled={isConnectingGmail}
+            className="btn-primary text-sm gap-2"
+          >
+            {isConnectingGmail ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ExternalLink className="h-4 w-4" />
+            )}
+            Connect Gmail Account
+          </button>
+        )}
+      </div>
+
+      {/* Slack */}
+      <div className="card p-6">
+        <div className="flex items-start gap-3 mb-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50">
+            <Bell className="h-5 w-5 text-purple-500" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900">Slack Notifications</h3>
+            <p className="text-sm text-gray-500">Get notified in Slack for urgent emails</p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Slack Webhook URL
+            </label>
+            <input
+              type="url"
+              value={slackWebhook}
+              onChange={(e) => setSlackWebhook(e.target.value)}
+              placeholder="https://hooks.slack.com/services/..."
+              className="input-field"
+            />
+            <p className="mt-1.5 text-xs text-gray-400">
+              Create a webhook at{' '}
+              <a
+                href="https://api.slack.com/messaging/webhooks"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary-600 hover:underline"
+              >
+                api.slack.com/messaging/webhooks
+              </a>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSaveSlack}
+              disabled={isSavingSlack}
+              className="btn-primary text-sm gap-2"
+            >
+              {isSavingSlack ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Save Webhook
+            </button>
+            <button
+              onClick={handleTestSlack}
+              disabled={isTestingSlack || !slackWebhook}
+              className="btn-secondary text-sm gap-2"
+            >
+              {isTestingSlack ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <TestTube2 className="h-4 w-4" />
+              )}
+              Test
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Notifications Tab ────────────────────────────────────────────────────────
+function NotificationsTab({
+  settings,
+  onSave,
+}: {
+  settings: UserSettings;
+  onSave: (data: Partial<UserSettings>) => Promise<void>;
+}) {
+  const [form, setForm] = useState({
+    email_notifications: settings.email_notifications,
+    slack_notifications: settings.slack_notifications,
+    notification_frequency: settings.notification_frequency ?? 'instant',
+    auto_process_emails: settings.auto_process_emails,
+    priority_threshold: settings.priority_threshold ?? 7,
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const frequencies: { value: NotificationFrequency; label: string }[] = [
+    { value: 'instant', label: 'Instantly' },
+    { value: 'hourly', label: 'Hourly digest' },
+    { value: 'daily', label: 'Daily digest' },
+    { value: 'never', label: 'Never' },
+  ];
+
+  const ToggleRow = ({
+    label,
+    description,
+    checked,
+    onChange,
+  }: {
+    label: string;
+    description: string;
+    checked: boolean;
+    onChange: (v: boolean) => void;
+  }) => (
+    <div className="flex items-start justify-between gap-4 py-4 border-b border-gray-100 last:border-0">
+      <div>
+        <p className="text-sm font-medium text-gray-900">{label}</p>
+        <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className={clsx(
+          'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+          checked ? 'bg-primary-600' : 'bg-gray-200'
+        )}
+        role="switch"
+        aria-checked={checked}
+      >
+        <span
+          className={clsx(
+            'inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform',
+            checked ? 'translate-x-5' : 'translate-x-0'
+          )}
+        />
+      </button>
+    </div>
+  );
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+      <div className="card p-6">
+        <h3 className="text-base font-semibold text-gray-900 mb-1">Notification Preferences</h3>
+        <p className="text-sm text-gray-500 mb-4">Control how and when InboxIQ notifies you.</p>
+
+        <ToggleRow
+          label="Email Notifications"
+          description="Receive notification emails for urgent messages"
+          checked={form.email_notifications}
+          onChange={(v) => setForm({ ...form, email_notifications: v })}
+        />
+        <ToggleRow
+          label="Slack Notifications"
+          description="Send urgent email alerts to your Slack channel"
+          checked={form.slack_notifications}
+          onChange={(v) => setForm({ ...form, slack_notifications: v })}
+        />
+        <ToggleRow
+          label="Auto-process Emails"
+          description="Automatically run AI analysis on new emails as they arrive"
+          checked={form.auto_process_emails}
+          onChange={(v) => setForm({ ...form, auto_process_emails: v })}
+        />
+      </div>
+
+      <div className="card p-6">
+        <h3 className="text-base font-semibold text-gray-900 mb-4">Notification Frequency</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {frequencies.map((freq) => (
+            <label
+              key={freq.value}
+              className={clsx(
+                'flex items-center gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors',
+                form.notification_frequency === freq.value
+                  ? 'border-primary-500 bg-primary-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              )}
+            >
+              <input
+                type="radio"
+                name="frequency"
+                value={freq.value}
+                checked={form.notification_frequency === freq.value}
+                onChange={() => setForm({ ...form, notification_frequency: freq.value })}
+                className="text-primary-600 focus:ring-primary-500"
+              />
+              <span className="text-sm font-medium text-gray-700">{freq.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="card p-6">
+        <h3 className="text-base font-semibold text-gray-900 mb-1">Priority Threshold</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Emails scoring above this threshold will be flagged as urgent.
+        </p>
+        <div className="flex items-center gap-4">
+          <input
+            type="range"
+            min={1}
+            max={10}
+            value={form.priority_threshold}
+            onChange={(e) => setForm({ ...form, priority_threshold: Number(e.target.value) })}
+            className="flex-1 h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-primary-600"
+          />
+          <span className="w-16 text-center rounded-lg bg-primary-50 border border-primary-200 px-3 py-1.5 text-sm font-bold text-primary-700">
+            {form.priority_threshold}/10
+          </span>
+        </div>
+        <div className="mt-2 flex justify-between text-xs text-gray-400">
+          <span>More alerts (1)</span>
+          <span>Fewer alerts (10)</span>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button type="submit" disabled={isSaving} className="btn-primary gap-2">
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {isSaving ? 'Saving...' : 'Save Preferences'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function SettingsPage() {
+  const router = useRouter();
+  const { session, isLoading: sessionLoading } = useSessionContext();
+  const [activeTab, setActiveTab] = useState<Tab>('profile');
+
+  const { data: settings, isLoading: settingsLoading, mutate } = useSettings();
+
+  useEffect(() => {
+    if (!sessionLoading && !session) {
+      router.replace('/auth/signin');
+    }
+  }, [session, sessionLoading, router]);
+
+  if (sessionLoading || settingsLoading) return <LoadingSpinner fullPage />;
+  if (!session) return null;
+
+  const handleSave = async (updates: Partial<UserSettings>) => {
+    try {
+      const updated = await settingsApi.updateSettings(updates);
+      await mutate(updated, false);
+      toast.success('Settings saved');
+    } catch {
+      toast.error('Failed to save settings');
+      throw new Error('Save failed');
+    }
+  };
+
+  return (
+    <>
+      <Head>
+        <title>Settings — InboxIQ</title>
+      </Head>
+      <Layout title="Settings">
+        <div className="max-w-4xl mx-auto">
+          {/* Tab nav */}
+          <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+            {tabs.map((tab) => {
+              const { icon: Icon } = tab;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={clsx(
+                    'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all',
+                    activeTab === tab.id
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tab content */}
+          {settings ? (
+            <>
+              {activeTab === 'profile' && (
+                <ProfileTab settings={settings} onSave={handleSave} />
+              )}
+              {activeTab === 'integrations' && (
+                <IntegrationsTab settings={settings} onSave={handleSave} />
+              )}
+              {activeTab === 'notifications' && (
+                <NotificationsTab settings={settings} onSave={handleSave} />
+              )}
+            </>
+          ) : (
+            <div className="card p-12 text-center">
+              <AlertCircle className="mx-auto h-10 w-10 text-amber-400 mb-3" />
+              <p className="text-sm text-gray-600">Could not load settings. Please refresh the page.</p>
+            </div>
+          )}
+        </div>
+      </Layout>
+    </>
+  );
+}

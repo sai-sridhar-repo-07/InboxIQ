@@ -1,0 +1,253 @@
+import logging
+import stripe
+from config import settings
+from database import get_supabase
+
+logger = logging.getLogger(__name__)
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+# Map Stripe price IDs to plan names (override in .env / config as needed)
+PRICE_TO_PLAN: dict[str, str] = {
+    "price_pro_monthly": "pro",
+    "price_pro_annual": "pro",
+    "price_enterprise_monthly": "enterprise",
+}
+
+
+# ---------------------------------------------------------------------------
+# Customer management
+# ---------------------------------------------------------------------------
+
+async def create_customer(user_id: str, email: str) -> str | None:
+    """
+    Create a Stripe customer for the given user and store the customer ID in
+    Supabase.  Returns the Stripe customer ID.
+    """
+    try:
+        customer = stripe.Customer.create(
+            email=email,
+            metadata={"user_id": user_id},
+        )
+        customer_id = customer["id"]
+
+        supabase = get_supabase()
+        supabase.table("user_profiles").update(
+            {"stripe_customer_id": customer_id}
+        ).eq("id", user_id).execute()
+
+        return customer_id
+
+    except Exception as exc:
+        logger.error("create_customer error (user_id=%s): %s", user_id, exc)
+        return None
+
+
+async def _get_or_create_customer(user_id: str, email: str) -> str | None:
+    """Return the existing Stripe customer ID or create a new one."""
+    try:
+        supabase = get_supabase()
+        result = (
+            supabase.table("user_profiles")
+            .select("stripe_customer_id, email")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        profile = result.data or {}
+        existing = profile.get("stripe_customer_id")
+        if existing:
+            return existing
+        # Use provided email or fall back to stored email
+        resolved_email = email or profile.get("email", "")
+        return await create_customer(user_id, resolved_email)
+    except Exception as exc:
+        logger.error(
+            "_get_or_create_customer error (user_id=%s): %s", user_id, exc
+        )
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Checkout & portal
+# ---------------------------------------------------------------------------
+
+async def create_checkout_session(
+    user_id: str, price_id: str, email: str = ""
+) -> str | None:
+    """
+    Create a Stripe Checkout Session for subscription upgrade.
+    Returns the session URL.
+    """
+    try:
+        customer_id = await _get_or_create_customer(user_id, email)
+        if not customer_id:
+            return None
+
+        session = stripe.checkout.Session.create(
+            customer=customer_id,
+            payment_method_types=["card"],
+            line_items=[{"price": price_id, "quantity": 1}],
+            mode="subscription",
+            success_url="https://inboxiq.app/billing/success?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url="https://inboxiq.app/billing/cancel",
+            metadata={"user_id": user_id},
+        )
+        return session.url
+
+    except Exception as exc:
+        logger.error("create_checkout_session error (user_id=%s): %s", user_id, exc)
+        return None
+
+
+async def create_billing_portal_session(customer_id: str) -> str | None:
+    """
+    Create a Stripe Customer Portal session so the user can manage their
+    subscription.  Returns the portal URL.
+    """
+    try:
+        session = stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url="https://inboxiq.app/billing",
+        )
+        return session.url
+    except Exception as exc:
+        logger.error(
+            "create_billing_portal_session error (customer_id=%s): %s",
+            customer_id,
+            exc,
+        )
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Webhook handler
+# ---------------------------------------------------------------------------
+
+async def handle_webhook(payload: bytes, sig_header: str) -> dict:
+    """
+    Verify and dispatch a Stripe webhook event.
+    Returns {"status": "ok"} or raises ValueError on signature mismatch.
+    """
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except stripe.error.SignatureVerificationError as exc:
+        logger.warning("Stripe webhook signature verification failed: %s", exc)
+        raise ValueError("Invalid Stripe webhook signature") from exc
+
+    event_type = event["type"]
+    logger.info("Stripe webhook received: %s", event_type)
+
+    if event_type == "checkout.session.completed":
+        await _handle_checkout_completed(event["data"]["object"])
+    elif event_type in (
+        "customer.subscription.updated",
+        "customer.subscription.deleted",
+    ):
+        await _handle_subscription_change(event["data"]["object"])
+    elif event_type == "invoice.payment_failed":
+        await _handle_payment_failed(event["data"]["object"])
+
+    return {"status": "ok"}
+
+
+async def _handle_checkout_completed(session: dict) -> None:
+    user_id = session.get("metadata", {}).get("user_id")
+    subscription_id = session.get("subscription")
+    if not user_id or not subscription_id:
+        return
+
+    try:
+        subscription = stripe.Subscription.retrieve(subscription_id)
+        price_id = subscription["items"]["data"][0]["price"]["id"]
+        plan = PRICE_TO_PLAN.get(price_id, "pro")
+
+        supabase = get_supabase()
+        supabase.table("user_profiles").update(
+            {"plan": plan, "stripe_subscription_id": subscription_id}
+        ).eq("id", user_id).execute()
+
+        logger.info("User %s upgraded to plan=%s", user_id, plan)
+    except Exception as exc:
+        logger.error("_handle_checkout_completed error: %s", exc)
+
+
+async def _handle_subscription_change(subscription: dict) -> None:
+    try:
+        customer_id = subscription.get("customer")
+        status = subscription.get("status")
+
+        supabase = get_supabase()
+        result = (
+            supabase.table("user_profiles")
+            .select("id")
+            .eq("stripe_customer_id", customer_id)
+            .single()
+            .execute()
+        )
+        if not result.data:
+            return
+
+        user_id = result.data["id"]
+        new_plan = "free" if status in ("canceled", "unpaid", "past_due") else "pro"
+
+        supabase.table("user_profiles").update({"plan": new_plan}).eq(
+            "id", user_id
+        ).execute()
+
+        logger.info(
+            "Subscription change for user %s: status=%s → plan=%s",
+            user_id,
+            status,
+            new_plan,
+        )
+    except Exception as exc:
+        logger.error("_handle_subscription_change error: %s", exc)
+
+
+async def _handle_payment_failed(invoice: dict) -> None:
+    customer_id = invoice.get("customer")
+    logger.warning("Payment failed for Stripe customer %s", customer_id)
+
+
+# ---------------------------------------------------------------------------
+# Status query
+# ---------------------------------------------------------------------------
+
+async def get_subscription_status(user_id: str) -> dict:
+    """Return the current plan and subscription info for a user."""
+    try:
+        supabase = get_supabase()
+        result = (
+            supabase.table("user_profiles")
+            .select("plan, stripe_customer_id, stripe_subscription_id")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        profile = result.data or {}
+        plan = profile.get("plan", "free")
+        subscription_id = profile.get("stripe_subscription_id")
+
+        stripe_status = None
+        current_period_end = None
+        if subscription_id:
+            try:
+                sub = stripe.Subscription.retrieve(subscription_id)
+                stripe_status = sub.get("status")
+                current_period_end = sub.get("current_period_end")
+            except Exception:
+                pass
+
+        return {
+            "plan": plan,
+            "stripe_status": stripe_status,
+            "current_period_end": current_period_end,
+            "stripe_customer_id": profile.get("stripe_customer_id"),
+        }
+
+    except Exception as exc:
+        logger.error("get_subscription_status error (user_id=%s): %s", user_id, exc)
+        return {"plan": "free", "stripe_status": None, "current_period_end": None}

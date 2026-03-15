@@ -1,0 +1,82 @@
+import json
+import logging
+import anthropic
+from config import settings
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+logger = logging.getLogger(__name__)
+client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+CLASSIFICATION_PROMPT = """You are an AI assistant for a service business email management system.
+
+Analyze the following email and return a JSON object with exactly these fields:
+- category: one of ["urgent_client_request", "quote_request", "support_issue", "internal_communication", "follow_up_required", "informational", "spam"]
+- priority_score: integer from 1-10 (10 = most urgent)
+- summary: concise 1-2 sentence summary
+- action_items: array of objects with fields "task" (string) and "deadline" (string or null)
+- confidence_score: float from 0.0 to 1.0
+
+Email Subject: {subject}
+From: {sender}
+Email Body:
+{body}
+
+Return ONLY valid JSON, no other text."""
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+async def classify_email(subject: str, sender: str, body: str) -> dict:
+    """Classify an email using Claude and return structured analysis."""
+    try:
+        prompt = CLASSIFICATION_PROMPT.format(
+            subject=subject,
+            sender=sender,
+            body=body[:3000],
+        )
+
+        response = await client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=512,
+            thinking={"type": "adaptive"},
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        # Extract the text block from the response
+        text_content = next(
+            (block.text for block in response.content if block.type == "text"),
+            None,
+        )
+
+        if not text_content:
+            raise ValueError("No text content in Claude response")
+
+        # Claude may wrap JSON in markdown fences — strip them
+        raw = text_content.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        raw = raw.strip()
+
+        result = json.loads(raw)
+
+        # Validate and normalise all expected fields
+        result["category"] = result.get("category", "informational")
+        result["priority_score"] = max(1, min(10, int(result.get("priority_score", 5))))
+        result["confidence_score"] = max(
+            0.0, min(1.0, float(result.get("confidence_score", 0.8)))
+        )
+        result["action_items"] = result.get("action_items", [])
+        result["summary"] = result.get("summary", "")
+
+        return result
+
+    except Exception as exc:
+        logger.error("Classification error: %s", exc)
+        return {
+            "category": "informational",
+            "priority_score": 5,
+            "summary": "Unable to process email automatically.",
+            "action_items": [],
+            "confidence_score": 0.0,
+        }

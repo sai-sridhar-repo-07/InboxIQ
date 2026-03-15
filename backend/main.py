@@ -1,0 +1,162 @@
+"""
+InboxIQ FastAPI application entry point.
+"""
+
+import logging
+import time
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+
+from config import settings
+from routes import auth, emails, actions, replies, integrations, settings as settings_routes, billing
+from workers.email_listener import start_email_listener, stop_email_listener
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.DEBUG if settings.ENVIRONMENT == "development" else logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Rate limiter
+# ---------------------------------------------------------------------------
+limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+
+# ---------------------------------------------------------------------------
+# Application lifespan
+# ---------------------------------------------------------------------------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown hooks."""
+    logger.info("InboxIQ backend starting up (env=%s).", settings.ENVIRONMENT)
+    start_email_listener()
+    yield
+    logger.info("InboxIQ backend shutting down.")
+    stop_email_listener()
+
+
+# ---------------------------------------------------------------------------
+# FastAPI app
+# ---------------------------------------------------------------------------
+app = FastAPI(
+    title="InboxIQ API",
+    description="AI-powered email management SaaS backend.",
+    version="1.0.0",
+    docs_url="/docs" if settings.ENVIRONMENT != "production" else None,
+    redoc_url="/redoc" if settings.ENVIRONMENT != "production" else None,
+    lifespan=lifespan,
+)
+
+# ---------------------------------------------------------------------------
+# Middleware
+# ---------------------------------------------------------------------------
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def add_request_timing(request: Request, call_next):
+    """Log request timing for observability."""
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed = (time.perf_counter() - start) * 1000
+    logger.debug(
+        "%s %s → %s (%.1f ms)",
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed,
+    )
+    response.headers["X-Process-Time-Ms"] = f"{elapsed:.1f}"
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Exception handlers
+# ---------------------------------------------------------------------------
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Return structured 422 errors with human-readable detail."""
+    errors = []
+    for err in exc.errors():
+        errors.append(
+            {
+                "field": " → ".join(str(loc) for loc in err["loc"]),
+                "message": err["msg"],
+                "type": err["type"],
+            }
+        )
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": "Validation error", "errors": errors},
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    """Catch-all handler — prevents leaking stack traces in production."""
+    logger.error(
+        "Unhandled exception on %s %s: %s",
+        request.method,
+        request.url.path,
+        exc,
+        exc_info=True,
+    )
+    if settings.ENVIRONMENT == "development":
+        detail = str(exc)
+    else:
+        detail = "An unexpected error occurred. Please try again."
+
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": detail},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+app.include_router(auth.router, prefix="/api")
+app.include_router(emails.router, prefix="/api")
+app.include_router(actions.router, prefix="/api")
+app.include_router(replies.router, prefix="/api")
+app.include_router(integrations.router, prefix="/api")
+app.include_router(settings_routes.router, prefix="/api")
+app.include_router(billing.router, prefix="/api")
+
+
+# ---------------------------------------------------------------------------
+# Health check
+# ---------------------------------------------------------------------------
+
+@app.get("/health", tags=["health"], include_in_schema=False)
+async def health_check():
+    """Simple liveness probe."""
+    return {"status": "ok", "environment": settings.ENVIRONMENT}
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return {"message": "InboxIQ API is running.", "docs": "/docs"}

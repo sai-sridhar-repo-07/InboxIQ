@@ -1,0 +1,309 @@
+import logging
+from typing import Annotated
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+
+from database import get_supabase
+from middleware.auth import get_current_user
+from models.email import EmailFilter, EmailResponse
+from services import email_service
+from services.ai_processor import process_email
+from services.gmail_service import send_gmail_reply
+from workers.email_listener import _process_user_emails
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/emails", tags=["emails"])
+
+
+# ---------------------------------------------------------------------------
+# Helper
+# ---------------------------------------------------------------------------
+
+def _current_user_id(current_user: dict) -> str:
+    return current_user["id"]
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@router.get("", response_model=dict)
+async def list_emails(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    category: str | None = Query(None),
+    priority_level: str | None = Query(None),
+    min_priority: int | None = Query(None, ge=1, le=10),
+    is_read: bool | None = Query(None),
+    processed: bool | None = Query(None),
+    search: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
+    sort_by: str | None = Query(None),
+    sort_order: str | None = Query(None),
+):
+    """List emails for the authenticated user with optional filters."""
+    offset = (page - 1) * page_size
+    filters = EmailFilter(
+        category=category,
+        min_priority=min_priority,
+        processed=processed,
+        limit=page_size,
+        offset=offset,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+    items = await email_service.get_emails(
+        user_id=_current_user_id(current_user), filters=filters
+    )
+    total = await email_service.count_emails(
+        user_id=_current_user_id(current_user), filters=filters
+    )
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/stats")
+async def email_stats(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Return aggregate email statistics for the current user."""
+    return await email_service.get_email_stats(
+        user_id=_current_user_id(current_user)
+    )
+
+
+@router.get("/priority-inbox")
+async def priority_inbox(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Return emails organised into urgent / important / other sections."""
+    return await email_service.get_priority_inbox(
+        user_id=_current_user_id(current_user)
+    )
+
+
+@router.post("/sync", status_code=status.HTTP_202_ACCEPTED)
+async def sync_emails(
+    background_tasks: BackgroundTasks,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Manually trigger a Gmail sync for the current user."""
+    background_tasks.add_task(_process_user_emails, _current_user_id(current_user))
+    return {"message": "Gmail sync started."}
+
+
+@router.get("/{email_id}")
+async def get_email(
+    email_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Retrieve a single email by ID."""
+    email = await email_service.get_email(
+        email_id=email_id, user_id=_current_user_id(current_user)
+    )
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Email {email_id} not found.",
+        )
+    return email
+
+
+@router.post("/{email_id}/process", status_code=status.HTTP_202_ACCEPTED)
+async def trigger_ai_processing(
+    email_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Manually trigger AI processing for a specific email."""
+    user_id = _current_user_id(current_user)
+    email = await email_service.get_email(email_id=email_id, user_id=user_id)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Email {email_id} not found.",
+        )
+
+    background_tasks.add_task(process_email, email)
+    return {"message": "AI processing queued.", "email_id": email_id}
+
+
+@router.delete("/{email_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_email(
+    email_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Delete an email."""
+    success = await email_service.delete_email(
+        email_id=email_id, user_id=_current_user_id(current_user)
+    )
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Email {email_id} not found or already deleted.",
+        )
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Reply draft sub-routes (frontend calls /api/emails/{id}/reply-draft)
+# ---------------------------------------------------------------------------
+
+class ReplyDraftUpdate(BaseModel):
+    draft_content: str
+
+
+class SendReplyBody(BaseModel):
+    content: str
+
+
+class GenerateReplyBody(BaseModel):
+    instructions: str
+
+
+@router.get("/{email_id}/reply-draft")
+async def get_email_reply_draft(
+    email_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Get the AI reply draft for an email."""
+    user_id = _current_user_id(current_user)
+    email = await email_service.get_email(email_id=email_id, user_id=user_id)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found.")
+
+    supabase = get_supabase()
+    result = (
+        supabase.table("reply_drafts")
+        .select("*")
+        .eq("email_id", email_id)
+        .single()
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No reply draft found for this email.",
+        )
+    draft = result.data
+    return {
+        **draft,
+        "draft_content": draft.get("draft_text", ""),
+        "confidence_score": draft.get("confidence", 0.0),
+        "tone": "professional",
+        "is_sent": draft.get("sent", False),
+    }
+
+
+@router.patch("/{email_id}/reply-draft")
+async def update_email_reply_draft(
+    email_id: str,
+    body: ReplyDraftUpdate,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Update the reply draft content for an email."""
+    user_id = _current_user_id(current_user)
+    email = await email_service.get_email(email_id=email_id, user_id=user_id)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found.")
+
+    supabase = get_supabase()
+    result = (
+        supabase.table("reply_drafts")
+        .update({"draft_text": body.draft_content})
+        .eq("email_id", email_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reply draft not found.")
+    draft = result.data[0]
+    return {**draft, "draft_content": draft.get("draft_text", ""), "is_sent": draft.get("sent", False)}
+
+
+@router.post("/{email_id}/send-reply")
+async def send_email_reply(
+    email_id: str,
+    body: SendReplyBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Send a reply to an email via Gmail."""
+    user_id = _current_user_id(current_user)
+    email = await email_service.get_email(email_id=email_id, user_id=user_id)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found.")
+
+    success = await send_gmail_reply(
+        user_id=user_id,
+        thread_id=email.get("thread_id") or email.get("gmail_thread_id") or "",
+        to=email.get("sender") or email.get("from_email", ""),
+        subject=email.get("subject", ""),
+        body=body.content,
+    )
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to send reply via Gmail.",
+        )
+
+    # Mark draft as sent
+    supabase = get_supabase()
+    try:
+        supabase.table("reply_drafts").update({"sent": True}).eq("email_id", email_id).execute()
+    except Exception:
+        pass
+
+    return {"success": True, "message": "Reply sent successfully."}
+
+
+@router.post("/{email_id}/generate-reply")
+async def generate_reply_with_instructions(
+    email_id: str,
+    body: GenerateReplyBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Generate a new AI reply draft based on user instructions."""
+    from ai.reply_generator import generate_reply
+    from ai.embeddings import find_similar_replies
+
+    user_id = _current_user_id(current_user)
+    email = await email_service.get_email(email_id=email_id, user_id=user_id)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found.")
+
+    # Fetch user profile for tone/company context
+    supabase = get_supabase()
+    company_description = "a professional service business"
+    tone = "professional and friendly"
+    try:
+        profile = supabase.table("user_profiles").select(
+            "company_description, tone_preference"
+        ).eq("id", user_id).single().execute()
+        if profile.data:
+            company_description = profile.data.get("company_description") or company_description
+            tone = profile.data.get("tone_preference") or tone
+    except Exception:
+        pass
+
+    draft_text, confidence = await generate_reply(
+        subject=email.get("subject", ""),
+        sender=email.get("sender") or email.get("from_email", ""),
+        body=email.get("body") or email.get("body_text", ""),
+        company_description=company_description,
+        tone=tone,
+        user_instructions=body.instructions,
+    )
+
+    # Upsert the new draft
+    supabase.table("reply_drafts").upsert(
+        {
+            "email_id": email_id,
+            "user_id": user_id,
+            "draft_text": draft_text,
+            "confidence": confidence,
+        },
+        on_conflict="email_id",
+    ).execute()
+
+    return {
+        "draft_content": draft_text,
+        "confidence_score": confidence,
+        "tone": tone,
+        "is_sent": False,
+    }
