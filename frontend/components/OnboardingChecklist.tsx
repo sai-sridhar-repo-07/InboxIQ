@@ -84,7 +84,7 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
   };
 
   return (
-    <div className="card p-4 sm:p-5 border-primary-100 dark:border-gray-700 bg-gradient-to-br from-primary-50/50 to-white dark:from-gray-800 dark:to-gray-900 animate-slide-up">
+    <div className="card p-4 sm:p-5 border-primary-100 bg-gradient-to-br from-primary-50/50 to-white animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
@@ -122,7 +122,7 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
             <div
               key={step.id}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
-                done ? 'bg-green-50 dark:bg-green-900/30 dark:border dark:border-green-800/40' : 'bg-white dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600'
+                done ? 'bg-green-50 dark:bg-green-900/20' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700'
               }`}
             >
               {done
