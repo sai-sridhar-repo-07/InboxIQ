@@ -50,7 +50,7 @@ const PLANS: Plan[] = [
       'Slack notifications',
       'Priority support',
     ],
-    stripe_price_id: 'price_pro_monthly',
+    stripe_price_id: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || '',
   },
   {
     id: 'agency',
@@ -66,7 +66,7 @@ const PLANS: Plan[] = [
       'API access',
       'Dedicated support',
     ],
-    stripe_price_id: 'price_agency_monthly',
+    stripe_price_id: process.env.NEXT_PUBLIC_STRIPE_AGENCY_PRICE_ID || '',
   },
 ];
 
@@ -111,10 +111,18 @@ export default function BillingPage() {
     if (planId === 'free') return;
     setLoadingPlan(planId);
     try {
-      const { checkout_url } = await billingApi.createCheckoutSession(planId);
+      const plan = PLANS.find((p) => p.id === planId);
+      const priceId = plan?.stripe_price_id || undefined;
+      const { checkout_url } = await billingApi.createCheckoutSession(planId, 'monthly', priceId);
       window.location.href = checkout_url;
-    } catch {
-      toast.error('Failed to start checkout. Please try again.');
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(
+        msg === 'No valid price_id or plan_id provided.'
+          ? 'Stripe is not configured. Set STRIPE_PRO_PRICE_ID / STRIPE_AGENCY_PRICE_ID in your backend .env.'
+          : 'Failed to start checkout. Please try again.'
+      );
       setLoadingPlan(null);
     }
   };

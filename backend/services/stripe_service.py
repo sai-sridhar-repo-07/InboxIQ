@@ -7,12 +7,26 @@ logger = logging.getLogger(__name__)
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
-# Map Stripe price IDs to plan names (override in .env / config as needed)
-PRICE_TO_PLAN: dict[str, str] = {
-    "price_pro_monthly": "pro",
-    "price_pro_annual": "pro",
-    "price_enterprise_monthly": "enterprise",
-}
+def _build_price_to_plan() -> dict[str, str]:
+    """Build the price ID → plan name map from configured env vars."""
+    mapping: dict[str, str] = {}
+    for price_id in (
+        settings.STRIPE_PRO_PRICE_ID,
+        settings.STRIPE_PRICE_PRO_MONTHLY,
+        settings.STRIPE_PRICE_PRO_YEARLY,
+    ):
+        if price_id:
+            mapping[price_id] = "pro"
+    for price_id in (
+        settings.STRIPE_AGENCY_PRICE_ID,
+        settings.STRIPE_PRICE_AGENCY_MONTHLY,
+        settings.STRIPE_PRICE_AGENCY_YEARLY,
+    ):
+        if price_id:
+            mapping[price_id] = "agency"
+    return mapping
+
+PRICE_TO_PLAN: dict[str, str] = _build_price_to_plan()
 
 
 # ---------------------------------------------------------------------------
@@ -49,7 +63,7 @@ async def _get_or_create_customer(user_id: str, email: str) -> str | None:
         supabase = get_supabase()
         result = (
             supabase.table("user_profiles")
-            .select("stripe_customer_id, email")
+            .select("stripe_customer_id")
             .eq("id", user_id)
             .single()
             .execute()
@@ -58,9 +72,7 @@ async def _get_or_create_customer(user_id: str, email: str) -> str | None:
         existing = profile.get("stripe_customer_id")
         if existing:
             return existing
-        # Use provided email or fall back to stored email
-        resolved_email = email or profile.get("email", "")
-        return await create_customer(user_id, resolved_email)
+        return await create_customer(user_id, email)
     except Exception as exc:
         logger.error(
             "_get_or_create_customer error (user_id=%s): %s", user_id, exc
@@ -84,13 +96,14 @@ async def create_checkout_session(
         if not customer_id:
             return None
 
+        frontend_url = settings.FRONTEND_URL.rstrip("/") if hasattr(settings, "FRONTEND_URL") and settings.FRONTEND_URL else "http://localhost:3000"
         session = stripe.checkout.Session.create(
             customer=customer_id,
             payment_method_types=["card"],
             line_items=[{"price": price_id, "quantity": 1}],
             mode="subscription",
-            success_url="https://inboxiq.app/billing/success?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url="https://inboxiq.app/billing/cancel",
+            success_url=f"{frontend_url}/billing?success=true&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{frontend_url}/billing?canceled=true",
             metadata={"user_id": user_id},
         )
         return session.url

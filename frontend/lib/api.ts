@@ -366,11 +366,13 @@ export const billingApi = {
 
   createCheckoutSession: async (
     planId: string,
-    interval: 'monthly' | 'yearly' = 'monthly'
+    interval: 'monthly' | 'yearly' = 'monthly',
+    priceId?: string
   ): Promise<{ checkout_url: string }> => {
     const { data } = await api.post('/api/billing/checkout', {
       plan_id: planId,
       interval,
+      ...(priceId ? { price_id: priceId } : {}),
     });
     return data;
   },

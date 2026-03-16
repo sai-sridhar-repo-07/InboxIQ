@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     def agency_yearly_price_id(self) -> str:
         return self.STRIPE_PRICE_AGENCY_YEARLY or self.STRIPE_AGENCY_PRICE_ID
 
+    # Frontend base URL (used for Stripe redirect URLs)
+    FRONTEND_URL: str = "http://localhost:3000"
+
     # JWT / Auth
     SECRET_KEY: str
     ALGORITHM: str = "HS256"

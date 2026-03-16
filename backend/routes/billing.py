@@ -53,6 +53,12 @@ async def create_checkout(
         price_id = plan_to_price.get(body.plan_id, {}).get(body.interval, "")
 
     if not price_id:
+        logger.error(
+            "Checkout failed: no price_id resolved. plan_id=%s interval=%s — "
+            "set STRIPE_PRO_PRICE_ID / STRIPE_AGENCY_PRICE_ID in backend .env",
+            body.plan_id,
+            body.interval,
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No valid price_id or plan_id provided.",
