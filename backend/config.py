@@ -25,6 +25,16 @@ class Settings(BaseSettings):
     GMAIL_CLIENT_SECRET: str = ""
     GMAIL_REDIRECT_URI: str = "http://localhost:8000/integrations/gmail/callback"
 
+    # Microsoft / Outlook OAuth
+    MS_CLIENT_ID: str = ""
+    MS_CLIENT_SECRET: str = ""
+    MS_REDIRECT_URI: str = "http://localhost:8000/api/integrations/outlook/callback"
+
+    # Google Calendar OAuth
+    GCAL_CLIENT_ID: str = ""
+    GCAL_CLIENT_SECRET: str = ""
+    GCAL_REDIRECT_URI: str = "http://localhost:8000/api/integrations/calendar/callback"
+
     # Slack
     SLACK_WEBHOOK_URL: str = ""
 

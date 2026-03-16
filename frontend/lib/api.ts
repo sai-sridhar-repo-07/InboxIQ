@@ -17,6 +17,13 @@ import type {
   ContactDetail,
   QuoteData,
   MeetingInfo,
+  Organization,
+  OrgMember,
+  EmailAssignment,
+  InternalNote,
+  ActivityLogEntry,
+  AdminStats,
+  CalendarEvent,
 } from './types';
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
@@ -370,6 +377,133 @@ export const billingApi = {
 
   createPortalSession: async (): Promise<{ portal_url: string }> => {
     const { data } = await api.post('/api/billing/portal');
+    return data;
+  },
+};
+
+// ─── Outlook Endpoints ────────────────────────────────────────────────────────
+
+export const outlookApi = {
+  getStatus: async (): Promise<{ connected: boolean; email?: string }> => {
+    const { data } = await api.get('/api/integrations/outlook/status');
+    return data;
+  },
+  connect: async (): Promise<{ auth_url: string }> => {
+    const { data } = await api.get('/api/integrations/outlook/connect');
+    return data;
+  },
+  sync: async (): Promise<void> => {
+    await api.post('/api/integrations/outlook/sync');
+  },
+  disconnect: async (): Promise<void> => {
+    await api.delete('/api/integrations/outlook/disconnect');
+  },
+};
+
+// ─── Google Calendar Endpoints ────────────────────────────────────────────────
+
+export const calendarApi = {
+  getStatus: async (): Promise<{ connected: boolean }> => {
+    const { data } = await api.get('/api/integrations/calendar/status');
+    return data;
+  },
+  connect: async (): Promise<{ auth_url: string }> => {
+    const { data } = await api.get('/api/integrations/calendar/connect');
+    return data;
+  },
+  disconnect: async (): Promise<void> => {
+    await api.delete('/api/integrations/calendar/disconnect');
+  },
+  getEvents: async (maxResults = 10): Promise<{ events: CalendarEvent[] }> => {
+    const { data } = await api.get(`/api/integrations/calendar/events?max_results=${maxResults}`);
+    return data;
+  },
+  createEvent: async (body: { title: string; description?: string; start_datetime?: string; duration_hours?: number }): Promise<{ event: CalendarEvent; html_link?: string }> => {
+    const { data } = await api.post('/api/integrations/calendar/events', body);
+    return data;
+  },
+};
+
+// ─── Teams Endpoints ──────────────────────────────────────────────────────────
+
+export const teamsApi = {
+  createOrg: async (name: string): Promise<Organization> => {
+    const { data } = await api.post('/api/teams/org', { name });
+    return data;
+  },
+  getOrg: async (): Promise<{ org: Organization; members: OrgMember[]; your_role: string }> => {
+    const { data } = await api.get('/api/teams/org');
+    return data;
+  },
+  inviteMember: async (email: string, role = 'member'): Promise<{ message: string; invite_token: string }> => {
+    const { data } = await api.post('/api/teams/org/invite', { email, role });
+    return data;
+  },
+  joinOrg: async (token: string): Promise<void> => {
+    await api.post(`/api/teams/org/join/${token}`);
+  },
+  removeMember: async (userId: string): Promise<void> => {
+    await api.delete(`/api/teams/org/members/${userId}`);
+  },
+  getAssignment: async (emailId: string): Promise<EmailAssignment | null> => {
+    const { data } = await api.get(`/api/teams/assignments/${emailId}`);
+    return data;
+  },
+  assignEmail: async (emailId: string, assignedTo: string | null): Promise<void> => {
+    await api.post(`/api/teams/assignments/${emailId}`, { assigned_to: assignedTo });
+  },
+  getNotes: async (emailId: string): Promise<InternalNote[]> => {
+    const { data } = await api.get(`/api/teams/notes/${emailId}`);
+    return data;
+  },
+  addNote: async (emailId: string, note: string): Promise<InternalNote> => {
+    const { data } = await api.post(`/api/teams/notes/${emailId}`, { note });
+    return data;
+  },
+  deleteNote: async (noteId: string): Promise<void> => {
+    await api.delete(`/api/teams/notes/${noteId}`);
+  },
+  getActivity: async (limit = 50): Promise<ActivityLogEntry[]> => {
+    const { data } = await api.get(`/api/teams/activity?limit=${limit}`);
+    return data;
+  },
+  getAdminStats: async (): Promise<AdminStats> => {
+    const { data } = await api.get('/api/teams/admin/stats');
+    return data;
+  },
+};
+
+// ─── Webhooks Endpoints ───────────────────────────────────────────────────────
+
+export interface Webhook {
+  id: string;
+  user_id: string;
+  name: string;
+  url: string;
+  event: 'urgent_email' | 'reply_sent' | 'action_created' | 'all';
+  secret?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export const webhooksApi = {
+  list: async (): Promise<Webhook[]> => {
+    const { data } = await api.get('/api/webhooks');
+    return data;
+  },
+  create: async (body: { name: string; url: string; event: string; secret?: string }): Promise<Webhook> => {
+    const { data } = await api.post('/api/webhooks', body);
+    return data;
+  },
+  update: async (id: string, body: Partial<Webhook>): Promise<Webhook> => {
+    const { data } = await api.patch(`/api/webhooks/${id}`, body);
+    return data;
+  },
+  remove: async (id: string): Promise<void> => {
+    await api.delete(`/api/webhooks/${id}`);
+  },
+  test: async (id: string): Promise<{ success: boolean; status_code?: number; error?: string }> => {
+    const { data } = await api.post(`/api/webhooks/${id}/test`);
     return data;
   },
 };

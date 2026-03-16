@@ -261,6 +261,83 @@ export interface QuoteData {
   notes?: string;
 }
 
+// ─── Team / Org Types ─────────────────────────────────────────────────────────
+
+export interface Organization {
+  id: string;
+  name: string;
+  owner_id: string;
+  plan: string;
+  slug: string;
+  created_at: string;
+}
+
+export type OrgRole = 'owner' | 'admin' | 'member';
+
+export interface OrgMember {
+  id: string;
+  org_id: string;
+  user_id?: string;
+  role: OrgRole;
+  status: 'active' | 'pending' | 'removed';
+  invited_email?: string;
+  invite_token?: string;
+  created_at: string;
+  user_profiles?: { id: string; name: string; email: string };
+}
+
+export interface EmailAssignment {
+  id: string;
+  email_id: string;
+  org_id: string;
+  assigned_to?: string;
+  assigned_by?: string;
+  created_at: string;
+  user_profiles?: { id: string; name: string; email: string };
+}
+
+export interface InternalNote {
+  id: string;
+  email_id: string;
+  org_id: string;
+  user_id: string;
+  note: string;
+  created_at: string;
+  user_profiles?: { id: string; name: string; email: string };
+}
+
+export interface ActivityLogEntry {
+  id: string;
+  org_id: string;
+  user_id?: string;
+  actor_name?: string;
+  action: string;
+  resource_type?: string;
+  resource_id?: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AdminStats {
+  member_count: number;
+  pending_invites: number;
+  total_emails: number;
+  emails_today: number;
+  recent_activity: ActivityLogEntry[];
+}
+
+// ─── Calendar Types ───────────────────────────────────────────────────────────
+
+export interface CalendarEvent {
+  id: string;
+  summary: string;
+  description?: string;
+  start: { dateTime?: string; date?: string };
+  end: { dateTime?: string; date?: string };
+  htmlLink?: string;
+  status?: string;
+}
+
 // ─── Meeting Detection Types ──────────────────────────────────────────────────
 
 export interface MeetingInfo {

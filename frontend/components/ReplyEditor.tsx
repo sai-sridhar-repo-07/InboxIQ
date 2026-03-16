@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Save, Zap, Loader2, Sparkles, FileText, ChevronDown } from 'lucide-react';
+import { Send, Save, Zap, Loader2, Sparkles, FileText, ChevronDown, Mic, MicOff } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { repliesApi, emailsApi } from '@/lib/api';
@@ -24,6 +24,9 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
   const [hasChanges, setHasChanges] = useState(false);
   const [confidence, setConfidence] = useState(draft?.confidence_score);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const templateMenuRef = useRef<HTMLDivElement>(null);
   const templates = loadTemplates();
 
@@ -102,6 +105,51 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const toggleVoice = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SpeechRecognitionCtor = w.SpeechRecognition || w.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionCtor) {
+      toast.error('Voice input is not supported in this browser.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results as unknown[])
+        .slice(event.resultIndex)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((r: any) => r[0].transcript)
+        .join(' ');
+      setContent((prev) => (prev ? prev + ' ' + transcript : transcript));
+      setHasChanges(true);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      toast.error('Voice input error. Please try again.');
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsListening(true);
+    toast('Listening… speak now', { icon: '🎤' });
+  };
 
   const insertTemplate = (body: string) => {
     setContent((prev) => (prev ? prev + '\n\n' + body : body));
@@ -188,6 +236,19 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
 
         {/* Actions */}
         <div className="flex items-center gap-2 justify-end flex-wrap">
+          {/* Voice input */}
+          <button
+            onClick={toggleVoice}
+            className={clsx(
+              'btn-secondary text-sm gap-1.5',
+              isListening && 'border-red-300 bg-red-50 text-red-600 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400'
+            )}
+            title={isListening ? 'Stop recording' : 'Voice input'}
+          >
+            {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            {isListening ? 'Stop' : 'Voice'}
+          </button>
+
           {/* Templates dropdown */}
           <div className="relative" ref={templateMenuRef}>
             <button

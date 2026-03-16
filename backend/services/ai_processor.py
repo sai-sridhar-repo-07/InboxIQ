@@ -229,6 +229,38 @@ async def process_email(email: dict) -> dict | None:
                 "send_urgent_alert failed for email_id=%s: %s", email_id, exc
             )
 
+    # ------------------------------------------------------------------
+    # Step 8 – Auto-assign rules
+    # ------------------------------------------------------------------
+    try:
+        _apply_auto_assign_rules(
+            user_id=user_id,
+            email_id=email_id,
+            sender=sender,
+            category=analysis.get("category", ""),
+            priority_score=priority,
+        )
+    except Exception as exc:
+        logger.warning("auto_assign_rules failed for email_id=%s: %s", email_id, exc)
+
+    # ------------------------------------------------------------------
+    # Step 9 – Fire outbound webhooks
+    # ------------------------------------------------------------------
+    try:
+        from services.webhook_service import fire_event_sync
+        wh_payload = {
+            "email_id": email_id,
+            "subject": subject,
+            "sender": sender,
+            "category": analysis["category"],
+            "priority_score": priority,
+            "summary": analysis["summary"],
+        }
+        if priority >= settings.URGENCY_THRESHOLD:
+            fire_event_sync(user_id, "urgent_email", wh_payload)
+    except Exception as exc:
+        logger.warning("webhook_fire failed for email_id=%s: %s", email_id, exc)
+
     logger.info(
         "AI processing complete for email_id=%s | category=%s | priority=%s",
         email_id,
@@ -276,3 +308,57 @@ async def _save_action_items(email_id: str, action_items: list[dict]) -> None:
         logger.error(
             "_save_action_items error (email_id=%s): %s", email_id, exc
         )
+
+
+def _apply_auto_assign_rules(
+    user_id: str,
+    email_id: str,
+    sender: str,
+    category: str,
+    priority_score: int,
+) -> None:
+    """Check org auto-assign rules and create an email_assignment if a rule matches."""
+    supabase = get_supabase()
+
+    profile = supabase.table("user_profiles").select("org_id").eq("id", user_id).single().execute()
+    org_id = (profile.data or {}).get("org_id")
+    if not org_id:
+        return
+
+    rules_result = supabase.table("auto_assign_rules").select("*").eq("org_id", org_id).eq("is_active", True).execute()
+    rules = rules_result.data or []
+    if not rules:
+        return
+
+    for rule in rules:
+        ctype = rule["condition_type"]
+        cval = rule["condition_value"]
+        matched = False
+
+        if ctype == "sender_domain":
+            domain = cval.lstrip("@").lower()
+            matched = sender.lower().endswith("@" + domain)
+        elif ctype == "category":
+            matched = category.lower() == cval.lower()
+        elif ctype == "priority_gte":
+            try:
+                matched = priority_score >= int(cval)
+            except ValueError:
+                pass
+
+        if matched:
+            assign_to = rule["assign_to_user_id"]
+            try:
+                supabase.table("email_assignments").upsert({
+                    "email_id": email_id,
+                    "org_id": org_id,
+                    "assigned_to": assign_to,
+                    "assigned_by": None,
+                }, on_conflict="email_id").execute()
+                logger.info(
+                    "Auto-assigned email_id=%s to user_id=%s via rule %s",
+                    email_id, assign_to, rule["id"]
+                )
+            except Exception as exc:
+                logger.warning("auto-assign upsert failed: %s", exc)
+            break  # Only first matching rule

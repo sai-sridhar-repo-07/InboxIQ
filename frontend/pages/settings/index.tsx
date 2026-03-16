@@ -21,18 +21,19 @@ import {
   PenLine,
   Plus,
   Download,
+  RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import RulesManager from '@/components/RulesManager';
 import { useSettings, useGmailStatus } from '@/lib/hooks';
-import { settingsApi, integrationsApi, gdprApi } from '@/lib/api';
+import { settingsApi, integrationsApi, outlookApi, calendarApi, gdprApi, webhooksApi, type Webhook } from '@/lib/api';
 import { loadTemplates, saveTemplates, createTemplate, type EmailTemplate } from '@/lib/templates';
 import type { UserSettings, TonePreference, NotificationFrequency } from '@/lib/types';
 import clsx from 'clsx';
 
-type Tab = 'profile' | 'integrations' | 'notifications' | 'vacation' | 'rules' | 'templates' | 'data';
+type Tab = 'profile' | 'integrations' | 'notifications' | 'vacation' | 'rules' | 'templates' | 'webhooks' | 'data';
 
 const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'profile', label: 'Profile & AI', icon: User },
@@ -41,6 +42,7 @@ const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
   { id: 'vacation', label: 'Vacation', icon: Plane },
   { id: 'rules', label: 'Rules', icon: Filter },
   { id: 'templates', label: 'Templates', icon: FileText },
+  { id: 'webhooks', label: 'Webhooks', icon: Link2 },
   { id: 'data', label: 'Data & Privacy', icon: Shield },
 ];
 
@@ -148,6 +150,169 @@ function ProfileTab({
         </button>
       </div>
     </form>
+  );
+}
+
+// ─── Outlook Integration ──────────────────────────────────────────────────────
+function OutlookIntegration() {
+  const [status, setStatus] = useState<{ connected: boolean; email?: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  useEffect(() => {
+    outlookApi.getStatus().then(setStatus).catch(() => setStatus({ connected: false })).finally(() => setLoading(false));
+  }, []);
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const { auth_url } = await outlookApi.connect();
+      window.location.href = auth_url;
+    } catch { toast.error('Failed to connect Outlook'); setConnecting(false); }
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await outlookApi.sync();
+      toast.success('Outlook sync started');
+    } catch { toast.error('Failed to start sync'); }
+    finally { setSyncing(false); }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('Disconnect Outlook?')) return;
+    setDisconnecting(true);
+    try {
+      await outlookApi.disconnect();
+      setStatus({ connected: false });
+      toast.success('Outlook disconnected');
+    } catch { toast.error('Failed to disconnect'); }
+    finally { setDisconnecting(false); }
+  };
+
+  return (
+    <div className="card p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+            <Mail className="h-5 w-5 text-blue-500" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Outlook / Microsoft 365</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Connect your Microsoft inbox to sync emails</p>
+          </div>
+        </div>
+        {!loading && (
+          status?.connected ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+              <CheckCircle2 className="h-3.5 w-3.5" />Connected
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+              <AlertCircle className="h-3.5 w-3.5" />Not connected
+            </span>
+          )
+        )}
+      </div>
+
+      {status?.connected ? (
+        <div className="space-y-3">
+          {status.email && (
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 text-sm text-gray-700 dark:text-gray-300">
+              <p><span className="font-medium">Account:</span> {status.email}</p>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button onClick={handleSync} disabled={syncing} className="btn-secondary text-sm gap-2">
+              {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Sync Now
+            </button>
+            <button onClick={handleDisconnect} disabled={disconnecting} className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50">
+              {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Disconnect
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={handleConnect} disabled={connecting} className="btn-primary text-sm gap-2">
+          {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+          Connect Microsoft Account
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Google Calendar Integration ──────────────────────────────────────────────
+function CalendarIntegration() {
+  const [status, setStatus] = useState<{ connected: boolean } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  useEffect(() => {
+    calendarApi.getStatus().then(setStatus).catch(() => setStatus({ connected: false })).finally(() => setLoading(false));
+  }, []);
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const { auth_url } = await calendarApi.connect();
+      window.location.href = auth_url;
+    } catch { toast.error('Failed to connect Google Calendar'); setConnecting(false); }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('Disconnect Google Calendar?')) return;
+    setDisconnecting(true);
+    try {
+      await calendarApi.disconnect();
+      setStatus({ connected: false });
+      toast.success('Google Calendar disconnected');
+    } catch { toast.error('Failed to disconnect'); }
+    finally { setDisconnecting(false); }
+  };
+
+  return (
+    <div className="card p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
+            <PenLine className="h-5 w-5 text-amber-500" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Google Calendar</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Detect meeting requests and create calendar events</p>
+          </div>
+        </div>
+        {!loading && (
+          status?.connected ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+              <CheckCircle2 className="h-3.5 w-3.5" />Connected
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+              <AlertCircle className="h-3.5 w-3.5" />Not connected
+            </span>
+          )
+        )}
+      </div>
+
+      {status?.connected ? (
+        <button onClick={handleDisconnect} disabled={disconnecting} className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50">
+          {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          Disconnect Calendar
+        </button>
+      ) : (
+        <button onClick={handleConnect} disabled={connecting} className="btn-primary text-sm gap-2">
+          {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+          Connect Google Calendar
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -292,6 +457,12 @@ function IntegrationsTab({
           </button>
         )}
       </div>
+
+      {/* Outlook / Microsoft 365 */}
+      <OutlookIntegration />
+
+      {/* Google Calendar */}
+      <CalendarIntegration />
 
       {/* Slack */}
       <div className="card p-6">
@@ -698,6 +869,145 @@ function TemplatesTab() {
   );
 }
 
+// ─── Webhooks Tab ─────────────────────────────────────────────────────────────
+function WebhooksTab() {
+  const [webhooks, setWebhooks] = useState<Webhook[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: '', url: '', event: 'urgent_email', secret: '' });
+
+  useEffect(() => {
+    webhooksApi.list().then(setWebhooks).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.url.trim()) return;
+    setSaving(true);
+    try {
+      const wh = await webhooksApi.create({ ...form, secret: form.secret || undefined });
+      setWebhooks((prev) => [wh, ...prev]);
+      setForm({ name: '', url: '', event: 'urgent_email', secret: '' });
+      setAdding(false);
+      toast.success('Webhook created');
+    } catch { toast.error('Failed to create webhook. URL must use HTTPS.'); }
+    finally { setSaving(false); }
+  };
+
+  const handleToggle = async (wh: Webhook) => {
+    try {
+      const updated = await webhooksApi.update(wh.id, { is_active: !wh.is_active });
+      setWebhooks((prev) => prev.map((w) => w.id === wh.id ? updated : w));
+    } catch { toast.error('Failed to update webhook'); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this webhook?')) return;
+    try {
+      await webhooksApi.remove(id);
+      setWebhooks((prev) => prev.filter((w) => w.id !== id));
+      toast.success('Webhook deleted');
+    } catch { toast.error('Failed to delete webhook'); }
+  };
+
+  const handleTest = async (id: string) => {
+    setTesting(id);
+    try {
+      const result = await webhooksApi.test(id);
+      if (result.success) toast.success(`Test delivered (${result.status_code})`);
+      else toast.error(result.error || `Delivery failed (${result.status_code})`);
+    } catch { toast.error('Test failed'); }
+    finally { setTesting(null); }
+  };
+
+  const EVENT_LABELS: Record<string, string> = {
+    urgent_email: 'Urgent Email',
+    reply_sent: 'Reply Sent',
+    action_created: 'Action Created',
+    all: 'All Events',
+  };
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Receive HTTP POST notifications when events occur in InboxIQ.
+        </p>
+        <button onClick={() => setAdding(true)} className="inline-flex items-center gap-1.5 rounded-xl bg-primary-600 hover:bg-primary-700 px-3 py-2 text-sm font-medium text-white transition-colors">
+          <Plus className="h-4 w-4" />Add Webhook
+        </button>
+      </div>
+
+      {adding && (
+        <form onSubmit={handleAdd} className="card p-5 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">New Webhook</h3>
+          <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Name (e.g. My Zapier hook)" required className="input-field" />
+          <input type="url" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://..." required className="input-field" />
+          <select value={form.event} onChange={(e) => setForm({ ...form, event: e.target.value })} className="input-field">
+            {Object.entries(EVENT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          <input type="text" value={form.secret} onChange={(e) => setForm({ ...form, secret: e.target.value })} placeholder="Secret (optional, sent as X-InboxIQ-Secret header)" className="input-field" />
+          <div className="flex gap-2 justify-end">
+            <button type="button" onClick={() => setAdding(false)} className="btn-secondary text-sm">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary text-sm gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Save
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+      ) : webhooks.length === 0 ? (
+        <div className="card p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+          No webhooks configured yet. Add one above.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {webhooks.map((wh) => (
+            <div key={wh.id} className="card p-4 flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{wh.name}</p>
+                  <span className="text-xs rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-gray-500 dark:text-gray-400">
+                    {EVENT_LABELS[wh.event] ?? wh.event}
+                  </span>
+                  {!wh.is_active && (
+                    <span className="text-xs rounded-full bg-red-100 dark:bg-red-900/20 px-2 py-0.5 text-red-600 dark:text-red-400">Disabled</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{wh.url}</p>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onClick={() => handleTest(wh.id)}
+                  disabled={testing === wh.id}
+                  className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors"
+                  title="Send test"
+                >
+                  {testing === wh.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <TestTube2 className="h-4 w-4" />}
+                </button>
+                <button
+                  onClick={() => handleToggle(wh)}
+                  className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${wh.is_active ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}
+                  title={wh.is_active ? 'Disable' : 'Enable'}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${wh.is_active ? 'translate-x-4' : 'translate-x-0'}`} />
+                </button>
+                <button onClick={() => handleDelete(wh.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Data & Privacy Tab ───────────────────────────────────────────────────────
 function DataTab() {
   const [exporting, setExporting] = useState(false);
@@ -852,6 +1162,7 @@ export default function SettingsPage() {
               )}
               {activeTab === 'rules' && <RulesManager />}
               {activeTab === 'templates' && <TemplatesTab />}
+              {activeTab === 'webhooks' && <WebhooksTab />}
               {activeTab === 'data' && <DataTab />}
             </>
           ) : (

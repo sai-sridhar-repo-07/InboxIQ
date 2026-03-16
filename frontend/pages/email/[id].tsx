@@ -17,6 +17,9 @@ import {
   MessageSquare,
   Trash2,
   CheckSquare,
+  Send,
+  UserCheck,
+  StickyNote,
   Paperclip,
   Download,
   Eye,
@@ -44,9 +47,9 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import SnoozeModal from '@/components/SnoozeModal';
 import { useEmail, useEmailActions, useReplyDraft } from '@/lib/hooks';
-import { emailsApi } from '@/lib/api';
+import { emailsApi, teamsApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
-import type { Action, QuoteData, MeetingInfo } from '@/lib/types';
+import type { Action, QuoteData, MeetingInfo, InternalNote, OrgMember } from '@/lib/types';
 
 type Attachment = {
   attachment_id: string;
@@ -104,6 +107,14 @@ export default function EmailDetailPage() {
   // Meeting detection state
   const [meetingInfo, setMeetingInfo]   = useState<MeetingInfo | null>(null);
 
+  // Team collaboration state
+  const [notes, setNotes] = useState<InternalNote[]>([]);
+  const [noteText, setNoteText] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+  const [orgMembers, setOrgMembers] = useState<OrgMember[]>([]);
+  const [assignedTo, setAssignedTo] = useState<string>('');
+  const [assigning, setAssigning] = useState(false);
+
   // Thread summary state
   const [threadSummary, setThreadSummary] = useState<{
     thread_length: number; summary: string | null; key_points: string[];
@@ -156,8 +167,46 @@ export default function EmailDetailPage() {
       .catch(() => {});
   }, [emailId, email?.id]);
 
+  // Load team notes + org members when email is available
+  useEffect(() => {
+    if (!emailId || !session) return;
+    teamsApi.getNotes(emailId).then(setNotes).catch(() => {});
+    teamsApi.getOrg().then((d) => setOrgMembers(d.members.filter((m) => m.status === 'active'))).catch(() => {});
+    teamsApi.getAssignment(emailId).then((a) => { if (a?.assigned_to) setAssignedTo(a.assigned_to); }).catch(() => {});
+  }, [emailId, session]);
+
   if (sessionLoading) return <LoadingSpinner fullPage />;
   if (!session)       return null;
+
+  const handleAddNote = async () => {
+    if (!emailId || !noteText.trim()) return;
+    setAddingNote(true);
+    try {
+      const note = await teamsApi.addNote(emailId, noteText.trim());
+      setNotes((prev) => [...prev, note]);
+      setNoteText('');
+      toast.success('Note added');
+    } catch { toast.error('Failed to add note'); }
+    finally { setAddingNote(false); }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await teamsApi.deleteNote(noteId);
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    } catch { toast.error('Failed to delete note'); }
+  };
+
+  const handleAssign = async (userId: string) => {
+    if (!emailId) return;
+    setAssigning(true);
+    try {
+      await teamsApi.assignEmail(emailId, userId || null);
+      setAssignedTo(userId);
+      toast.success(userId ? 'Email assigned' : 'Assignment cleared');
+    } catch { toast.error('Failed to assign email'); }
+    finally { setAssigning(false); }
+  };
 
   const handleReprocess = async () => {
     if (!emailId) return;
@@ -875,6 +924,79 @@ export default function EmailDetailPage() {
               )}
             </div>
           </div>
+
+          {/* Team Collaboration Panel — shown only when org exists (members list is non-empty) */}
+          {orgMembers.length > 0 && (
+            <div className="card p-4 sm:p-5 animate-slide-up stagger-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-teal-600" />
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Team</h2>
+              </div>
+
+              {/* Assign */}
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Assigned to</label>
+                <select
+                  value={assignedTo}
+                  onChange={(e) => handleAssign(e.target.value)}
+                  disabled={assigning}
+                  className="input-field flex-1 text-sm py-1.5"
+                >
+                  <option value="">— Unassigned —</option>
+                  {orgMembers.map((m) => {
+                    const name = m.user_profiles?.name || m.invited_email || m.user_id || 'Unknown';
+                    const val = m.user_profiles?.id || m.user_id || '';
+                    return val ? <option key={m.id} value={val}>{name}</option> : null;
+                  })}
+                </select>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <StickyNote className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Internal Notes</span>
+                </div>
+                {notes.length > 0 && (
+                  <div className="space-y-2">
+                    {notes.map((n) => (
+                      <div key={n.id} className="rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 px-3 py-2 flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-amber-900 dark:text-amber-200 whitespace-pre-wrap break-words">{n.note}</p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                            {n.user_profiles?.name || 'You'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteNote(n.id)}
+                          className="flex-shrink-0 p-0.5 text-amber-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddNote(); } }}
+                    placeholder="Add a team note..."
+                    className="input-field flex-1 text-sm py-1.5"
+                  />
+                  <button
+                    onClick={handleAddNote}
+                    disabled={addingNote || !noteText.trim()}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50"
+                  >
+                    {addingNote ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Reply Editor */}
           <div className="animate-slide-up stagger-4">
