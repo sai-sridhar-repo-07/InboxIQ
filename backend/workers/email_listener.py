@@ -111,11 +111,72 @@ async def poll_all_users() -> None:
     logger.debug("Email listener poll complete (%d users).", len(user_ids))
 
 
+async def send_deadline_reminders() -> None:
+    """Daily job: alert users about overdue or due-in-24h action items via Slack."""
+    from services.slack_service import send_slack_notification
+    try:
+        supabase = get_supabase()
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        tomorrow = now + timedelta(hours=24)
+
+        result = supabase.table("actions").select(
+            "id, task, deadline, email_id, emails(user_id)"
+        ).eq("status", "pending").not_.is_("deadline", "null").execute()
+
+        user_actions: dict[str, list[dict]] = {}
+        for row in (result.data or []):
+            try:
+                deadline = datetime.fromisoformat(row["deadline"].replace("Z", "+00:00"))
+            except Exception:
+                continue
+            if deadline > tomorrow:
+                continue
+            user_id = (row.get("emails") or {}).get("user_id")
+            if not user_id:
+                continue
+            user_actions.setdefault(user_id, []).append({
+                "task": row["task"],
+                "deadline_str": deadline.strftime("%b %d %H:%M UTC"),
+                "overdue": deadline < now,
+            })
+
+        for user_id, items in user_actions.items():
+            try:
+                profile = supabase.table("user_profiles").select(
+                    "slack_webhook_url"
+                ).eq("id", user_id).single().execute()
+                webhook_url = (profile.data or {}).get("slack_webhook_url", "").strip()
+                if not webhook_url:
+                    continue
+
+                overdue = [a for a in items if a["overdue"]]
+                upcoming = [a for a in items if not a["overdue"]]
+                lines = ["*⏰ InboxIQ Task Reminder*\n"]
+                if overdue:
+                    lines.append(f"*🔴 Overdue ({len(overdue)}):*")
+                    for a in overdue[:5]:
+                        lines.append(f"  • {a['task']} — was due {a['deadline_str']}")
+                if upcoming:
+                    lines.append(f"*🟡 Due in 24h ({len(upcoming)}):*")
+                    for a in upcoming[:5]:
+                        lines.append(f"  • {a['task']} — due {a['deadline_str']}")
+
+                await send_slack_notification(webhook_url, "\n".join(lines))
+                logger.info("Deadline reminder sent to user %s (%d items)", user_id, len(items))
+            except Exception as exc:
+                logger.error("Reminder failed for user %s: %s", user_id, exc)
+    except Exception as exc:
+        logger.error("send_deadline_reminders error: %s", exc)
+
+
 def start_email_listener() -> AsyncIOScheduler:
     """
     Register the polling job and start the APScheduler instance.
     Called once during application startup.
     """
+    from workers.digest_worker import send_daily_digest
+
     scheduler.add_job(
         poll_all_users,
         trigger="interval",
@@ -124,6 +185,26 @@ def start_email_listener() -> AsyncIOScheduler:
         name="Gmail Email Poller",
         replace_existing=True,
         misfire_grace_time=60,
+    )
+    scheduler.add_job(
+        send_daily_digest,
+        trigger="cron",
+        hour=8,
+        minute=0,
+        id="daily_digest",
+        name="Daily Email Digest",
+        replace_existing=True,
+        misfire_grace_time=300,
+    )
+    scheduler.add_job(
+        send_deadline_reminders,
+        trigger="cron",
+        hour=9,
+        minute=0,
+        id="deadline_reminders",
+        name="Daily Deadline Reminders",
+        replace_existing=True,
+        misfire_grace_time=300,
     )
     scheduler.start()
     logger.info("Email listener scheduler started (every 5 minutes).")

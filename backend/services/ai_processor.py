@@ -124,6 +124,9 @@ async def process_email(email: dict) -> dict | None:
     except Exception as exc:
         logger.warning("Could not fetch user profile for user_id=%s: %s", user_id, exc)
 
+    # Detect email language from classification
+    detected_language = analysis.get("language", "en")
+
     # ------------------------------------------------------------------
     # Step 5 – Find similar past replies (pgvector RAG)
     # ------------------------------------------------------------------
@@ -151,6 +154,7 @@ async def process_email(email: dict) -> dict | None:
             tone=tone,
             similar_replies=similar_replies,
             attachments=attachment_filenames,
+            reply_language=detected_language,
         )
     except Exception as exc:
         logger.error("generate_reply failed for email_id=%s: %s", email_id, exc)

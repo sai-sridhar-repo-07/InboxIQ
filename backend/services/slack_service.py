@@ -99,6 +99,21 @@ async def send_urgent_alert(webhook_url: str, email_data: dict) -> bool:
         return False
 
 
+async def send_slack_notification(webhook_url: str, message: str) -> bool:
+    """POST a plain markdown message to webhook_url."""
+    if not webhook_url:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=10) as http:
+            response = await http.post(webhook_url, json={"text": message})
+            response.raise_for_status()
+            logger.info("Slack notification sent (status=%s)", response.status_code)
+            return True
+    except Exception as exc:
+        logger.error("Slack notification error: %s", exc)
+        return False
+
+
 async def test_webhook(webhook_url: str) -> bool:
     """
     Send a simple test message to validate that *webhook_url* is reachable.

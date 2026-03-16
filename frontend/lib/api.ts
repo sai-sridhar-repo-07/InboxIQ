@@ -172,6 +172,16 @@ export const emailsApi = {
     return data;
   },
 
+  getResponseTimeAnalytics: async (): Promise<{
+    overall_avg_hours: number;
+    by_category: Record<string, number>;
+    daily_trend: Array<{ day: string; avg_hours: number }>;
+    total_replied: number;
+  }> => {
+    const { data } = await api.get('/api/emails/response-time');
+    return data;
+  },
+
   exportCSV: async (): Promise<void> => {
     const { data: { session } } = await supabase.auth.getSession();
     const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -210,6 +220,17 @@ export const actionsApi = {
     updates: { status?: ActionStatus; notes?: string; deadline?: string }
   ): Promise<Action> => {
     const { data } = await api.patch(`/api/actions/${id}`, updates);
+    return data;
+  },
+
+  createAction: async (body: {
+    task: string;
+    priority?: string;
+    deadline?: string;
+    notes?: string;
+    email_id?: string;
+  }): Promise<Action> => {
+    const { data } = await api.post('/api/actions', body);
     return data;
   },
 

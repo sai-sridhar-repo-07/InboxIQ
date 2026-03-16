@@ -72,17 +72,20 @@ export type ActionPriority = 'high' | 'medium' | 'low';
 
 export interface Action {
   id: string;
-  user_id: string;
-  email_id: string;
+  user_id?: string;
+  email_id?: string;
   email?: Email;
-  description: string;
-  action_type: 'reply' | 'task' | 'meeting' | 'payment' | 'review' | 'other';
+  emails?: { subject?: string; user_id?: string };
+  // Backend uses 'task'; frontend legacy used 'description'
+  task: string;
+  description?: string;
+  action_type?: 'reply' | 'task' | 'meeting' | 'payment' | 'review' | 'other';
   priority: ActionPriority;
   status: ActionStatus;
   deadline?: string;
   notes?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   completed_at?: string;
 }
 

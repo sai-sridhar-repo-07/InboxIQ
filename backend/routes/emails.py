@@ -271,6 +271,62 @@ async def follow_ups(current_user: Annotated[dict, Depends(get_current_user)]):
     return await email_service.get_follow_up_emails(user_id=_current_user_id(current_user))
 
 
+@router.get("/response-time", response_model=dict)
+async def get_response_time_analytics(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Returns avg response time (hours) per category + 30-day daily trend."""
+    try:
+        from datetime import datetime, timezone
+        supabase = get_supabase()
+        user_id = _current_user_id(current_user)
+
+        result = supabase.table("emails").select(
+            "id, received_at, category, reply_drafts(created_at)"
+        ).eq("user_id", user_id).execute()
+
+        rows = result.data or []
+        by_category: dict[str, list[float]] = {}
+        daily: dict[str, list[float]] = {}
+        all_times: list[float] = []
+
+        for row in rows:
+            drafts = row.get("reply_drafts") or []
+            if not drafts:
+                continue
+            received = row.get("received_at")
+            first_draft = drafts[0].get("created_at") if isinstance(drafts, list) else None
+            if not received or not first_draft:
+                continue
+            try:
+                t_recv = datetime.fromisoformat(received.replace("Z", "+00:00"))
+                t_draft = datetime.fromisoformat(first_draft.replace("Z", "+00:00"))
+                delta_h = (t_draft - t_recv).total_seconds() / 3600
+                if delta_h < 0 or delta_h > 720:
+                    continue
+                all_times.append(delta_h)
+                cat = row.get("category") or "other"
+                by_category.setdefault(cat, []).append(delta_h)
+                day = t_recv.strftime("%Y-%m-%d")
+                daily.setdefault(day, []).append(delta_h)
+            except Exception:
+                continue
+
+        def avg(lst: list[float]) -> float:
+            return round(sum(lst) / len(lst), 2) if lst else 0.0
+
+        return {
+            "overall_avg_hours": avg(all_times),
+            "by_category": {k: avg(v) for k, v in by_category.items()},
+            "daily_trend": [
+                {"day": d, "avg_hours": avg(v)}
+                for d, v in sorted(daily.items())[-30:]
+            ],
+            "total_replied": len(all_times),
+        }
+    except Exception as exc:
+        logger.error("response_time_analytics error: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to get response time analytics.")
+
+
 @router.get("/{email_id}")
 async def get_email(
     email_id: str,

@@ -12,6 +12,7 @@ Generate a professional, friendly, and helpful email reply.
 
 Business Context: {company_description}
 Preferred Tone: {tone}
+Reply Language: {reply_language_instruction}
 
 Original Email from {sender}:
 Subject: {subject}
@@ -28,6 +29,7 @@ Generate an email reply based on the user's specific instructions.
 
 Business Context: {company_description}
 Preferred Tone: {tone}
+Reply Language: {reply_language_instruction}
 
 Original Email from {sender}:
 Subject: {subject}
@@ -49,6 +51,7 @@ async def generate_reply(
     similar_replies: list | None = None,
     user_instructions: str | None = None,
     attachments: list[str] | None = None,
+    reply_language: str | None = None,
 ) -> tuple[str, float]:
     """
     Generate an AI reply draft using Claude.
@@ -66,10 +69,22 @@ async def generate_reply(
             names = ", ".join(attachments)
             attachments_section = f"\nAttachments included in this email: {names}"
 
+        _LANG_NAMES = {
+            'es': 'Spanish', 'fr': 'French', 'de': 'German', 'pt': 'Portuguese',
+            'hi': 'Hindi', 'zh': 'Chinese', 'ja': 'Japanese', 'ar': 'Arabic',
+            'it': 'Italian', 'ko': 'Korean', 'nl': 'Dutch', 'ru': 'Russian',
+        }
+        if reply_language and reply_language != 'en':
+            lang_name = _LANG_NAMES.get(reply_language, reply_language.upper())
+            reply_language_instruction = f"Write the reply in {lang_name} (the sender wrote in {lang_name})"
+        else:
+            reply_language_instruction = "English"
+
         if user_instructions:
             prompt = GUIDED_REPLY_PROMPT.format(
                 company_description=company_description,
                 tone=tone,
+                reply_language_instruction=reply_language_instruction,
                 sender=sender,
                 subject=subject,
                 body=body[:2000],
@@ -85,6 +100,7 @@ async def generate_reply(
             prompt = REPLY_PROMPT.format(
                 company_description=company_description,
                 tone=tone,
+                reply_language_instruction=reply_language_instruction,
                 sender=sender,
                 subject=subject,
                 body=body[:2000],

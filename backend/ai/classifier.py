@@ -15,6 +15,7 @@ Analyze the following email and return a JSON object with exactly these fields:
 - summary: concise 1-2 sentence summary
 - action_items: array of objects with fields "task" (string) and "deadline" (string or null)
 - confidence_score: float from 0.0 to 1.0
+- language: ISO 639-1 language code of the email (e.g. 'en', 'es', 'fr', 'de', 'pt', 'hi', 'zh', 'ja')
 
 Email Subject: {subject}
 From: {sender}
@@ -74,6 +75,7 @@ async def classify_email(subject: str, sender: str, body: str, attachments: list
         )
         result["action_items"] = result.get("action_items", [])
         result["summary"] = result.get("summary", "")
+        result["language"] = result.get("language", "en")
 
         return result
 
