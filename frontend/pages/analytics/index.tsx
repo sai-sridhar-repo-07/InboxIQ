@@ -10,6 +10,13 @@ import { ErrorCard } from '@/components/ErrorBoundary';
 import { emailsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
+type ResponseTimeData = {
+  overall_avg_hours: number;
+  by_category: Record<string, number>;
+  daily_trend: Array<{ day: string; avg_hours: number }>;
+  total_replied: number;
+};
+
 type Analytics = {
   total_emails: number;
   processed_emails: number;
@@ -162,6 +169,7 @@ export default function AnalyticsPage() {
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [senderInsights, setSenderInsights] = useState<SenderInsight[]>([]);
+  const [responseTime, setResponseTime] = useState<ResponseTimeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -173,12 +181,14 @@ export default function AnalyticsPage() {
   const load = async () => {
     try {
       setError(false);
-      const [data, insights] = await Promise.all([
+      const [data, insights, rt] = await Promise.all([
         emailsApi.getAnalytics(),
         emailsApi.getSenderInsights().catch(() => []),
+        emailsApi.getResponseTimeAnalytics().catch(() => null),
       ]);
       setAnalytics(data);
       setSenderInsights(insights);
+      setResponseTime(rt);
     } catch {
       setError(true);
     } finally {
@@ -365,6 +375,48 @@ export default function AnalyticsPage() {
                     );
                   })}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Response Time Analytics */}
+          {(loading || responseTime) && (
+            <div className="card p-5 animate-slide-up">
+              <div className="flex items-center gap-2 mb-5">
+                <TrendingUp className="h-4 w-4 text-blue-600" />
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Response Time Analytics</h2>
+                {responseTime && (
+                  <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                    {responseTime.total_replied} replied • avg {responseTime.overall_avg_hours.toFixed(1)}h
+                  </span>
+                )}
+              </div>
+              {loading ? (
+                <div className="space-y-3">
+                  {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-5 w-full rounded" />)}
+                </div>
+              ) : responseTime && responseTime.total_replied > 0 ? (
+                <div className="space-y-4">
+                  {/* By category */}
+                  <div className="space-y-2">
+                    {Object.entries(responseTime.by_category).sort((a, b) => b[1] - a[1]).map(([cat, hours]) => (
+                      <div key={cat} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium text-gray-700 dark:text-gray-300 capitalize">{cat.replace(/_/g, ' ')}</span>
+                          <span className="text-gray-500 dark:text-gray-400">{hours.toFixed(1)}h avg</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-blue-500 transition-all duration-700"
+                            style={{ width: `${Math.min((hours / (responseTime.overall_avg_hours * 2 || 1)) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Send some replies to see response time data</p>
               )}
             </div>
           )}

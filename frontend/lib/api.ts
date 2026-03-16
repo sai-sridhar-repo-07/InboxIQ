@@ -13,6 +13,10 @@ import type {
   EmailFilters,
   ActionFilters,
   ActionStatus,
+  ContactProfile,
+  ContactDetail,
+  QuoteData,
+  MeetingInfo,
 } from './types';
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
@@ -146,6 +150,16 @@ export const emailsApi = {
     return data;
   },
 
+  inboxZero: async (): Promise<{ dismissed: number; message: string }> => {
+    const { data } = await api.post('/api/emails/inbox-zero');
+    return data;
+  },
+
+  bulkSummarize: async (ids: string[]): Promise<Array<{ id: string; summary: string }>> => {
+    const { data } = await api.post('/api/emails/bulk-summarize', { email_ids: ids });
+    return data;
+  },
+
   bulkDismiss: async (ids: string[]): Promise<{ dismissed: number }> => {
     const { data } = await api.post('/api/emails/bulk-dismiss', { email_ids: ids });
     return data;
@@ -195,6 +209,19 @@ export const emailsApi = {
     a.download = `inboxiq-export-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  },
+
+  generateQuote: async (
+    id: string,
+    body: { project_description?: string; budget_hint?: string }
+  ): Promise<{ quote: QuoteData; email_id: string }> => {
+    const { data } = await api.post(`/api/emails/${id}/generate-quote`, body);
+    return data;
+  },
+
+  getMeetingInfo: async (id: string): Promise<MeetingInfo> => {
+    const { data } = await api.get(`/api/emails/${id}/meeting-info`);
+    return data;
   },
 };
 
@@ -331,6 +358,20 @@ export const billingApi = {
 
   createPortalSession: async (): Promise<{ portal_url: string }> => {
     const { data } = await api.post('/api/billing/portal');
+    return data;
+  },
+};
+
+// ─── Contacts (Mini CRM) Endpoints ───────────────────────────────────────────
+
+export const contactsApi = {
+  getContacts: async (search?: string): Promise<ContactProfile[]> => {
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    const { data } = await api.get(`/api/contacts${params}`);
+    return data;
+  },
+  getContact: async (email: string): Promise<ContactDetail> => {
+    const { data } = await api.get(`/api/contacts/${encodeURIComponent(email)}`);
     return data;
   },
 };

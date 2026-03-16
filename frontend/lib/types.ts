@@ -217,3 +217,54 @@ export interface ActionFilters {
   priority?: ActionPriority;
   email_id?: string;
 }
+
+// ─── CRM Types ────────────────────────────────────────────────────────────────
+
+export interface ContactProfile {
+  email: string;
+  name: string;
+  total_emails: number;
+  last_email_at: string;
+  categories: Record<string, number>;
+  top_category: string;
+  avg_priority: number;
+  recent_subjects: string[];
+}
+
+export interface ContactDetail extends ContactProfile {
+  replied_count: number;
+  first_email_at: string;
+  emails: Array<{
+    id: string;
+    subject: string;
+    category: string | null;
+    priority: number | null;
+    received_at: string;
+    ai_summary: string | null;
+    is_read: boolean;
+  }>;
+}
+
+// ─── Quote / Proposal Types ───────────────────────────────────────────────────
+
+export interface QuoteData {
+  project_title: string;
+  project_description: string;
+  deliverables: string[];
+  timeline: string;
+  price_estimate: string;
+  payment_terms: string;
+  validity: string;
+  notes?: string;
+}
+
+// ─── Meeting Detection Types ──────────────────────────────────────────────────
+
+export interface MeetingInfo {
+  is_meeting_request: boolean;
+  meeting_type: string | null;
+  proposed_times: string[];
+  duration_hint: string | null;
+  agenda: string | null;
+  suggested_reply_snippet: string | null;
+}

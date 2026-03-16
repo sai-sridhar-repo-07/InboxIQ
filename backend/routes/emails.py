@@ -176,6 +176,11 @@ class BulkEmailIds(BaseModel):
     email_ids: list[str]
 
 
+class QuoteRequest(BaseModel):
+    project_description: str | None = None
+    budget_hint: str | None = None
+
+
 # ---------------------------------------------------------------------------
 # New feature routes (must be before /{email_id} catch-all)
 # ---------------------------------------------------------------------------
@@ -208,6 +213,25 @@ async def snooze_email(
         snooze_until=body.snooze_until,
     )
     return None
+
+
+@router.post("/inbox-zero", response_model=dict)
+async def inbox_zero(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Dismiss newsletters, spam, and low-priority FYI emails to reach Inbox Zero."""
+    result = await email_service.inbox_zero(user_id=_current_user_id(current_user))
+    return result
+
+
+@router.post("/bulk-summarize", response_model=list)
+async def bulk_summarize(
+    body: BulkEmailIds,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Generate AI summaries for multiple emails (cap 10)."""
+    summaries = await email_service.bulk_summarize(
+        user_id=_current_user_id(current_user), email_ids=body.email_ids
+    )
+    return summaries
 
 
 @router.get("/snoozed")
@@ -325,6 +349,143 @@ async def get_response_time_analytics(current_user: Annotated[dict, Depends(get_
     except Exception as exc:
         logger.error("response_time_analytics error: %s", exc)
         raise HTTPException(status_code=500, detail="Failed to get response time analytics.")
+
+
+@router.post("/{email_id}/generate-quote", response_model=dict)
+async def generate_quote(
+    email_id: str,
+    body: QuoteRequest,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Generate a structured project quote/proposal for a quote_request email."""
+    try:
+        supabase = get_supabase()
+        user_id = _current_user_id(current_user)
+
+        email = supabase.table("emails").select(
+            "id, subject, sender, body, category, user_id"
+        ).eq("id", email_id).eq("user_id", user_id).single().execute()
+
+        if not email.data:
+            raise HTTPException(status_code=404, detail="Email not found.")
+
+        e = email.data
+
+        # Get company description from user profile
+        profile = supabase.table("user_profiles").select(
+            "company_description"
+        ).eq("id", user_id).single().execute()
+        company_description = (profile.data or {}).get("company_description", "a professional service business")
+
+        from ai.classifier import client as ai_client
+
+        quote_prompt = f"""You are a professional business consultant helping generate a project quote/proposal.
+
+Business: {company_description}
+
+Client Request Email:
+Subject: {e.get('subject', '')}
+From: {e.get('sender', '')}
+Body: {e.get('body', '')[:2000]}
+
+{f"Additional context: {body.project_description}" if body.project_description else ""}
+{f"Budget hint: {body.budget_hint}" if body.budget_hint else ""}
+
+Generate a professional project quote. Return ONLY a JSON object with these fields:
+- project_title: string (short project name)
+- project_description: string (2-3 sentence description of what will be delivered)
+- deliverables: array of strings (3-6 specific deliverables)
+- timeline: string (e.g. "2-3 weeks")
+- price_estimate: string (e.g. "$500 - $800" or "Custom pricing based on scope")
+- payment_terms: string (e.g. "50% upfront, 50% on delivery")
+- validity: string (e.g. "This quote is valid for 30 days")
+- notes: string (any important notes or assumptions)"""
+
+        response = await ai_client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=800,
+            messages=[{"role": "user", "content": quote_prompt}],
+        )
+
+        text = next((b.text for b in response.content if b.type == "text"), None)
+        if not text:
+            raise ValueError("No response from AI")
+
+        raw = text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        raw = raw.strip()
+
+        import json
+        quote = json.loads(raw)
+        return {"quote": quote, "email_id": email_id}
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("generate_quote error: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to generate quote.")
+
+
+@router.get("/{email_id}/meeting-info", response_model=dict)
+async def detect_meeting_info(
+    email_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Detect if email contains a meeting request and extract meeting details."""
+    try:
+        supabase = get_supabase()
+        user_id = _current_user_id(current_user)
+
+        email = supabase.table("emails").select(
+            "id, subject, sender, body"
+        ).eq("id", email_id).eq("user_id", user_id).single().execute()
+
+        if not email.data:
+            raise HTTPException(status_code=404, detail="Email not found.")
+
+        e = email.data
+
+        from ai.classifier import client as ai_client
+        import json
+
+        detect_prompt = f"""Analyze this email and determine if it contains a meeting request.
+
+Email Subject: {e.get('subject', '')}
+From: {e.get('sender', '')}
+Body: {e.get('body', '')[:1500]}
+
+Return ONLY a JSON object with these fields:
+- is_meeting_request: boolean
+- meeting_type: string or null ("call", "video", "in_person", "demo", "interview", "other")
+- proposed_times: array of strings (any specific times mentioned, e.g. ["Monday 2pm", "Tuesday morning"])
+- duration_hint: string or null (e.g. "30 minutes", "1 hour")
+- agenda: string or null (what the meeting is about, 1 sentence)
+- suggested_reply_snippet: string or null (a brief suggested reply to confirm the meeting, 2-3 sentences)"""
+
+        response = await ai_client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=400,
+            messages=[{"role": "user", "content": detect_prompt}],
+        )
+
+        text = next((b.text for b in response.content if b.type == "text"), None)
+        raw = (text or "{}").strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+
+        result = json.loads(raw.strip())
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("detect_meeting_info error: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to detect meeting info.")
 
 
 @router.get("/{email_id}")

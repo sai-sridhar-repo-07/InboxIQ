@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from config import settings
-from routes import auth, emails, actions, replies, integrations, settings as settings_routes, billing
+from routes import auth, emails, actions, replies, integrations, settings as settings_routes, billing, contacts
 from workers.email_listener import start_email_listener, stop_email_listener
 
 # ---------------------------------------------------------------------------
@@ -145,6 +145,7 @@ app.include_router(replies.router, prefix="/api")
 app.include_router(integrations.router, prefix="/api")
 app.include_router(settings_routes.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
+app.include_router(contacts.router, prefix="/api")
 
 
 # ---------------------------------------------------------------------------

@@ -26,6 +26,10 @@ import {
   File,
   Star,
   AlarmClock,
+  FileEdit,
+  CalendarCheck,
+  ClipboardCopy,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
@@ -40,7 +44,7 @@ import SnoozeModal from '@/components/SnoozeModal';
 import { useEmail, useEmailActions, useReplyDraft } from '@/lib/hooks';
 import { emailsApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
-import type { Action } from '@/lib/types';
+import type { Action, QuoteData, MeetingInfo } from '@/lib/types';
 
 type Attachment = {
   attachment_id: string;
@@ -88,6 +92,16 @@ export default function EmailDetailPage() {
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [viewingAttachment, setViewingAttachment] = useState<Attachment | null>(null);
 
+  // Quote generator state
+  const [quoteModalOpen, setQuoteModalOpen]       = useState(false);
+  const [quoteProjectDesc, setQuoteProjectDesc]   = useState('');
+  const [quoteBudgetHint, setQuoteBudgetHint]     = useState('');
+  const [isGeneratingQuote, setIsGeneratingQuote] = useState(false);
+  const [generatedQuote, setGeneratedQuote]       = useState<QuoteData | null>(null);
+
+  // Meeting detection state
+  const [meetingInfo, setMeetingInfo]   = useState<MeetingInfo | null>(null);
+
   const { data: email, error: emailError, isLoading: emailLoading, mutate: mutateEmail } = useEmail(emailId);
   const { data: rawActions, isLoading: actionsLoading } = useEmailActions(emailId);
   const { data: replyDraft } = useReplyDraft(emailId);
@@ -122,6 +136,16 @@ export default function EmailDetailPage() {
       .catch(() => setAttachments([]))
       .finally(() => setAttachmentsLoading(false));
   }, [emailId, email]);
+
+  // Meeting detection: run when email loads (skip spam/newsletters)
+  useEffect(() => {
+    if (!emailId || !email) return;
+    const cat = email.ai_analysis?.category;
+    if (cat === 'spam' || cat === 'newsletter') return;
+    emailsApi.getMeetingInfo(emailId)
+      .then((info) => { if (info.is_meeting_request) setMeetingInfo(info); })
+      .catch(() => {});
+  }, [emailId, email?.id]);
 
   if (sessionLoading) return <LoadingSpinner fullPage />;
   if (!session)       return null;
@@ -191,6 +215,43 @@ export default function EmailDetailPage() {
     }
   };
 
+  const handleGenerateQuote = async () => {
+    if (!emailId) return;
+    setIsGeneratingQuote(true);
+    try {
+      const result = await emailsApi.generateQuote(emailId, {
+        project_description: quoteProjectDesc || undefined,
+        budget_hint: quoteBudgetHint || undefined,
+      });
+      setGeneratedQuote(result.quote);
+      toast.success('Quote generated!');
+    } catch {
+      toast.error('Failed to generate quote');
+    } finally {
+      setIsGeneratingQuote(false);
+    }
+  };
+
+  const handleCopyQuote = () => {
+    if (!generatedQuote) return;
+    const lines = [
+      `PROJECT QUOTE: ${generatedQuote.project_title}`,
+      '',
+      generatedQuote.project_description,
+      '',
+      'DELIVERABLES:',
+      ...generatedQuote.deliverables.map((d) => `• ${d}`),
+      '',
+      `Timeline: ${generatedQuote.timeline}`,
+      `Price Estimate: ${generatedQuote.price_estimate}`,
+      `Payment Terms: ${generatedQuote.payment_terms}`,
+      `Validity: ${generatedQuote.validity}`,
+      ...(generatedQuote.notes ? ['', `Notes: ${generatedQuote.notes}`] : []),
+    ];
+    navigator.clipboard.writeText(lines.join('\n'));
+    toast.success('Quote copied to clipboard');
+  };
+
   if (emailLoading) {
     return (
       <Layout title="Loading…">
@@ -235,6 +296,137 @@ export default function EmailDetailPage() {
           onClose={() => setSnoozeOpen(false)}
         />
       )}
+
+      {/* Quote Generator Modal */}
+      {quoteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-gray-800 shadow-2xl overflow-y-auto max-h-[90vh]">
+            {/* Modal header */}
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-4">
+              <div className="flex items-center gap-2">
+                <FileEdit className="h-5 w-5 text-emerald-500" />
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Generate Project Quote</h2>
+              </div>
+              <button
+                onClick={() => { setQuoteModalOpen(false); setGeneratedQuote(null); setQuoteProjectDesc(''); setQuoteBudgetHint(''); }}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {!generatedQuote ? (
+                <>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Optionally provide extra context to improve the quote.
+                  </p>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Project Description <span className="text-gray-400">(optional)</span>
+                    </label>
+                    <textarea
+                      value={quoteProjectDesc}
+                      onChange={(e) => setQuoteProjectDesc(e.target.value)}
+                      placeholder="Describe the project scope or any extra details..."
+                      rows={3}
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Budget Hint <span className="text-gray-400">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={quoteBudgetHint}
+                      onChange={(e) => setQuoteBudgetHint(e.target.value)}
+                      placeholder="e.g. $500–$1000 or client mentioned a tight budget"
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleGenerateQuote}
+                      disabled={isGeneratingQuote}
+                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isGeneratingQuote ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" />Generating…</>
+                      ) : (
+                        <><FileEdit className="h-4 w-4" />Generate Quote</>
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Generated Quote Card */}
+                  <div className="rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 p-4 space-y-3">
+                    <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{generatedQuote.project_title}</h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{generatedQuote.project_description}</p>
+
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Deliverables</p>
+                      <ul className="space-y-1">
+                        {generatedQuote.deliverables.map((d, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <span className="text-emerald-500 mt-0.5 flex-shrink-0">•</span>
+                            {d}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Timeline</p>
+                        <p className="text-sm text-gray-800 dark:text-gray-200 mt-0.5">{generatedQuote.timeline}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Price Estimate</p>
+                        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">{generatedQuote.price_estimate}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Payment Terms</p>
+                        <p className="text-sm text-gray-800 dark:text-gray-200 mt-0.5">{generatedQuote.payment_terms}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Validity</p>
+                        <p className="text-sm text-gray-800 dark:text-gray-200 mt-0.5">{generatedQuote.validity}</p>
+                      </div>
+                    </div>
+
+                    {generatedQuote.notes && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Notes</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 italic">{generatedQuote.notes}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 justify-between">
+                    <button
+                      onClick={() => setGeneratedQuote(null)}
+                      className="btn-secondary text-sm"
+                    >
+                      Regenerate
+                    </button>
+                    <button
+                      onClick={handleCopyQuote}
+                      className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      <ClipboardCopy className="h-4 w-4" />
+                      Copy to Clipboard
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <Head><title>{email.subject} — InboxIQ</title></Head>
       <Layout title="Email Detail">
         <div className="max-w-4xl mx-auto space-y-4 animate-fade-in">
@@ -287,6 +479,18 @@ export default function EmailDetailPage() {
                 <span className="hidden sm:inline ml-1.5">Snooze</span>
               </button>
 
+              {/* Generate Quote button — shown for quote_request emails */}
+              {(String(analysis?.category ?? '').toLowerCase().includes('quote') || String(analysis?.category ?? '') === 'needs_response') && (
+                <button
+                  onClick={() => { setQuoteModalOpen(true); setGeneratedQuote(null); }}
+                  className="btn-secondary text-sm"
+                  title="Generate Quote"
+                >
+                  <FileEdit className="h-4 w-4 text-emerald-500" />
+                  <span className="hidden sm:inline ml-1.5">Generate Quote</span>
+                </button>
+              )}
+
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
@@ -337,6 +541,59 @@ export default function EmailDetailPage() {
                 )}
               </div>
             </div>
+
+            {/* Meeting Detection Banner */}
+            {meetingInfo && meetingInfo.is_meeting_request && (
+              <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <CalendarCheck className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                        Meeting Request Detected
+                      </p>
+                      <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-amber-700 dark:text-amber-400">
+                        {meetingInfo.meeting_type && (
+                          <span className="capitalize">{meetingInfo.meeting_type.replace('_', ' ')}</span>
+                        )}
+                        {meetingInfo.duration_hint && <span>{meetingInfo.duration_hint}</span>}
+                        {meetingInfo.proposed_times && meetingInfo.proposed_times.length > 0 && (
+                          <span>Proposed: {meetingInfo.proposed_times.join(', ')}</span>
+                        )}
+                      </div>
+                      {meetingInfo.agenda && (
+                        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{meetingInfo.agenda}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setMeetingInfo(null)}
+                    className="flex-shrink-0 p-1 rounded text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors"
+                    title="Dismiss"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {meetingInfo.suggested_reply_snippet && (
+                  <div className="mt-2 pt-2 border-t border-amber-200 dark:border-amber-700 flex items-start justify-between gap-3">
+                    <p className="text-xs text-amber-700 dark:text-amber-400 italic flex-1">{meetingInfo.suggested_reply_snippet}</p>
+                    <button
+                      onClick={() => {
+                        // Dispatch a custom event that ReplyEditor could listen to, or simply copy to clipboard
+                        if (meetingInfo.suggested_reply_snippet) {
+                          navigator.clipboard.writeText(meetingInfo.suggested_reply_snippet);
+                          toast.success('Suggested reply copied to clipboard');
+                        }
+                      }}
+                      className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-md border border-amber-300 dark:border-amber-600 bg-amber-100 dark:bg-amber-800/30 px-2.5 py-1 text-xs font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-700/40 transition-colors whitespace-nowrap"
+                    >
+                      <ClipboardCopy className="h-3 w-3" />
+                      Copy Reply
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Email body */}
             <div className="mt-5 border-t border-gray-100 dark:border-gray-700 pt-5">

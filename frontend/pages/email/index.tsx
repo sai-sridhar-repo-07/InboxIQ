@@ -39,6 +39,7 @@ export default function EmailListPage() {
   const [syncing, setSyncing]               = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [exportingCSV, setExportingCSV]     = useState(false);
+  const [inboxZeroing, setInboxZeroing]     = useState(false);
   const [search, setSearch]                 = useState('');
   const [category, setCategory]             = useState<EmailCategory | undefined>(
     (router.query.category as EmailCategory) || undefined
@@ -130,6 +131,20 @@ export default function EmailListPage() {
       toast.error('Failed to start bulk processing');
     } finally {
       setBulkProcessing(false);
+    }
+  };
+
+  const handleInboxZero = async () => {
+    if (!confirm('This will dismiss all newsletters, spam, and low-priority FYI emails. Continue?')) return;
+    setInboxZeroing(true);
+    try {
+      const result = await emailsApi.inboxZero();
+      await mutate();
+      toast.success(result.message || `Dismissed ${result.dismissed} emails`);
+    } catch {
+      toast.error('Inbox Zero failed');
+    } finally {
+      setInboxZeroing(false);
     }
   };
 
@@ -296,6 +311,14 @@ export default function EmailListPage() {
                   ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   : <Download className="h-4 w-4 mr-1.5" />}
                 Export CSV
+              </button>
+
+              {/* Inbox Zero */}
+              <button onClick={handleInboxZero} disabled={inboxZeroing} className="btn-secondary text-sm" title="Dismiss newsletters, spam, and low-priority emails">
+                {inboxZeroing
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  : <span className="mr-1.5 text-base leading-none">✦</span>}
+                Inbox Zero
               </button>
 
               {/* Process all */}

@@ -17,6 +17,7 @@ import {
   User,
   BarChart2,
   AlarmClock,
+  Users,
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { label: 'Snoozed',   href: '/snoozed',   icon: AlarmClock },
   { label: 'Actions',   href: '/actions',    icon: CheckSquare },
   { label: 'Analytics', href: '/analytics',  icon: BarChart2 },
+  { label: 'CRM',       href: '/crm',        icon: Users },
   { label: 'Settings',  href: '/settings',   icon: Settings },
   { label: 'Billing',   href: '/billing',    icon: CreditCard },
 ];
@@ -47,6 +49,7 @@ const mobileNavItems: NavItem[] = [
   { label: 'Snoozed',   href: '/snoozed',   icon: AlarmClock },
   { label: 'Actions',   href: '/actions',    icon: CheckSquare },
   { label: 'Analytics', href: '/analytics',  icon: BarChart2 },
+  { label: 'CRM',       href: '/crm',        icon: Users },
   { label: 'Settings',  href: '/settings',   icon: Settings },
 ];
 

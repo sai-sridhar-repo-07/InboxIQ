@@ -560,6 +560,74 @@ async def bulk_mark_read(user_id: str, email_ids: list[str]) -> int:
         return 0
 
 
+async def inbox_zero(user_id: str) -> dict:
+    """
+    Dismiss newsletters, spam, and low-priority FYI emails to reach Inbox Zero.
+    Returns counts of what was dismissed.
+    """
+    try:
+        supabase = get_supabase()
+        # Fetch candidates: processed low-priority emails in dismissible categories
+        result = supabase.table("emails").select("id, category, priority").eq(
+            "user_id", user_id
+        ).eq("processed", True).neq("dismissed", True).in_(
+            "category", ["newsletter", "spam", "fyi", "informational", "other"]
+        ).execute()
+
+        rows = result.data or []
+        # Only dismiss if priority <= 4 (low urgency)
+        to_dismiss = [r["id"] for r in rows if (r.get("priority") or 0) <= 4]
+
+        if not to_dismiss:
+            return {"dismissed": 0, "message": "Nothing to dismiss — inbox already clean!"}
+
+        supabase.table("emails").update({"dismissed": True}).eq(
+            "user_id", user_id
+        ).in_("id", to_dismiss).execute()
+
+        return {"dismissed": len(to_dismiss), "message": f"Dismissed {len(to_dismiss)} low-priority emails"}
+    except Exception as exc:
+        logger.error("inbox_zero error (user_id=%s): %s", user_id, exc)
+        return {"dismissed": 0, "message": "Failed to run Inbox Zero"}
+
+
+async def bulk_summarize(user_id: str, email_ids: list[str]) -> list[dict]:
+    """Generate AI summaries for multiple unprocessed emails."""
+    if not email_ids:
+        return []
+    try:
+        supabase = get_supabase()
+        result = supabase.table("emails").select(
+            "id, subject, sender, body"
+        ).eq("user_id", user_id).in_("id", email_ids).execute()
+
+        emails = result.data or []
+        summaries = []
+
+        import anthropic
+        from config import settings
+        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+        for e in emails[:10]:  # cap at 10 to avoid rate limits
+            try:
+                prompt = f"Summarize this email in 1-2 sentences:\n\nSubject: {e.get('subject','')}\nFrom: {e.get('sender','')}\n\n{e.get('body','')[:1000]}"
+                response = await client.messages.create(
+                    model="claude-opus-4-6",
+                    max_tokens=150,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                summary = next((b.text for b in response.content if b.type == "text"), "").strip()
+                supabase.table("emails").update({"ai_summary": summary}).eq("id", e["id"]).execute()
+                summaries.append({"id": e["id"], "summary": summary})
+            except Exception:
+                continue
+
+        return summaries
+    except Exception as exc:
+        logger.error("bulk_summarize error: %s", exc)
+        return []
+
+
 async def get_export_emails(user_id: str) -> list[dict]:
     """Fetch all non-dismissed emails for CSV export (max 2000)."""
     try:
