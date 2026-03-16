@@ -473,6 +473,48 @@ export const teamsApi = {
   },
 };
 
+// ─── CRM Integration Endpoints ────────────────────────────────────────────────
+
+export const crmApi = {
+  hubspot: {
+    getStatus: async (): Promise<{ connected: boolean; has_key: boolean }> => {
+      const { data } = await api.get('/api/integrations/crm/hubspot/status');
+      return data;
+    },
+    connect: async (api_key: string): Promise<{ connected: boolean }> => {
+      const { data } = await api.post('/api/integrations/crm/hubspot/connect', { api_key });
+      return data;
+    },
+    test: async (): Promise<{ success: boolean }> => {
+      const { data } = await api.post('/api/integrations/crm/hubspot/test');
+      return data;
+    },
+    disconnect: async (): Promise<void> => {
+      await api.delete('/api/integrations/crm/hubspot/disconnect');
+    },
+  },
+  salesforce: {
+    getStatus: async (): Promise<{ connected: boolean; username?: string }> => {
+      const { data } = await api.get('/api/integrations/crm/salesforce/status');
+      return data;
+    },
+    connect: async (body: {
+      consumer_key: string; consumer_secret: string;
+      username: string; password: string; security_token: string;
+    }): Promise<{ connected: boolean }> => {
+      const { data } = await api.post('/api/integrations/crm/salesforce/connect', body);
+      return data;
+    },
+    test: async (): Promise<{ success: boolean }> => {
+      const { data } = await api.post('/api/integrations/crm/salesforce/test');
+      return data;
+    },
+    disconnect: async (): Promise<void> => {
+      await api.delete('/api/integrations/crm/salesforce/disconnect');
+    },
+  },
+};
+
 // ─── Auto-Assign Rules Endpoints ─────────────────────────────────────────────
 
 export interface AutoAssignRule {

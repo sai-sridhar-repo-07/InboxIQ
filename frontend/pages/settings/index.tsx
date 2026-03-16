@@ -28,7 +28,7 @@ import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import RulesManager from '@/components/RulesManager';
 import { useSettings, useGmailStatus } from '@/lib/hooks';
-import { settingsApi, integrationsApi, outlookApi, calendarApi, gdprApi, webhooksApi, type Webhook } from '@/lib/api';
+import { settingsApi, integrationsApi, outlookApi, calendarApi, gdprApi, webhooksApi, crmApi, type Webhook } from '@/lib/api';
 import { loadTemplates, saveTemplates, createTemplate, type EmailTemplate } from '@/lib/templates';
 import type { UserSettings, TonePreference, NotificationFrequency } from '@/lib/types';
 import clsx from 'clsx';
@@ -316,6 +316,249 @@ function CalendarIntegration() {
   );
 }
 
+// ─── HubSpot Integration ──────────────────────────────────────────────────────
+function HubSpotIntegration() {
+  const [status, setStatus] = useState<{ connected: boolean } | null>(null);
+  const [apiKey, setApiKey] = useState('');
+  const [connecting, setConnecting] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    crmApi.hubspot.getStatus().then(setStatus).catch(() => setStatus({ connected: false }));
+  }, []);
+
+  const handleConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!apiKey.trim()) return;
+    setConnecting(true);
+    try {
+      await crmApi.hubspot.connect(apiKey.trim());
+      setStatus({ connected: true });
+      setShowForm(false);
+      setApiKey('');
+      toast.success('HubSpot connected!');
+    } catch { toast.error('Connection failed — check your Private App token.'); }
+    finally { setConnecting(false); }
+  };
+
+  const handleTest = async () => {
+    setTesting(true);
+    try {
+      const r = await crmApi.hubspot.test();
+      r.success ? toast.success('HubSpot connection is working!') : toast.error('HubSpot test failed');
+    } catch { toast.error('Test failed'); }
+    finally { setTesting(false); }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('Disconnect HubSpot?')) return;
+    setDisconnecting(true);
+    try {
+      await crmApi.hubspot.disconnect();
+      setStatus({ connected: false });
+      toast.success('HubSpot disconnected');
+    } catch { toast.error('Failed to disconnect'); }
+    finally { setDisconnecting(false); }
+  };
+
+  return (
+    <div className="card p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-900/20">
+            <span className="text-lg font-bold text-orange-500">HS</span>
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">HubSpot CRM</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Auto-sync contacts and notes when emails are processed</p>
+          </div>
+        </div>
+        {status && (
+          status.connected ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+              <CheckCircle2 className="h-3.5 w-3.5" />Connected
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+              <AlertCircle className="h-3.5 w-3.5" />Not connected
+            </span>
+          )
+        )}
+      </div>
+
+      {status?.connected ? (
+        <div className="flex gap-2">
+          <button onClick={handleTest} disabled={testing} className="btn-secondary text-sm gap-2">
+            {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <TestTube2 className="h-4 w-4" />}Test
+          </button>
+          <button onClick={handleDisconnect} disabled={disconnecting} className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50">
+            {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Disconnect
+          </button>
+        </div>
+      ) : showForm ? (
+        <form onSubmit={handleConnect} className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">HubSpot Private App Token</label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              required
+              className="input-field"
+            />
+            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+              Create a Private App in HubSpot → Settings → Integrations → Private Apps
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setShowForm(false)} className="btn-secondary text-sm">Cancel</button>
+            <button type="submit" disabled={connecting} className="btn-primary text-sm gap-2">
+              {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}Connect
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button onClick={() => setShowForm(true)} className="btn-primary text-sm gap-2">
+          <ExternalLink className="h-4 w-4" />Connect HubSpot
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Salesforce Integration ────────────────────────────────────────────────────
+function SalesforceIntegration() {
+  const [status, setStatus] = useState<{ connected: boolean; username?: string } | null>(null);
+  const [form, setForm] = useState({ consumer_key: '', consumer_secret: '', username: '', password: '', security_token: '' });
+  const [connecting, setConnecting] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    crmApi.salesforce.getStatus().then(setStatus).catch(() => setStatus({ connected: false }));
+  }, []);
+
+  const handleConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setConnecting(true);
+    try {
+      await crmApi.salesforce.connect(form);
+      setStatus({ connected: true, username: form.username });
+      setShowForm(false);
+      setForm({ consumer_key: '', consumer_secret: '', username: '', password: '', security_token: '' });
+      toast.success('Salesforce connected!');
+    } catch { toast.error('Connection failed — check your credentials.'); }
+    finally { setConnecting(false); }
+  };
+
+  const handleTest = async () => {
+    setTesting(true);
+    try {
+      const r = await crmApi.salesforce.test();
+      r.success ? toast.success('Salesforce connection is working!') : toast.error('Salesforce test failed');
+    } catch { toast.error('Test failed'); }
+    finally { setTesting(false); }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('Disconnect Salesforce?')) return;
+    setDisconnecting(true);
+    try {
+      await crmApi.salesforce.disconnect();
+      setStatus({ connected: false });
+      toast.success('Salesforce disconnected');
+    } catch { toast.error('Failed to disconnect'); }
+    finally { setDisconnecting(false); }
+  };
+
+  return (
+    <div className="card p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 dark:bg-sky-900/20">
+            <span className="text-lg font-bold text-sky-500">SF</span>
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Salesforce CRM</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Push contacts and tasks to Salesforce automatically</p>
+          </div>
+        </div>
+        {status && (
+          status.connected ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+              <CheckCircle2 className="h-3.5 w-3.5" />Connected
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+              <AlertCircle className="h-3.5 w-3.5" />Not connected
+            </span>
+          )
+        )}
+      </div>
+
+      {status?.connected ? (
+        <div className="space-y-3">
+          {status.username && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="font-medium">Account:</span> {status.username}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button onClick={handleTest} disabled={testing} className="btn-secondary text-sm gap-2">
+              {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <TestTube2 className="h-4 w-4" />}Test
+            </button>
+            <button onClick={handleDisconnect} disabled={disconnecting} className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50">
+              {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Disconnect
+            </button>
+          </div>
+        </div>
+      ) : showForm ? (
+        <form onSubmit={handleConnect} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Consumer Key</label>
+              <input type="text" value={form.consumer_key} onChange={(e) => setForm({ ...form, consumer_key: e.target.value })} required className="input-field" placeholder="Connected App Consumer Key" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Consumer Secret</label>
+              <input type="password" value={form.consumer_secret} onChange={(e) => setForm({ ...form, consumer_secret: e.target.value })} required className="input-field" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+              <input type="email" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required className="input-field" placeholder="user@company.com" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+              <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required className="input-field" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Security Token</label>
+              <input type="password" value={form.security_token} onChange={(e) => setForm({ ...form, security_token: e.target.value })} className="input-field" placeholder="From Salesforce → My Settings → Security Token" />
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Requires a Connected App in Salesforce Setup → Apps → App Manager
+          </p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setShowForm(false)} className="btn-secondary text-sm">Cancel</button>
+            <button type="submit" disabled={connecting} className="btn-primary text-sm gap-2">
+              {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}Connect
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button onClick={() => setShowForm(true)} className="btn-primary text-sm gap-2">
+          <ExternalLink className="h-4 w-4" />Connect Salesforce
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Integrations Tab ─────────────────────────────────────────────────────────
 function IntegrationsTab({
   settings,
@@ -463,6 +706,12 @@ function IntegrationsTab({
 
       {/* Google Calendar */}
       <CalendarIntegration />
+
+      {/* HubSpot CRM */}
+      <HubSpotIntegration />
+
+      {/* Salesforce CRM */}
+      <SalesforceIntegration />
 
       {/* Slack */}
       <div className="card p-6">

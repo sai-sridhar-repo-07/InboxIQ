@@ -230,7 +230,47 @@ async def process_email(email: dict) -> dict | None:
             )
 
     # ------------------------------------------------------------------
-    # Step 8 – Auto-assign rules
+    # Step 8 – CRM sync (HubSpot / Salesforce)
+    # ------------------------------------------------------------------
+    try:
+        crm_profile = supabase.table("user_profiles").select(
+            "hubspot_connected, hubspot_api_key, "
+            "sf_connected, sf_consumer_key, sf_consumer_secret, "
+            "sf_username, sf_password, sf_security_token"
+        ).eq("id", user_id).single().execute()
+        cp = crm_profile.data or {}
+
+        # Skip CRM sync for spam/newsletters
+        email_category = analysis.get("category", "")
+        if email_category not in ("spam", "newsletter"):
+            if cp.get("hubspot_connected") and cp.get("hubspot_api_key"):
+                from services.hubspot_service import sync_email_to_hubspot
+                await sync_email_to_hubspot(
+                    api_key=cp["hubspot_api_key"],
+                    sender_email=sender,
+                    sender_name=email.get("from_name", ""),
+                    subject=subject,
+                    summary=analysis.get("summary", ""),
+                )
+
+            if cp.get("sf_connected") and cp.get("sf_username"):
+                from services.salesforce_service import sync_email_to_salesforce
+                await sync_email_to_salesforce(
+                    consumer_key=cp.get("sf_consumer_key", ""),
+                    consumer_secret=cp.get("sf_consumer_secret", ""),
+                    username=cp.get("sf_username", ""),
+                    password=cp.get("sf_password", ""),
+                    security_token=cp.get("sf_security_token", ""),
+                    sender_email=sender,
+                    sender_name=email.get("from_name", ""),
+                    subject=subject,
+                    summary=analysis.get("summary", ""),
+                )
+    except Exception as exc:
+        logger.warning("CRM sync failed for email_id=%s: %s", email_id, exc)
+
+    # ------------------------------------------------------------------
+    # Step 9 – Auto-assign rules
     # ------------------------------------------------------------------
     try:
         _apply_auto_assign_rules(
