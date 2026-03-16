@@ -26,7 +26,7 @@ const categoryConfig: Record<
   },
   needs_response: {
     label: 'Needs Response',
-    classes: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
+    classes: 'bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800',
     Icon: MessageSquare,
   },
   follow_up: {

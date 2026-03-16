@@ -69,7 +69,7 @@ function Hero() {
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 tracking-tight leading-none">
             Your AI-Powered
             <br />
-            <span className="bg-gradient-to-r from-primary-600 to-blue-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary-600 to-violet-500 bg-clip-text text-transparent">
               Email Command Center
             </span>
           </h1>
@@ -130,7 +130,7 @@ function Hero() {
                 {/* Stats row */}
                 <div className="grid grid-cols-4 gap-2 mb-4">
                   {[
-                    { label: 'Total Emails', val: '247', color: 'bg-blue-500' },
+                    { label: 'Total Emails', val: '247', color: 'bg-violet-500' },
                     { label: 'Urgent', val: '8', color: 'bg-red-500' },
                     { label: 'Need Reply', val: '23', color: 'bg-amber-500' },
                     { label: 'Actions', val: '41', color: 'bg-green-500' },
@@ -146,7 +146,7 @@ function Hero() {
                 <div className="space-y-2">
                   {[
                     { from: 'Sarah M.', subject: 'Urgent: Contract needs signature today', cat: 'URGENT', catColor: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
-                    { from: 'Tech Corp', subject: 'Invoice #2847 — payment overdue', cat: 'RESPONSE', catColor: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
+                    { from: 'Tech Corp', subject: 'Invoice #2847 — payment overdue', cat: 'RESPONSE', catColor: 'bg-violet-100 text-violet-700', dot: 'bg-violet-500' },
                     { from: 'Mike R.', subject: 'Following up on last week\'s proposal', cat: 'FOLLOW UP', catColor: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
                   ].map((email) => (
                     <div key={email.subject} className="bg-white rounded-lg p-3 border border-gray-100 shadow-sm flex items-start gap-3">
@@ -165,7 +165,7 @@ function Hero() {
             </div>
           </div>
           {/* Glow effect */}
-          <div className="absolute -inset-4 -z-10 bg-gradient-to-r from-primary-100 to-blue-100 opacity-60 blur-3xl rounded-3xl" />
+          <div className="absolute -inset-4 -z-10 bg-gradient-to-r from-primary-100 to-violet-100 opacity-60 blur-3xl rounded-3xl" />
         </div>
       </div>
     </section>
@@ -192,8 +192,8 @@ const features = [
     icon: MessageSquare,
     title: 'Smart Reply Drafts',
     description: 'Get AI-crafted reply drafts tailored to your tone and business context. Edit and send in seconds — or let them go out automatically.',
-    color: 'text-blue-600',
-    bg: 'bg-blue-50',
+    color: 'text-violet-600',
+    bg: 'bg-violet-50',
   },
   {
     icon: Inbox,
@@ -456,7 +456,7 @@ const testimonials = [
     name: 'Marcus Johnson',
     role: 'Freelance Consultant',
     avatar: 'MJ',
-    avatarColor: 'from-blue-400 to-blue-600',
+    avatarColor: 'from-violet-400 to-violet-600',
     quote: "I was skeptical about AI email tools but Threadly blew me away. It caught an urgent client message I would have missed during a busy week. That single email saved a $15k contract.",
     stars: 5,
   },

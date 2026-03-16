@@ -77,7 +77,7 @@ function getFileColor(mimeType: string): string {
   if (mimeType.startsWith('image/'))   return 'text-pink-500 bg-pink-50';
   if (mimeType.includes('pdf'))        return 'text-red-500 bg-red-50';
   if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return 'text-green-600 bg-green-50';
-  if (mimeType.includes('word') || mimeType.includes('document')) return 'text-blue-500 bg-blue-50';
+  if (mimeType.includes('word') || mimeType.includes('document')) return 'text-violet-500 bg-violet-50';
   return 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700';
 }
 
@@ -550,7 +550,7 @@ export default function EmailDetailPage() {
                 className="btn-secondary text-sm"
                 title="Snooze"
               >
-                <AlarmClock className="h-4 w-4 text-blue-500" />
+                <AlarmClock className="h-4 w-4 text-violet-500" />
                 <span className="hidden sm:inline ml-1.5">Snooze</span>
               </button>
 
@@ -1001,7 +1001,7 @@ export default function EmailDetailPage() {
           {/* Reply Editor */}
           <div className="animate-slide-up stagger-4">
             <div className="flex items-center gap-2 mb-3">
-              <MessageSquare className="h-4 w-4 text-blue-600" />
+              <MessageSquare className="h-4 w-4 text-violet-600" />
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">AI Reply Draft</h2>
             </div>
             <ReplyEditor emailId={email.id} draft={replyDraft} onSent={() => mutateEmail()} />
