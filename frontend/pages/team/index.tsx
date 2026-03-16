@@ -4,14 +4,14 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSessionContext } from '@supabase/auth-helpers-react';
 import {
   Users, Plus, Mail, Trash2, Crown, Shield, User, Copy, Check,
-  Activity, RefreshCw, Loader2, UserPlus, LogIn,
+  Activity, RefreshCw, Loader2, UserPlus, LogIn, Zap,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { teamsApi } from '@/lib/api';
+import { teamsApi, autoAssignApi, type AutoAssignRule } from '@/lib/api';
 import type { Organization, OrgMember, ActivityLogEntry } from '@/lib/types';
 
 const ROLE_CONFIG = {
@@ -54,7 +54,13 @@ export default function TeamPage() {
   const [yourRole, setYourRole] = useState('member');
   const [activity, setActivity] = useState<ActivityLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'members' | 'activity'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'activity' | 'rules'>('members');
+
+  // Auto-assign rules state
+  const [autoRules, setAutoRules] = useState<AutoAssignRule[]>([]);
+  const [ruleForm, setRuleForm] = useState({ condition_type: 'sender_domain', condition_value: '', assign_to_user_id: '' });
+  const [addingRule, setAddingRule] = useState(false);
+  const [savingRule, setSavingRule] = useState(false);
 
   // Create org form
   const [orgName, setOrgName] = useState('');
@@ -95,9 +101,16 @@ export default function TeamPage() {
     } catch { /* no org yet */ }
   }, []);
 
+  const loadRules = useCallback(async () => {
+    try {
+      const data = await autoAssignApi.list();
+      setAutoRules(data);
+    } catch { /* no org / not admin */ }
+  }, []);
+
   useEffect(() => {
-    if (session) { loadOrg(); loadActivity(); }
-  }, [session, loadOrg, loadActivity]);
+    if (session) { loadOrg(); loadActivity(); loadRules(); }
+  }, [session, loadOrg, loadActivity, loadRules]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,6 +170,41 @@ export default function TeamPage() {
     } catch {
       toast.error('Failed to remove member');
     }
+  };
+
+  const handleAddRule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ruleForm.condition_value.trim() || !ruleForm.assign_to_user_id) return;
+    setSavingRule(true);
+    try {
+      const rule = await autoAssignApi.create({
+        condition_type: ruleForm.condition_type as AutoAssignRule['condition_type'],
+        condition_value: ruleForm.condition_value.trim(),
+        assign_to_user_id: ruleForm.assign_to_user_id,
+        is_active: true,
+      });
+      setAutoRules((prev) => [rule, ...prev]);
+      setRuleForm({ condition_type: 'sender_domain', condition_value: '', assign_to_user_id: '' });
+      setAddingRule(false);
+      toast.success('Auto-assign rule created');
+    } catch { toast.error('Failed to create rule'); }
+    finally { setSavingRule(false); }
+  };
+
+  const handleDeleteRule = async (id: string) => {
+    if (!confirm('Delete this auto-assign rule?')) return;
+    try {
+      await autoAssignApi.remove(id);
+      setAutoRules((prev) => prev.filter((r) => r.id !== id));
+      toast.success('Rule deleted');
+    } catch { toast.error('Failed to delete rule'); }
+  };
+
+  const handleToggleRule = async (rule: AutoAssignRule) => {
+    try {
+      const updated = await autoAssignApi.update(rule.id, { is_active: !rule.is_active });
+      setAutoRules((prev) => prev.map((r) => r.id === rule.id ? updated : r));
+    } catch { toast.error('Failed to update rule'); }
   };
 
   const copyInviteLink = () => {
@@ -251,6 +299,7 @@ export default function TeamPage() {
                 {[
                   { id: 'members' as const, label: 'Members', icon: Users },
                   { id: 'activity' as const, label: 'Activity', icon: Activity },
+                  ...(isAdmin ? [{ id: 'rules' as const, label: 'Auto-Assign', icon: Zap }] : []),
                 ].map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
@@ -372,6 +421,84 @@ export default function TeamPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {activeTab === 'rules' && isAdmin && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Automatically assign emails to team members when AI processing completes.
+                    </p>
+                    <button onClick={() => setAddingRule(true)} className="inline-flex items-center gap-1.5 rounded-xl bg-primary-600 hover:bg-primary-700 px-3 py-2 text-sm font-medium text-white transition-colors">
+                      <Plus className="h-4 w-4" />Add Rule
+                    </button>
+                  </div>
+
+                  {addingRule && (
+                    <form onSubmit={handleAddRule} className="card p-5 space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">New Auto-Assign Rule</h3>
+                      <select value={ruleForm.condition_type} onChange={(e) => setRuleForm({ ...ruleForm, condition_type: e.target.value })} className="input-field">
+                        <option value="sender_domain">Sender Domain</option>
+                        <option value="category">Email Category</option>
+                        <option value="priority_gte">Priority ≥</option>
+                      </select>
+                      <input
+                        type="text"
+                        value={ruleForm.condition_value}
+                        onChange={(e) => setRuleForm({ ...ruleForm, condition_value: e.target.value })}
+                        placeholder={
+                          ruleForm.condition_type === 'sender_domain' ? 'e.g. client.com' :
+                          ruleForm.condition_type === 'category' ? 'e.g. urgent' : 'e.g. 7'
+                        }
+                        required
+                        className="input-field"
+                      />
+                      <select value={ruleForm.assign_to_user_id} onChange={(e) => setRuleForm({ ...ruleForm, assign_to_user_id: e.target.value })} required className="input-field">
+                        <option value="">— Select member —</option>
+                        {members.filter((m) => m.status === 'active' && m.user_profiles?.id).map((m) => (
+                          <option key={m.id} value={m.user_profiles!.id}>{m.user_profiles!.name || m.user_profiles!.email}</option>
+                        ))}
+                      </select>
+                      <div className="flex gap-2 justify-end">
+                        <button type="button" onClick={() => setAddingRule(false)} className="btn-secondary text-sm">Cancel</button>
+                        <button type="submit" disabled={savingRule} className="btn-primary text-sm gap-2">
+                          {savingRule ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}Save
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  <div className="card divide-y divide-gray-100 dark:divide-gray-700">
+                    {autoRules.length === 0 ? (
+                      <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">No rules yet.</div>
+                    ) : autoRules.map((rule) => {
+                      const COND_LABELS: Record<string, string> = { sender_domain: 'Sender domain', category: 'Category', priority_gte: 'Priority ≥' };
+                      return (
+                        <div key={rule.id} className="flex items-center gap-3 px-5 py-3">
+                          <Zap className={`h-4 w-4 flex-shrink-0 ${rule.is_active ? 'text-primary-500' : 'text-gray-300 dark:text-gray-600'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-800 dark:text-gray-200">
+                              <span className="text-gray-500 dark:text-gray-400">{COND_LABELS[rule.condition_type]}</span>{' '}
+                              <span className="font-mono font-medium">{rule.condition_value}</span>{' → '}
+                              <span className="font-medium">{rule.user_profiles?.name || rule.assign_to_user_id}</span>
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => handleToggleRule(rule)}
+                              className={`relative inline-flex h-5 w-9 rounded-full border-2 border-transparent transition-colors cursor-pointer ${rule.is_active ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-600'}`}
+                            >
+                              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${rule.is_active ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                            <button onClick={() => handleDeleteRule(rule.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </>

@@ -473,6 +473,37 @@ export const teamsApi = {
   },
 };
 
+// ─── Auto-Assign Rules Endpoints ─────────────────────────────────────────────
+
+export interface AutoAssignRule {
+  id: string;
+  org_id: string;
+  condition_type: 'sender_domain' | 'category' | 'priority_gte';
+  condition_value: string;
+  assign_to_user_id: string;
+  is_active: boolean;
+  created_at: string;
+  user_profiles?: { id: string; name: string; email: string };
+}
+
+export const autoAssignApi = {
+  list: async (): Promise<AutoAssignRule[]> => {
+    const { data } = await api.get('/api/teams/auto-assign');
+    return data;
+  },
+  create: async (body: Omit<AutoAssignRule, 'id' | 'org_id' | 'created_at' | 'user_profiles'>): Promise<AutoAssignRule> => {
+    const { data } = await api.post('/api/teams/auto-assign', body);
+    return data;
+  },
+  update: async (id: string, body: Partial<AutoAssignRule>): Promise<AutoAssignRule> => {
+    const { data } = await api.patch(`/api/teams/auto-assign/${id}`, body);
+    return data;
+  },
+  remove: async (id: string): Promise<void> => {
+    await api.delete(`/api/teams/auto-assign/${id}`);
+  },
+};
+
 // ─── Webhooks Endpoints ───────────────────────────────────────────────────────
 
 export interface Webhook {
