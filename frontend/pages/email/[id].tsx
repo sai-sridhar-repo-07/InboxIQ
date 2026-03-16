@@ -31,6 +31,7 @@ import {
   ClipboardCopy,
   X,
   Layers,
+  CalendarPlus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
@@ -604,13 +605,28 @@ export default function EmailDetailPage() {
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setMeetingInfo(null)}
-                    className="flex-shrink-0 p-1 rounded text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors"
-                    title="Dismiss"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => {
+                        const title = encodeURIComponent(email.subject || 'Meeting');
+                        const details = encodeURIComponent(meetingInfo.agenda || '');
+                        const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}`;
+                        window.open(calUrl, '_blank', 'noopener');
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 dark:border-amber-600 bg-amber-100 dark:bg-amber-800/30 px-2 py-1 text-xs font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-700/40 transition-colors"
+                      title="Add to Google Calendar"
+                    >
+                      <CalendarPlus className="h-3 w-3" />
+                      Add to Calendar
+                    </button>
+                    <button
+                      onClick={() => setMeetingInfo(null)}
+                      className="p-1 rounded text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors"
+                      title="Dismiss"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
                 {meetingInfo.suggested_reply_snippet && (
                   <div className="mt-2 pt-2 border-t border-amber-200 dark:border-amber-700 flex items-start justify-between gap-3">

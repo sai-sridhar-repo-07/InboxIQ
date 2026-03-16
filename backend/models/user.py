@@ -27,6 +27,7 @@ class UserUpdate(BaseModel):
     priority_threshold: Optional[int] = None
     vacation_mode: Optional[bool] = None
     vacation_message: Optional[str] = None
+    email_signature: Optional[str] = None
 
 
 class ReplyDraftResponse(BaseModel):

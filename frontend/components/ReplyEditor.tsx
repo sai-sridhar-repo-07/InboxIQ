@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Send, Save, Zap, Loader2, Sparkles } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Send, Save, Zap, Loader2, Sparkles, FileText, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { repliesApi, emailsApi } from '@/lib/api';
+import { loadTemplates } from '@/lib/templates';
 import type { ReplyDraft } from '@/lib/types';
 
 interface ReplyEditorProps {
@@ -22,6 +23,9 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [confidence, setConfidence] = useState(draft?.confidence_score);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const templateMenuRef = useRef<HTMLDivElement>(null);
+  const templates = loadTemplates();
 
   useEffect(() => {
     if (draft?.draft_content) {
@@ -86,6 +90,23 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
     } finally {
       setIsSending(false);
     }
+  };
+
+  // Close template dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (templateMenuRef.current && !templateMenuRef.current.contains(e.target as Node)) {
+        setTemplatesOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const insertTemplate = (body: string) => {
+    setContent((prev) => (prev ? prev + '\n\n' + body : body));
+    setHasChanges(true);
+    setTemplatesOpen(false);
   };
 
   const charPercentage = (content.length / MAX_CHARS) * 100;
@@ -166,7 +187,34 @@ export default function ReplyEditor({ emailId, draft, onSent, className }: Reply
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 justify-end">
+        <div className="flex items-center gap-2 justify-end flex-wrap">
+          {/* Templates dropdown */}
+          <div className="relative" ref={templateMenuRef}>
+            <button
+              onClick={() => setTemplatesOpen((v) => !v)}
+              className="btn-secondary text-sm gap-1.5"
+              title="Insert template"
+            >
+              <FileText className="h-4 w-4" />
+              Templates
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            {templatesOpen && (
+              <div className="absolute bottom-full mb-1 right-0 z-30 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl overflow-hidden">
+                {templates.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => insertTemplate(t.body)}
+                    className="w-full text-left px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                  >
+                    <p className="font-medium text-xs">{t.name}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1 mt-0.5">{t.body.split('\n')[0]}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleSave}
             disabled={isSaving || !hasChanges}

@@ -15,22 +15,33 @@ import {
   TestTube2,
   Mail,
   Plane,
+  Filter,
+  FileText,
+  Shield,
+  PenLine,
+  Plus,
+  Download,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import RulesManager from '@/components/RulesManager';
 import { useSettings, useGmailStatus } from '@/lib/hooks';
-import { settingsApi, integrationsApi } from '@/lib/api';
+import { settingsApi, integrationsApi, gdprApi } from '@/lib/api';
+import { loadTemplates, saveTemplates, createTemplate, type EmailTemplate } from '@/lib/templates';
 import type { UserSettings, TonePreference, NotificationFrequency } from '@/lib/types';
 import clsx from 'clsx';
 
-type Tab = 'profile' | 'integrations' | 'notifications' | 'vacation';
+type Tab = 'profile' | 'integrations' | 'notifications' | 'vacation' | 'rules' | 'templates' | 'data';
 
 const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'profile', label: 'Profile & AI', icon: User },
   { id: 'integrations', label: 'Integrations', icon: Link2 },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'vacation', label: 'Vacation', icon: Plane },
+  { id: 'rules', label: 'Rules', icon: Filter },
+  { id: 'templates', label: 'Templates', icon: FileText },
+  { id: 'data', label: 'Data & Privacy', icon: Shield },
 ];
 
 // ─── Profile Tab ──────────────────────────────────────────────────────────────
@@ -44,6 +55,7 @@ function ProfileTab({
   const [form, setForm] = useState({
     company_description: settings.company_description ?? '',
     tone_preference: settings.tone_preference ?? 'professional',
+    email_signature: settings.email_signature ?? '',
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -115,6 +127,18 @@ function ProfileTab({
             </label>
           ))}
         </div>
+      </div>
+
+      <div className="card p-6">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Email Signature</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Automatically appended to AI-generated reply drafts.</p>
+        <textarea
+          value={form.email_signature}
+          onChange={(e) => setForm({ ...form, email_signature: e.target.value })}
+          rows={4}
+          className="input-field resize-none"
+          placeholder="Best regards,&#10;Your Name&#10;Company | +1 555-0100"
+        />
       </div>
 
       <div className="flex justify-end">
@@ -581,6 +605,179 @@ function VacationTab({
   );
 }
 
+// ─── Templates Tab ────────────────────────────────────────────────────────────
+function TemplatesTab() {
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [newName, setNewName] = useState('');
+  const [newBody, setNewBody] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  useEffect(() => { setTemplates(loadTemplates()); }, []);
+
+  const handleAdd = () => {
+    if (!newName.trim() || !newBody.trim()) { toast.error('Name and body are required'); return; }
+    const t = createTemplate(newName.trim(), newBody.trim());
+    const updated = [...templates, t];
+    saveTemplates(updated);
+    setTemplates(updated);
+    setNewName(''); setNewBody(''); setAdding(false);
+    toast.success('Template saved');
+  };
+
+  const handleDelete = (id: string) => {
+    const updated = templates.filter((t) => t.id !== id);
+    saveTemplates(updated);
+    setTemplates(updated);
+  };
+
+  const DEFAULT_IDS = new Set(['tpl_following_up', 'tpl_decline', 'tpl_meeting_confirm', 'tpl_request_info']);
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Quick-insert templates for the reply editor.
+        </p>
+        <button
+          onClick={() => setAdding(true)}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-primary-600 hover:bg-primary-700 px-3 py-2 text-sm font-medium text-white transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          New Template
+        </button>
+      </div>
+
+      {adding && (
+        <div className="card p-5 space-y-3">
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Template name..."
+            className="input-field"
+          />
+          <textarea
+            value={newBody}
+            onChange={(e) => setNewBody(e.target.value)}
+            placeholder="Template body..."
+            rows={5}
+            className="input-field resize-none"
+          />
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setAdding(false)} className="btn-secondary text-sm">Cancel</button>
+            <button onClick={handleAdd} className="btn-primary text-sm gap-2">
+              <Save className="h-4 w-4" />Save
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {templates.map((t) => (
+          <div key={t.id} className="card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t.name}</p>
+                  {DEFAULT_IDS.has(t.id) && (
+                    <span className="text-xs rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-gray-500 dark:text-gray-400">Default</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 whitespace-pre-line">{t.body}</p>
+              </div>
+              {!DEFAULT_IDS.has(t.id) && (
+                <button onClick={() => handleDelete(t.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0 p-1">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Data & Privacy Tab ───────────────────────────────────────────────────────
+function DataTab() {
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await gdprApi.exportData();
+      toast.success('Data exported!');
+    } catch {
+      toast.error('Failed to export data');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('This will permanently delete your account and ALL your data. This cannot be undone. Are you sure?')) return;
+    if (!confirm('Final confirmation: Delete my account and all my data?')) return;
+    setDeleting(true);
+    try {
+      await gdprApi.deleteAccount();
+      toast.success('Account deleted. Redirecting...');
+      setTimeout(() => { window.location.href = '/auth/signin'; }, 2000);
+    } catch {
+      toast.error('Failed to delete account');
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div className="card p-6">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/20">
+            <Download className="h-5 w-5 text-blue-500" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Export My Data</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Download all your emails, actions, and settings as a JSON file.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+        >
+          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          {exporting ? 'Exporting...' : 'Download My Data'}
+        </button>
+      </div>
+
+      <div className="card p-6 border-red-200 dark:border-red-800">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20">
+            <Trash2 className="h-5 w-5 text-red-500" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-red-700 dark:text-red-400">Delete Account</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Permanently delete your account and all associated data. This action is irreversible.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="inline-flex items-center gap-2 rounded-xl border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 transition-colors disabled:opacity-50"
+        >
+          {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          {deleting ? 'Deleting...' : 'Delete My Account'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const router = useRouter();
@@ -653,6 +850,9 @@ export default function SettingsPage() {
               {activeTab === 'vacation' && (
                 <VacationTab settings={settings} onSave={handleSave} />
               )}
+              {activeTab === 'rules' && <RulesManager />}
+              {activeTab === 'templates' && <TemplatesTab />}
+              {activeTab === 'data' && <DataTab />}
             </>
           ) : (
             <div className="card p-12 text-center">

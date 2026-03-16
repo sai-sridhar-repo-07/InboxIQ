@@ -18,6 +18,7 @@ import BatchActionBar from '@/components/BatchActionBar';
 import BulkSummaryModal from '@/components/BulkSummaryModal';
 import { useEmails } from '@/lib/hooks';
 import { emailsApi } from '@/lib/api';
+import { loadRules, applyRules } from '@/lib/rules';
 import type { EmailCategory, PriorityLevel, Email } from '@/lib/types';
 import clsx from 'clsx';
 
@@ -86,7 +87,8 @@ export default function EmailListPage() {
   if (sessionLoading) return <LoadingSpinner fullPage />;
   if (!session) return null;
 
-  const emails = data?.items ?? [];
+  const rules = loadRules();
+  const emails = (data?.items ?? []).map((e) => applyRules(e as unknown as Record<string, unknown>, rules) as unknown as Email);
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 

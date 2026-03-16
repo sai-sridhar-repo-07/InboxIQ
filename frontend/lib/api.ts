@@ -374,6 +374,30 @@ export const billingApi = {
   },
 };
 
+// ─── GDPR / Data Endpoints ────────────────────────────────────────────────────
+
+export const gdprApi = {
+  exportData: async (): Promise<void> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const res = await fetch(`${base}/api/settings/export-data`, {
+      headers: { Authorization: `Bearer ${session?.access_token}` },
+    });
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inboxiq-data-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  deleteAccount: async (): Promise<void> => {
+    await api.delete('/api/settings/delete-account');
+  },
+};
+
 // ─── Contacts (Mini CRM) Endpoints ───────────────────────────────────────────
 
 export const contactsApi = {

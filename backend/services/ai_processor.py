@@ -103,11 +103,12 @@ async def process_email(email: dict) -> dict | None:
     slack_webhook_url = ""
     vacation_mode = False
     vacation_message = ""
+    email_signature = ""
 
     try:
         profile_result = (
             supabase.table("user_profiles")
-            .select("company_description, tone_preference, slack_webhook_url, vacation_mode, vacation_message")
+            .select("company_description, tone_preference, slack_webhook_url, vacation_mode, vacation_message, email_signature")
             .eq("id", user_id)
             .single()
             .execute()
@@ -121,6 +122,7 @@ async def process_email(email: dict) -> dict | None:
             slack_webhook_url = profile.get("slack_webhook_url") or ""
             vacation_mode = bool(profile.get("vacation_mode", False))
             vacation_message = profile.get("vacation_message") or ""
+            email_signature = profile.get("email_signature") or ""
     except Exception as exc:
         logger.warning("Could not fetch user profile for user_id=%s: %s", user_id, exc)
 
@@ -162,7 +164,13 @@ async def process_email(email: dict) -> dict | None:
         confidence = 0.3
 
     # ------------------------------------------------------------------
-    # Step 6a – Prepend vacation auto-reply note if vacation mode is on
+    # Step 6a – Append email signature if set
+    # ------------------------------------------------------------------
+    if email_signature:
+        draft_text = draft_text.rstrip() + "\n\n" + email_signature.strip()
+
+    # ------------------------------------------------------------------
+    # Step 6c – Prepend vacation auto-reply note if vacation mode is on
     # ------------------------------------------------------------------
     if vacation_mode:
         auto_reply_note = vacation_message.strip() if vacation_message else (
@@ -172,7 +180,7 @@ async def process_email(email: dict) -> dict | None:
         draft_text = vacation_prefix + draft_text
 
     # ------------------------------------------------------------------
-    # Step 6b – Persist reply draft
+    # Step 6d – Persist reply draft
     # ------------------------------------------------------------------
     try:
         supabase.table("reply_drafts").upsert(

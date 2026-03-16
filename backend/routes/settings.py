@@ -1,7 +1,10 @@
+import json
 import logging
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 
 from database import get_supabase
 from middleware.auth import get_current_user
@@ -81,6 +84,59 @@ async def update_settings(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update settings.",
         )
+
+
+@router.get("/export-data")
+async def export_user_data(current_user: Annotated[dict, Depends(get_current_user)]):
+    """GDPR: Export all user data as a JSON file."""
+    try:
+        supabase = get_supabase()
+        uid = _user_id(current_user)
+
+        profile = supabase.table("user_profiles").select("*").eq("id", uid).single().execute()
+        emails = supabase.table("emails").select(
+            "id, subject, sender, body, category, priority, ai_summary, received_at, is_read, created_at"
+        ).eq("user_id", uid).order("received_at", desc=True).limit(1000).execute()
+        actions = supabase.table("actions").select("*").eq("user_id", uid).limit(500).execute()
+        replies = supabase.table("reply_drafts").select(
+            "id, email_id, draft_text, is_sent, created_at"
+        ).eq("user_id", uid).limit(500).execute()
+
+        export = {
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "user_id": uid,
+            "profile": profile.data or {},
+            "emails": emails.data or [],
+            "actions": actions.data or [],
+            "reply_drafts": replies.data or [],
+        }
+
+        filename = f"inboxiq-data-{datetime.now(timezone.utc).strftime('%Y%m%d')}.json"
+        return Response(
+            content=json.dumps(export, indent=2, default=str),
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except Exception as exc:
+        logger.error("export_user_data error: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to export data.")
+
+
+@router.delete("/delete-account", status_code=status.HTTP_200_OK)
+async def delete_account(current_user: Annotated[dict, Depends(get_current_user)]):
+    """GDPR: Delete all user data. Irreversible."""
+    try:
+        supabase = get_supabase()
+        uid = _user_id(current_user)
+        # Delete in dependency order
+        supabase.table("reply_drafts").delete().eq("user_id", uid).execute()
+        supabase.table("actions").delete().eq("user_id", uid).execute()
+        supabase.table("emails").delete().eq("user_id", uid).execute()
+        supabase.table("user_profiles").delete().eq("id", uid).execute()
+        return {"message": "Account and all data deleted successfully."}
+    except Exception as exc:
+        logger.error("delete_account error: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to delete account.")
 
 
 @router.get("/profile", response_model=dict)

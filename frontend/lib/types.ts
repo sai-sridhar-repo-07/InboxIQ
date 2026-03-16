@@ -133,6 +133,7 @@ export interface UserSettings {
   slack_webhook_url?: string;
   vacation_mode?: boolean;
   vacation_message?: string;
+  email_signature?: string;
   created_at: string;
   updated_at: string;
 }
