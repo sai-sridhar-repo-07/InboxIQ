@@ -7,10 +7,14 @@ class ActionBase(BaseModel):
     task: str
     deadline: Optional[datetime] = None
     status: str = "pending"
+    priority: Optional[str] = "medium"
+    notes: Optional[str] = None
 
 
 class ActionCreate(ActionBase):
-    email_id: str
+    email_id: Optional[str] = None
+    priority: Optional[str] = "medium"
+    notes: Optional[str] = None
 
 
 class ActionResponse(ActionBase):
@@ -26,3 +30,5 @@ class ActionUpdate(BaseModel):
     task: Optional[str] = None
     deadline: Optional[datetime] = None
     status: Optional[str] = None
+    priority: Optional[str] = None
+    notes: Optional[str] = None
