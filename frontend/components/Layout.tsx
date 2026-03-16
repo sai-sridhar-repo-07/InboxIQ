@@ -177,11 +177,9 @@ export default function Layout({ children, title }: LayoutProps) {
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 dark:border-gray-700 lg:bg-white dark:lg:bg-gray-900 lg:fixed lg:inset-y-0">
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-4 py-5 animate-fade-in">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm">
-            <Zap className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">InboxIQ</span>
+        <div className="flex items-center px-4 py-5 animate-fade-in">
+          <img src="/logo.svg" alt="Threadly" className="h-8 w-auto dark:hidden" />
+          <img src="/logo-dark.svg" alt="Threadly" className="h-8 w-auto hidden dark:block" />
         </div>
 
         <div className="flex flex-1 flex-col overflow-y-auto">
@@ -199,11 +197,9 @@ export default function Layout({ children, title }: LayoutProps) {
           />
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 flex flex-col shadow-2xl animate-slide-in-left">
             <div className="flex items-center justify-between px-4 pt-4 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700">
-                  <Zap className="h-4 w-4 text-white" />
-                </div>
-                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">InboxIQ</span>
+              <div className="flex items-center">
+                <img src="/logo.svg" alt="Threadly" className="h-8 w-auto dark:hidden" />
+                <img src="/logo-dark.svg" alt="Threadly" className="h-8 w-auto hidden dark:block" />
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}

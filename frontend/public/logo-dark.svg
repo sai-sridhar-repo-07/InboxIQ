@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212 56" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#4338CA"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ── Icon ── -->
+  <rect width="56" height="56" rx="13" fill="url(#g)"/>
+
+  <line x1="15" y1="17" x2="15" y2="39" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+
+  <circle cx="15" cy="17" r="2.8" fill="white"/>
+  <path d="M18.5 17 L43 17" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+
+  <circle cx="15" cy="28" r="2.8" fill="rgba(255,255,255,0.8)"/>
+  <path d="M18.5 28 L43 28" stroke="rgba(255,255,255,0.78)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <circle cx="15" cy="39" r="2.8" fill="rgba(255,255,255,0.55)"/>
+  <path d="M18.5 39 L43 39" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- ── Wordmark (white for dark backgrounds) ── -->
+  <text
+    x="68"
+    y="37"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="27"
+    font-weight="700"
+    letter-spacing="-0.8"
+  >
+    <tspan fill="white">Thread</tspan><tspan fill="#A78BFA">ly</tspan>
+  </text>
+</svg>

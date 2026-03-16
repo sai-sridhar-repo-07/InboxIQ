@@ -30,17 +30,14 @@ export default function SignupPage() {
   return (
     <>
       <Head>
-        <title>Sign Up — InboxIQ</title>
-        <meta name="description" content="Create your InboxIQ account and start managing email with AI." />
+        <title>Sign Up — Threadly</title>
+        <meta name="description" content="Create your Threadly account and start managing email with AI." />
       </Head>
       <div className="flex min-h-screen">
         {/* Left Panel */}
         <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-600 to-primary-800 flex-col justify-center px-16">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-              <Zap className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-white">InboxIQ</span>
+          <div className="flex items-center mb-12">
+            <img src="/logo-dark.svg" alt="Threadly" className="h-9 w-auto" />
           </div>
           <h2 className="text-4xl font-extrabold text-white leading-tight mb-6">
             Your inbox, finally under control
@@ -70,11 +67,8 @@ export default function SignupPage() {
         <div className="flex flex-1 flex-col justify-center px-6 py-12 lg:px-12 bg-white">
           <div className="mx-auto w-full max-w-md">
             {/* Mobile logo */}
-            <div className="lg:hidden flex items-center gap-2 mb-8">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600">
-                <Zap className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">InboxIQ</span>
+            <div className="lg:hidden flex items-center mb-8">
+              <img src="/logo.svg" alt="Threadly" className="h-8 w-auto" />
             </div>
 
             <div className="mb-8">

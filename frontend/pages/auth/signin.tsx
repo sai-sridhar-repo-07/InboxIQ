@@ -22,8 +22,8 @@ export default function SigninPage() {
   return (
     <>
       <Head>
-        <title>Sign In — InboxIQ</title>
-        <meta name="description" content="Sign in to your InboxIQ account." />
+        <title>Sign In — Threadly</title>
+        <meta name="description" content="Sign in to your Threadly account." />
       </Head>
       <div className="flex min-h-screen bg-gray-50">
         <div className="flex flex-1 flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -38,11 +38,8 @@ export default function SigninPage() {
             </Link>
 
             {/* Logo */}
-            <div className="flex items-center gap-2.5 mb-8">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-gray-900">InboxIQ</span>
+            <div className="flex items-center mb-8">
+              <img src="/logo.svg" alt="Threadly" className="h-9 w-auto" />
             </div>
 
             {/* Header */}
@@ -100,7 +97,7 @@ export default function SigninPage() {
                     sign_in: {
                       email_label: 'Email address',
                       password_label: 'Password',
-                      button_label: 'Sign in to InboxIQ',
+                      button_label: 'Sign in to Threadly',
                       social_provider_text: 'Continue with {{provider}}',
                       link_text: 'Forgot your password?',
                     },

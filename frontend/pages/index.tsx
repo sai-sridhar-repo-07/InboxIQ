@@ -25,11 +25,8 @@ function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-b border-gray-100">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600">
-              <Zap className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-lg font-bold text-gray-900">InboxIQ</span>
+          <div className="flex items-center">
+            <img src="/logo.svg" alt="Threadly" className="h-8 w-auto" />
           </div>
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Features</a>
@@ -77,7 +74,7 @@ function Hero() {
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-xl text-gray-600 leading-relaxed">
-            InboxIQ reads, categorizes, and prioritizes every email for your service business.
+            Threadly reads, categorizes, and prioritizes every email for your service business.
             Never miss an urgent client message, auto-draft replies, and extract action items — all with AI.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -107,7 +104,7 @@ function Hero() {
               <div className="h-3 w-3 rounded-full bg-amber-400" />
               <div className="h-3 w-3 rounded-full bg-green-400" />
               <div className="ml-3 flex-1 rounded-md bg-white border border-gray-200 px-3 py-1 text-xs text-gray-400">
-                app.inboxiq.ai/dashboard
+                app.threadly.ai/dashboard
               </div>
             </div>
             {/* Dashboard content mockup */}
@@ -116,7 +113,7 @@ function Hero() {
               <div className="w-14 sm:w-52 bg-white border-r border-gray-100 p-3 flex flex-col gap-2">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-6 w-6 rounded-md bg-primary-600 flex-shrink-0" />
-                  <span className="hidden sm:block text-xs font-bold text-gray-900">InboxIQ</span>
+                  <span className="hidden sm:block text-xs font-bold text-gray-900">Thread<span className="text-primary-600">ly</span></span>
                 </div>
                 {['Dashboard','Inbox','Actions','Settings'].map((item, i) => (
                   <div
@@ -215,7 +212,7 @@ const features = [
   {
     icon: Zap,
     title: 'AI That Learns You',
-    description: 'The more you use InboxIQ, the smarter it gets. It learns your preferences, business context, and communication style over time.',
+    description: 'The more you use Threadly, the smarter it gets. It learns your preferences, business context, and communication style over time.',
     color: 'text-red-600',
     bg: 'bg-red-50',
   },
@@ -260,7 +257,7 @@ function HowItWorks() {
       step: '01',
       icon: Mail,
       title: 'Connect your Gmail',
-      description: 'Securely connect your Gmail account with one click using Google OAuth. InboxIQ never stores your email credentials.',
+      description: 'Securely connect your Gmail account with one click using Google OAuth. Threadly never stores your email credentials.',
       color: 'bg-primary-600',
     },
     {
@@ -452,7 +449,7 @@ const testimonials = [
     role: 'Founder, Apex Web Studio',
     avatar: 'SC',
     avatarColor: 'from-purple-400 to-purple-600',
-    quote: "InboxIQ has completely changed how I run my agency. I used to spend 2 hours a day in email. Now it's 20 minutes. The AI reply drafts alone are worth every penny.",
+    quote: "Threadly has completely changed how I run my agency. I used to spend 2 hours a day in email. Now it's 20 minutes. The AI reply drafts alone are worth every penny.",
     stars: 5,
   },
   {
@@ -460,7 +457,7 @@ const testimonials = [
     role: 'Freelance Consultant',
     avatar: 'MJ',
     avatarColor: 'from-blue-400 to-blue-600',
-    quote: "I was skeptical about AI email tools but InboxIQ blew me away. It caught an urgent client message I would have missed during a busy week. That single email saved a $15k contract.",
+    quote: "I was skeptical about AI email tools but Threadly blew me away. It caught an urgent client message I would have missed during a busy week. That single email saved a $15k contract.",
     stars: 5,
   },
   {
@@ -479,7 +476,7 @@ function Testimonials() {
       <div className="mx-auto max-w-7xl">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-gray-900">Loved by service business owners</h2>
-          <p className="mt-4 text-xl text-gray-600">Join hundreds of businesses saving time with InboxIQ.</p>
+          <p className="mt-4 text-xl text-gray-600">Join hundreds of businesses saving time with Threadly.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {testimonials.map((t) => (
@@ -544,11 +541,8 @@ function Footer() {
       <div className="mx-auto max-w-7xl">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600">
-                <Zap className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-lg font-bold text-white">InboxIQ</span>
+            <div className="flex items-center mb-4">
+              <img src="/logo-dark.svg" alt="Threadly" className="h-8 w-auto" />
             </div>
             <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
               AI-powered email management for service businesses. Triage, prioritize, and respond — faster than ever.
@@ -585,7 +579,7 @@ function Footer() {
           </div>
         </div>
         <div className="mt-12 border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-500">© 2024 InboxIQ. All rights reserved.</p>
+          <p className="text-sm text-gray-500">© 2024 Threadly. All rights reserved.</p>
           <p className="text-sm text-gray-500">Made with care for service businesses everywhere.</p>
         </div>
       </div>
@@ -598,9 +592,9 @@ export default function LandingPage() {
   return (
     <>
       <Head>
-        <title>InboxIQ — AI-Powered Email Command Center</title>
-        <meta name="description" content="InboxIQ uses AI to triage, prioritize, and draft replies for your business emails. Built for service businesses." />
-        <meta property="og:title" content="InboxIQ — AI Email Command Center" />
+        <title>Threadly — AI-Powered Email Command Center</title>
+        <meta name="description" content="Threadly uses AI to triage, prioritize, and draft replies for your business emails. Built for service businesses." />
+        <meta property="og:title" content="Threadly — AI Email Command Center" />
         <meta property="og:description" content="Stop drowning in email. Let AI triage, prioritize, and draft replies for your service business." />
       </Head>
       <Navbar />
