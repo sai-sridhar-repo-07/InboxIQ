@@ -21,6 +21,8 @@ export interface AIAnalysis {
   key_topics: string[];
   action_required: boolean;
   processed_at: string;
+  is_phishing?: boolean;
+  phishing_indicators?: string[];
 }
 
 export interface Email {

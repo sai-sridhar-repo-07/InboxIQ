@@ -30,6 +30,7 @@ import {
   CalendarCheck,
   ClipboardCopy,
   X,
+  Layers,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
@@ -101,6 +102,13 @@ export default function EmailDetailPage() {
 
   // Meeting detection state
   const [meetingInfo, setMeetingInfo]   = useState<MeetingInfo | null>(null);
+
+  // Thread summary state
+  const [threadSummary, setThreadSummary] = useState<{
+    thread_length: number; summary: string | null; key_points: string[];
+    next_action: string | null; sentiment: string; status: string;
+  } | null>(null);
+  const [loadingThreadSummary, setLoadingThreadSummary] = useState(false);
 
   const { data: email, error: emailError, isLoading: emailLoading, mutate: mutateEmail } = useEmail(emailId);
   const { data: rawActions, isLoading: actionsLoading } = useEmailActions(emailId);
@@ -229,6 +237,23 @@ export default function EmailDetailPage() {
       toast.error('Failed to generate quote');
     } finally {
       setIsGeneratingQuote(false);
+    }
+  };
+
+  const handleThreadSummary = async () => {
+    if (!emailId) return;
+    setLoadingThreadSummary(true);
+    try {
+      const result = await emailsApi.getThreadSummary(emailId);
+      if (result.status === 'single_email') {
+        toast('This email has no thread to summarize.', { icon: 'ℹ️' });
+      } else {
+        setThreadSummary(result);
+      }
+    } catch {
+      toast.error('Failed to generate thread summary');
+    } finally {
+      setLoadingThreadSummary(false);
     }
   };
 
@@ -479,6 +504,19 @@ export default function EmailDetailPage() {
                 <span className="hidden sm:inline ml-1.5">Snooze</span>
               </button>
 
+              {/* Summarize Thread button */}
+              <button
+                onClick={handleThreadSummary}
+                disabled={loadingThreadSummary}
+                className="btn-secondary text-sm"
+                title="Summarize Thread"
+              >
+                {loadingThreadSummary
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  : <Layers className="h-4 w-4 mr-1.5 text-violet-500" />}
+                <span className="hidden sm:inline">Thread</span>
+              </button>
+
               {/* Generate Quote button — shown for quote_request emails */}
               {(String(analysis?.category ?? '').toLowerCase().includes('quote') || String(analysis?.category ?? '') === 'needs_response') && (
                 <button
@@ -592,6 +630,72 @@ export default function EmailDetailPage() {
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Phishing Warning Banner */}
+            {analysis?.is_phishing && (
+              <div className="mt-4 rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-4 py-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-red-800 dark:text-red-300">
+                      Potential Phishing / Social Engineering Detected
+                    </p>
+                    <p className="mt-0.5 text-xs text-red-700 dark:text-red-400">
+                      Do not click any links or provide personal information. Verify the sender independently.
+                    </p>
+                    {analysis.phishing_indicators && analysis.phishing_indicators.length > 0 && (
+                      <ul className="mt-1.5 space-y-0.5">
+                        {analysis.phishing_indicators.map((indicator, i) => (
+                          <li key={i} className="text-xs text-red-700 dark:text-red-400 flex items-start gap-1.5">
+                            <span className="flex-shrink-0 mt-0.5">•</span>
+                            {indicator}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Thread Summary Card */}
+            {threadSummary && threadSummary.status === 'summarized' && (
+              <div className="mt-4 rounded-lg border border-violet-200 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/20 px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2 min-w-0 flex-1">
+                    <Layers className="h-4 w-4 text-violet-600 dark:text-violet-400 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-violet-800 dark:text-violet-300">
+                        Thread Summary ({threadSummary.thread_length} emails)
+                      </p>
+                      <p className="mt-1 text-xs text-violet-700 dark:text-violet-400 leading-relaxed">
+                        {threadSummary.summary}
+                      </p>
+                      {threadSummary.key_points.length > 0 && (
+                        <ul className="mt-2 space-y-0.5">
+                          {threadSummary.key_points.map((pt, i) => (
+                            <li key={i} className="text-xs text-violet-700 dark:text-violet-400 flex items-start gap-1.5">
+                              <span className="flex-shrink-0 mt-0.5">•</span>{pt}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {threadSummary.next_action && (
+                        <p className="mt-2 text-xs font-medium text-violet-800 dark:text-violet-300">
+                          Next: {threadSummary.next_action}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setThreadSummary(null)}
+                    className="flex-shrink-0 p-1 rounded text-violet-500 hover:text-violet-700 dark:hover:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/40 transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             )}
 

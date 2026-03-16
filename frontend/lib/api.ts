@@ -223,6 +223,18 @@ export const emailsApi = {
     const { data } = await api.get(`/api/emails/${id}/meeting-info`);
     return data;
   },
+
+  getThreadSummary: async (id: string): Promise<{
+    thread_length: number;
+    summary: string | null;
+    key_points: string[];
+    next_action: string | null;
+    sentiment: string;
+    status: string;
+  }> => {
+    const { data } = await api.get(`/api/emails/${id}/thread-summary`);
+    return data;
+  },
 };
 
 // ─── Actions Endpoints ────────────────────────────────────────────────────────

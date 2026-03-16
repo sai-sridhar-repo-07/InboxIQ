@@ -488,6 +488,92 @@ Return ONLY a JSON object with these fields:
         raise HTTPException(status_code=500, detail="Failed to detect meeting info.")
 
 
+@router.get("/{email_id}/thread-summary", response_model=dict)
+async def get_thread_summary(
+    email_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Generate an AI summary of the entire email thread."""
+    try:
+        import json
+        supabase = get_supabase()
+        user_id = _current_user_id(current_user)
+
+        # Get the email and its thread ID
+        email_row = supabase.table("emails").select(
+            "id, subject, sender, gmail_thread_id"
+        ).eq("id", email_id).eq("user_id", user_id).single().execute()
+
+        if not email_row.data:
+            raise HTTPException(status_code=404, detail="Email not found.")
+
+        thread_id = email_row.data.get("gmail_thread_id") or email_id
+
+        # Fetch all emails in the thread
+        thread_rows = supabase.table("emails").select(
+            "id, subject, sender, body, received_at"
+        ).eq("user_id", user_id).eq("gmail_thread_id", thread_id).order(
+            "received_at", desc=False
+        ).limit(20).execute()
+
+        emails_in_thread = thread_rows.data or [email_row.data]
+
+        if len(emails_in_thread) <= 1:
+            return {
+                "thread_length": 1,
+                "summary": None,
+                "key_points": [],
+                "status": "single_email",
+            }
+
+        # Build thread text for AI
+        thread_text = ""
+        for idx, e in enumerate(emails_in_thread, 1):
+            received = e.get("received_at", "")[:10] if e.get("received_at") else ""
+            thread_text += f"\n--- Email {idx} ({received}) from {e.get('sender', 'Unknown')} ---\n"
+            thread_text += f"Subject: {e.get('subject', '')}\n"
+            thread_text += (e.get("body") or "")[:600]
+            thread_text += "\n"
+
+        from ai.classifier import client as ai_client
+
+        prompt = f"""You are summarizing an email thread for a busy professional.
+
+Thread ({len(emails_in_thread)} emails):
+{thread_text[:4000]}
+
+Return ONLY a JSON object with:
+- summary: string (2-3 sentence overview of the full conversation)
+- key_points: array of strings (3-5 key points or decisions from the thread)
+- next_action: string or null (what action is needed, if any)
+- sentiment: one of "positive", "neutral", "negative", "mixed"
+"""
+
+        response = await ai_client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        text = next((b.text for b in response.content if b.type == "text"), None)
+        raw = (text or "{}").strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+
+        result = json.loads(raw.strip())
+        result["thread_length"] = len(emails_in_thread)
+        result["status"] = "summarized"
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("thread_summary error: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to generate thread summary.")
+
+
 @router.get("/{email_id}")
 async def get_email(
     email_id: str,

@@ -15,6 +15,7 @@ import { InboxSkeleton } from '@/components/SkeletonLoader';
 import { ErrorCard } from '@/components/ErrorBoundary';
 import CategoryBadge from '@/components/CategoryBadge';
 import BatchActionBar from '@/components/BatchActionBar';
+import BulkSummaryModal from '@/components/BulkSummaryModal';
 import { useEmails } from '@/lib/hooks';
 import { emailsApi } from '@/lib/api';
 import type { EmailCategory, PriorityLevel, Email } from '@/lib/types';
@@ -55,6 +56,9 @@ export default function EmailListPage() {
 
   // Thread view state
   const [threadView, setThreadView]         = useState(false);
+
+  // Bulk summary state
+  const [summaries, setSummaries]           = useState<Array<{ id: string; summary: string }> | null>(null);
 
   useEffect(() => {
     if (!sessionLoading && !session) {
@@ -337,6 +341,7 @@ export default function EmailListPage() {
               selectedIds={selectedIds}
               onCancel={exitSelection}
               onComplete={() => { exitSelection(); mutate(); }}
+              onSummarize={(results) => setSummaries(results)}
             />
           )}
 
@@ -425,6 +430,14 @@ export default function EmailListPage() {
           )}
         </div>
       </Layout>
+
+      {/* Bulk summary modal */}
+      {summaries && (
+        <BulkSummaryModal
+          summaries={summaries}
+          onClose={() => setSummaries(null)}
+        />
+      )}
     </>
   );
 }

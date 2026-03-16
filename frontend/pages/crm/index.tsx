@@ -13,6 +13,9 @@ import {
   MessageSquare,
   ExternalLink,
   ChevronRight,
+  Kanban,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
@@ -369,12 +372,315 @@ function ContactDrawer({
   );
 }
 
+// ─── Pipeline Types & Constants ───────────────────────────────────────────────
+
+type PipelineStage = 'new_lead' | 'contacted' | 'proposal' | 'won' | 'lost';
+
+interface PipelineCard {
+  id: string;
+  name: string;
+  email: string;
+  company?: string;
+  value?: string;
+  notes?: string;
+  stage: PipelineStage;
+  created_at: string;
+}
+
+const PIPELINE_STAGES: { id: PipelineStage; label: string; color: string; bg: string }[] = [
+  { id: 'new_lead',  label: 'New Lead',       color: 'text-blue-700 dark:text-blue-300',   bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700' },
+  { id: 'contacted', label: 'Contacted',      color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700' },
+  { id: 'proposal',  label: 'Proposal Sent',  color: 'text-violet-700 dark:text-violet-300', bg: 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-700' },
+  { id: 'won',       label: 'Won',            color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700' },
+  { id: 'lost',      label: 'Lost',           color: 'text-gray-600 dark:text-gray-400',   bg: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' },
+];
+
+const PIPELINE_STORAGE_KEY = 'inboxiq_crm_pipeline';
+
+function loadPipeline(): PipelineCard[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    return JSON.parse(localStorage.getItem(PIPELINE_STORAGE_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function savePipeline(cards: PipelineCard[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(PIPELINE_STORAGE_KEY, JSON.stringify(cards));
+}
+
+// ─── Add Lead Modal ───────────────────────────────────────────────────────────
+
+function AddLeadModal({
+  onClose,
+  onAdd,
+}: {
+  onClose: () => void;
+  onAdd: (card: Omit<PipelineCard, 'id' | 'created_at'>) => void;
+}) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [company, setCompany] = useState('');
+  const [value, setValue] = useState('');
+  const [notes, setNotes] = useState('');
+  const [stage, setStage] = useState<PipelineStage>('new_lead');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !email.trim()) return;
+    onAdd({ name: name.trim(), email: email.trim(), company: company.trim() || undefined, value: value.trim() || undefined, notes: notes.trim() || undefined, stage });
+    onClose();
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <form onSubmit={handleSubmit} className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Add Lead</h2>
+            <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {[
+            { label: 'Name *', value: name, onChange: setName, placeholder: 'Jane Smith', required: true },
+            { label: 'Email *', value: email, onChange: setEmail, placeholder: 'jane@company.com', required: true },
+            { label: 'Company', value: company, onChange: setCompany, placeholder: 'Acme Corp' },
+            { label: 'Deal Value', value: value, onChange: setValue, placeholder: '$5,000' },
+          ].map(({ label, value: v, onChange, placeholder, required }) => (
+            <div key={label}>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+              <input
+                type="text"
+                value={v}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                required={required}
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          ))}
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Stage</label>
+            <select
+              value={stage}
+              onChange={(e) => setStage(e.target.value as PipelineStage)}
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {PIPELINE_STAGES.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any notes about this lead..."
+              rows={2}
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" className="flex-1 rounded-xl bg-primary-600 hover:bg-primary-700 py-2 text-sm font-medium text-white transition-colors">
+              Add Lead
+            </button>
+          </div>
+        </form>
+      </div>
+    </>
+  );
+}
+
+// ─── Pipeline View ────────────────────────────────────────────────────────────
+
+function PipelineView() {
+  const [cards, setCards] = useState<PipelineCard[]>([]);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [dragCard, setDragCard] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<PipelineStage | null>(null);
+
+  useEffect(() => {
+    setCards(loadPipeline());
+  }, []);
+
+  const addCard = (data: Omit<PipelineCard, 'id' | 'created_at'>) => {
+    const newCard: PipelineCard = {
+      ...data,
+      id: `lead_${Date.now()}`,
+      created_at: new Date().toISOString(),
+    };
+    const updated = [...cards, newCard];
+    setCards(updated);
+    savePipeline(updated);
+  };
+
+  const removeCard = (id: string) => {
+    const updated = cards.filter((c) => c.id !== id);
+    setCards(updated);
+    savePipeline(updated);
+  };
+
+  const moveCard = (id: string, toStage: PipelineStage) => {
+    const updated = cards.map((c) => c.id === id ? { ...c, stage: toStage } : c);
+    setCards(updated);
+    savePipeline(updated);
+  };
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDragCard(id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, stage: PipelineStage) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOver(stage);
+  };
+
+  const handleDrop = (e: React.DragEvent, stage: PipelineStage) => {
+    e.preventDefault();
+    if (dragCard) moveCard(dragCard, stage);
+    setDragCard(null);
+    setDragOver(null);
+  };
+
+  const totalValue = cards
+    .filter((c) => c.stage === 'won' && c.value)
+    .reduce((sum, c) => {
+      const num = parseFloat((c.value || '').replace(/[^0-9.]/g, ''));
+      return sum + (isNaN(num) ? 0 : num);
+    }, 0);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {cards.length} lead{cards.length !== 1 ? 's' : ''} · Won value: ${totalValue.toLocaleString()}
+          </p>
+        </div>
+        <button
+          onClick={() => setAddModalOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-primary-600 hover:bg-primary-700 px-3 py-2 text-sm font-medium text-white transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Add Lead
+        </button>
+      </div>
+
+      {/* Kanban */}
+      <div className="flex gap-3 overflow-x-auto pb-2">
+        {PIPELINE_STAGES.map((stage) => {
+          const stageCards = cards.filter((c) => c.stage === stage.id);
+          const isDropTarget = dragOver === stage.id;
+
+          return (
+            <div
+              key={stage.id}
+              onDragOver={(e) => handleDragOver(e, stage.id)}
+              onDrop={(e) => handleDrop(e, stage.id)}
+              onDragLeave={() => setDragOver(null)}
+              className={clsx(
+                'flex-shrink-0 w-56 rounded-xl border p-3 space-y-2 transition-colors min-h-[200px]',
+                stage.bg,
+                isDropTarget && 'ring-2 ring-primary-400 ring-offset-1'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className={clsx('text-xs font-semibold uppercase tracking-wider', stage.color)}>
+                  {stage.label}
+                </h3>
+                <span className={clsx('text-xs font-medium rounded-full px-1.5 py-0.5', stage.color, 'bg-white/60 dark:bg-black/20')}>
+                  {stageCards.length}
+                </span>
+              </div>
+
+              {stageCards.map((card) => {
+                const initial = (card.name || card.email).charAt(0).toUpperCase();
+                const gradient = avatarGradient(card.name || card.email);
+                return (
+                  <div
+                    key={card.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, card.id)}
+                    className="group rounded-lg border border-white/80 dark:border-gray-600/50 bg-white dark:bg-gray-800 p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={clsx('flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-white font-semibold text-xs', gradient)}>
+                          {initial}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{card.name}</p>
+                          {card.company && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{card.company}</p>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeCard(card.id)}
+                        className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-0.5 rounded text-gray-400 hover:text-red-500 transition-all"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                    {card.value && (
+                      <p className="mt-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">{card.value}</p>
+                    )}
+                    {card.notes && (
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{card.notes}</p>
+                    )}
+
+                    {/* Move to stage select */}
+                    <select
+                      value={card.stage}
+                      onChange={(e) => moveCard(card.id, e.target.value as PipelineStage)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-2 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 text-xs text-gray-600 dark:text-gray-300 focus:outline-none"
+                    >
+                      {PIPELINE_STAGES.map((s) => (
+                        <option key={s.id} value={s.id}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+
+              {stageCards.length === 0 && (
+                <div className="flex items-center justify-center h-16 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Drop here</p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {addModalOpen && (
+        <AddLeadModal onClose={() => setAddModalOpen(false)} onAdd={addCard} />
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CRMPage() {
   const router = useRouter();
   const { session, isLoading: sessionLoading } = useSessionContext();
 
+  const [activeTab, setActiveTab] = useState<'contacts' | 'pipeline'>('contacts');
   const [contacts, setContacts] = useState<ContactProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -445,17 +751,40 @@ export default function CRMPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Contacts</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">CRM</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                Auto-built from your email history
+                Contacts &amp; lead pipeline
               </p>
             </div>
-            {!loading && (
-              <span className="text-sm text-gray-400 dark:text-gray-500">
-                {contacts.length} contact{contacts.length !== 1 ? 's' : ''}
-              </span>
-            )}
           </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 rounded-xl bg-gray-100 dark:bg-gray-800 p-1 w-fit">
+            {[
+              { id: 'contacts' as const, label: 'Contacts', icon: Users },
+              { id: 'pipeline' as const, label: 'Pipeline', icon: Kanban },
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={clsx(
+                  'inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                  activeTab === id
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Pipeline Tab */}
+          {activeTab === 'pipeline' && <PipelineView />}
+
+          {/* Contacts Tab */}
+          {activeTab === 'contacts' && <>
 
           {/* Search */}
           <div className="relative">
@@ -519,6 +848,7 @@ export default function CRMPage() {
               ))}
             </div>
           )}
+          </>}
         </div>
       </Layout>
 

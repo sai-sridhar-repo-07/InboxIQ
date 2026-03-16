@@ -16,6 +16,8 @@ Analyze the following email and return a JSON object with exactly these fields:
 - action_items: array of objects with fields "task" (string) and "deadline" (string or null)
 - confidence_score: float from 0.0 to 1.0
 - language: ISO 639-1 language code of the email (e.g. 'en', 'es', 'fr', 'de', 'pt', 'hi', 'zh', 'ja')
+- is_phishing: boolean — true if the email shows signs of phishing or social engineering
+- phishing_indicators: array of strings listing specific suspicious elements found (empty array if none)
 
 Email Subject: {subject}
 From: {sender}
@@ -76,6 +78,8 @@ async def classify_email(subject: str, sender: str, body: str, attachments: list
         result["action_items"] = result.get("action_items", [])
         result["summary"] = result.get("summary", "")
         result["language"] = result.get("language", "en")
+        result["is_phishing"] = bool(result.get("is_phishing", False))
+        result["phishing_indicators"] = result.get("phishing_indicators", [])
 
         return result
 
