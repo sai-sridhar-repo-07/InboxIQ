@@ -17,7 +17,10 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 
 class CheckoutRequest(BaseModel):
-    price_id: str
+    # Accept either a direct price_id or a plan_id + interval combo
+    price_id: str | None = None
+    plan_id: str | None = None
+    interval: str = "monthly"  # "monthly" | "yearly"
 
 
 # ---------------------------------------------------------------------------
@@ -38,9 +41,26 @@ async def create_checkout(
     """
     Create a Stripe Checkout Session and return the hosted payment URL.
     """
+    from config import settings
+
+    # Resolve price_id from plan_id + interval if needed
+    price_id = body.price_id
+    if not price_id and body.plan_id:
+        plan_to_price = {
+            "pro":    {"monthly": settings.STRIPE_PRICE_PRO_MONTHLY,    "yearly": settings.STRIPE_PRICE_PRO_YEARLY},
+            "agency": {"monthly": settings.STRIPE_PRICE_AGENCY_MONTHLY, "yearly": settings.STRIPE_PRICE_AGENCY_YEARLY},
+        }
+        price_id = plan_to_price.get(body.plan_id, {}).get(body.interval, "")
+
+    if not price_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No valid price_id or plan_id provided.",
+        )
+
     url = await create_checkout_session(
         user_id=current_user["id"],
-        price_id=body.price_id,
+        price_id=price_id,
         email=current_user.get("email", ""),
     )
     if not url:

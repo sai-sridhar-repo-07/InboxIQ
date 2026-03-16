@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     # Stripe
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_PRO_MONTHLY: str = "price_pro_monthly"
+    STRIPE_PRICE_PRO_YEARLY: str = "price_pro_annual"
+    STRIPE_PRICE_AGENCY_MONTHLY: str = "price_agency_monthly"
+    STRIPE_PRICE_AGENCY_YEARLY: str = "price_agency_annual"
 
     # JWT / Auth
     SECRET_KEY: str

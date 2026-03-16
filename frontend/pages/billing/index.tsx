@@ -131,10 +131,11 @@ export default function BillingPage() {
   };
 
   const currentPlan = billing?.current_plan ?? 'free';
-  const statusInfo = statusConfig[billing?.subscription_status ?? 'none'];
-  const emailsUsed = billing?.emails_used_this_month ?? 0;
-  const usagePercent = billing?.email_limit
-    ? Math.min((emailsUsed / billing.email_limit) * 100, 100)
+  const statusInfo = statusConfig[billing?.subscription_status ?? 'none'] ?? statusConfig['none'];
+  const emailsUsed = Number(billing?.emails_used_this_month ?? 0);
+  const emailLimit = billing?.email_limit ?? null;
+  const usagePercent = emailLimit
+    ? Math.min((emailsUsed / emailLimit) * 100, 100)
     : 0;
 
   return (
@@ -162,7 +163,11 @@ export default function BillingPage() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {billing.cancel_at_period_end ? 'Cancels on' : 'Renews on'}{' '}
                       <strong className="text-gray-700 dark:text-gray-300">
-                        {new Date(billing.current_period_end).toLocaleDateString('en-US', {
+                        {new Date(
+                          typeof billing.current_period_end === 'number'
+                            ? billing.current_period_end * 1000
+                            : billing.current_period_end
+                        ).toLocaleDateString('en-US', {
                           month: 'long',
                           day: 'numeric',
                           year: 'numeric',
@@ -196,14 +201,14 @@ export default function BillingPage() {
                   </div>
                   <span className="text-sm text-gray-600 dark:text-gray-400 tabular-nums">
                     <strong className="text-gray-900 dark:text-gray-100">{emailsUsed.toLocaleString()}</strong>
-                    {billing.email_limit ? (
-                      <> / {billing.email_limit.toLocaleString()}</>
+                    {emailLimit ? (
+                      <> / {emailLimit.toLocaleString()}</>
                     ) : (
                       ' / Unlimited'
                     )}
                   </span>
                 </div>
-                {billing.email_limit ? (
+                {emailLimit ? (
                   <>
                     <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
@@ -220,7 +225,7 @@ export default function BillingPage() {
                     </div>
                     <div className="mt-1.5 flex justify-between text-xs text-gray-400 dark:text-gray-500">
                       <span>{Math.round(usagePercent)}% used</span>
-                      <span>{(billing.email_limit - emailsUsed).toLocaleString()} remaining</span>
+                      <span>{(emailLimit - emailsUsed).toLocaleString()} remaining</span>
                     </div>
                     {usagePercent >= 80 && (
                       <div className="mt-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 flex items-start gap-2">
