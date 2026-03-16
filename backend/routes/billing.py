@@ -47,8 +47,8 @@ async def create_checkout(
     price_id = body.price_id
     if not price_id and body.plan_id:
         plan_to_price = {
-            "pro":    {"monthly": settings.STRIPE_PRICE_PRO_MONTHLY,    "yearly": settings.STRIPE_PRICE_PRO_YEARLY},
-            "agency": {"monthly": settings.STRIPE_PRICE_AGENCY_MONTHLY, "yearly": settings.STRIPE_PRICE_AGENCY_YEARLY},
+            "pro":    {"monthly": settings.pro_monthly_price_id,    "yearly": settings.pro_yearly_price_id},
+            "agency": {"monthly": settings.agency_monthly_price_id, "yearly": settings.agency_yearly_price_id},
         }
         price_id = plan_to_price.get(body.plan_id, {}).get(body.interval, "")
 
