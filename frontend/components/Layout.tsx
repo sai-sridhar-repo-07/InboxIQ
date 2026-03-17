@@ -186,8 +186,10 @@ export default function Layout({ children, title }: LayoutProps) {
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 dark:border-gray-700 lg:bg-white dark:lg:bg-gray-900 lg:fixed lg:inset-y-0">
         {/* Logo */}
         <div className="flex items-center px-4 py-5 animate-fade-in">
-          <img src={LOGOS[logoIdx]} alt="Mailair" className="h-8 w-auto dark:hidden transition-opacity duration-500" />
-          <img src={LOGOS_DARK[logoIdx]} alt="Mailair" className="h-8 w-auto hidden dark:block transition-opacity duration-500" />
+          <Link href="/">
+            <img src={LOGOS[logoIdx]} alt="Mailair" className="h-8 w-auto dark:hidden transition-opacity duration-500 cursor-pointer" />
+            <img src={LOGOS_DARK[logoIdx]} alt="Mailair" className="h-8 w-auto hidden dark:block transition-opacity duration-500 cursor-pointer" />
+          </Link>
         </div>
 
         <div className="flex flex-1 flex-col overflow-y-auto">
