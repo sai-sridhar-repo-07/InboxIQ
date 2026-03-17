@@ -115,7 +115,7 @@ export default function ActionsPage() {
   return (
     <>
       <Head>
-        <title>Task Manager — InboxIQ</title>
+        <title>Task Manager — Mailair</title>
       </Head>
       <Layout title="Task Manager">
         <div className="space-y-4">

@@ -152,7 +152,7 @@ async def sync_email_to_salesforce(
 
     contact_id = await _upsert_contact(access_token, instance_url, sender_email, first, last)
     if contact_id:
-        await _create_task(access_token, instance_url, contact_id, subject, summary or "Email received via InboxIQ.")
+        await _create_task(access_token, instance_url, contact_id, subject, summary or "Email received via Mailair.")
         logger.info("Salesforce: synced email from %s (contact=%s)", sender_email, contact_id)
     else:
         logger.warning("Salesforce: could not upsert Contact for %s", sender_email)

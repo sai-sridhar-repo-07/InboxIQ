@@ -111,7 +111,7 @@ async def export_user_data(current_user: Annotated[dict, Depends(get_current_use
             "reply_drafts": replies.data or [],
         }
 
-        filename = f"inboxiq-data-{datetime.now(timezone.utc).strftime('%Y%m%d')}.json"
+        filename = f"mailair-data-{datetime.now(timezone.utc).strftime('%Y%m%d')}.json"
         return Response(
             content=json.dumps(export, indent=2, default=str),
             media_type="application/json",

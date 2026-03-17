@@ -1,38 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212 56" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56" fill="none" role="img" aria-label="Mailair">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
       <stop stop-color="#3b82f6"/>
       <stop offset="1" stop-color="#1d4ed8"/>
     </linearGradient>
   </defs>
 
-  <!-- ── Icon ── -->
-  <rect width="56" height="56" rx="13" fill="url(#g)"/>
+  <!-- Icon -->
+  <rect width="56" height="56" rx="13" fill="url(#bg)"/>
+  <path d="M10,38 L44,13 L37,30 Z" fill="white"/>
+  <path d="M10,38 L37,30 L30,46 Z" fill="rgba(255,255,255,0.65)"/>
+  <line x1="10" y1="38" x2="37" y2="30" stroke="rgba(29,78,216,0.18)" stroke-width="0.8"/>
+  <circle cx="9" cy="41" r="1.8" fill="rgba(255,255,255,0.45)"/>
+  <circle cx="6" cy="44" r="1.2" fill="rgba(255,255,255,0.28)"/>
 
-  <!-- Vertical thread connector -->
-  <line x1="15" y1="17" x2="15" y2="39" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round"/>
-
-  <!-- Thread 1 -->
-  <circle cx="15" cy="17" r="2.8" fill="white"/>
-  <path d="M18.5 17 L43 17" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-
-  <!-- Thread 2 -->
-  <circle cx="15" cy="28" r="2.8" fill="rgba(255,255,255,0.8)"/>
-  <path d="M18.5 28 L43 28" stroke="rgba(255,255,255,0.78)" stroke-width="2.5" stroke-linecap="round"/>
-
-  <!-- Thread 3 -->
-  <circle cx="15" cy="39" r="2.8" fill="rgba(255,255,255,0.55)"/>
-  <path d="M18.5 39 L37 39" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round"/>
-
-  <!-- ── Wordmark ── -->
+  <!-- Wordmark: Mail (dark) + air (blue) -->
   <text
     x="68"
     y="37"
-    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif"
     font-size="27"
     font-weight="700"
-    letter-spacing="-0.8"
+    letter-spacing="-0.6"
   >
-    <tspan fill="#0F172A">Thread</tspan><tspan fill="#2563eb">ly</tspan>
+    <tspan fill="#0f172a">Mail</tspan><tspan fill="#2563eb">air</tspan>
   </text>
 </svg>

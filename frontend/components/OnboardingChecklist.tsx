@@ -93,7 +93,7 @@ export default function OnboardingChecklist({ gmailConnected, hasEmails, hasProc
           </div>
           <div>
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-              {allDone ? '🎉 You\'re all set!' : 'Get started with InboxIQ'}
+              {allDone ? '🎉 You\'re all set!' : 'Get started with Mailair'}
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">{completedCount} of {STEPS.length} steps complete</p>
           </div>

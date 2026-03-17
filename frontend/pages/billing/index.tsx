@@ -149,7 +149,7 @@ export default function BillingPage() {
   return (
     <>
       <Head>
-        <title>Billing — InboxIQ</title>
+        <title>Billing — Mailair</title>
       </Head>
       <Layout title="Billing & Plans">
         <div className="max-w-4xl mx-auto space-y-6">

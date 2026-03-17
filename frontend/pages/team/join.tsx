@@ -48,7 +48,7 @@ export default function JoinOrgPage() {
 
   return (
     <>
-      <Head><title>Join Organization — InboxIQ</title></Head>
+      <Head><title>Join Organization — Mailair</title></Head>
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
         <div className="w-full max-w-md">
           <div className="card p-8 text-center space-y-5">
@@ -73,7 +73,7 @@ export default function JoinOrgPage() {
                 </div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Join Organization</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  You&apos;ve been invited to join an InboxIQ team workspace.
+                  You&apos;ve been invited to join an Mailair team workspace.
                 </p>
 
                 {token ? (

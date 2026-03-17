@@ -152,7 +152,7 @@ async def send_deadline_reminders() -> None:
 
                 overdue = [a for a in items if a["overdue"]]
                 upcoming = [a for a in items if not a["overdue"]]
-                lines = ["*⏰ InboxIQ Task Reminder*\n"]
+                lines = ["*⏰ Mailair Task Reminder*\n"]
                 if overdue:
                     lines.append(f"*🔴 Overdue ({len(overdue)}):*")
                     for a in overdue[:5]:

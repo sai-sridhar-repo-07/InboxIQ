@@ -5,7 +5,7 @@ export interface EmailTemplate {
   created_at: string;
 }
 
-const STORAGE_KEY = 'inboxiq_email_templates';
+const STORAGE_KEY = 'mailair_email_templates';
 
 const DEFAULT_TEMPLATES: EmailTemplate[] = [
   {

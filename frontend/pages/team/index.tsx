@@ -220,7 +220,7 @@ export default function TeamPage() {
 
   return (
     <>
-      <Head><title>Team — InboxIQ</title></Head>
+      <Head><title>Team — Mailair</title></Head>
       <Layout title="Team">
         <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
 

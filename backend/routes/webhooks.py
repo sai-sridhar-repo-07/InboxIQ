@@ -109,13 +109,13 @@ async def test_webhook(webhook_id: str, current_user: Annotated[dict, Depends(ge
     payload = {
         "event": "test",
         "webhook_id": webhook_id,
-        "message": "This is a test delivery from InboxIQ.",
+        "message": "This is a test delivery from Mailair.",
     }
 
     try:
         headers = {"Content-Type": "application/json"}
         if wh.get("secret"):
-            headers["X-InboxIQ-Secret"] = wh["secret"]
+            headers["X-Mailair-Secret"] = wh["secret"]
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(wh["url"], json=payload, headers=headers)

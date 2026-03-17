@@ -395,7 +395,7 @@ const PIPELINE_STAGES: { id: PipelineStage; label: string; color: string; bg: st
   { id: 'lost',      label: 'Lost',           color: 'text-gray-600 dark:text-gray-400',   bg: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' },
 ];
 
-const PIPELINE_STORAGE_KEY = 'inboxiq_crm_pipeline';
+const PIPELINE_STORAGE_KEY = 'mailair_crm_pipeline';
 
 function loadPipeline(): PipelineCard[] {
   if (typeof window === 'undefined') return [];
@@ -743,7 +743,7 @@ export default function CRMPage() {
   return (
     <>
       <Head>
-        <title>CRM — InboxIQ</title>
+        <title>CRM — Mailair</title>
       </Head>
       <Layout title="CRM">
         <div className="max-w-5xl mx-auto space-y-5 animate-fade-in">

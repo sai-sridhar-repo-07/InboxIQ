@@ -53,7 +53,7 @@ def format_slack_message(email_data: dict) -> dict:
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f"Email ID: `{email_id}` | InboxIQ Alert System",
+                        "text": f"Email ID: `{email_id}` | Mailair Alert System",
                     }
                 ],
             },
@@ -124,7 +124,7 @@ async def test_webhook(webhook_url: str) -> bool:
         return False
 
     test_payload = {
-        "text": ":white_check_mark: InboxIQ Slack integration connected successfully!"
+        "text": ":white_check_mark: Mailair Slack integration connected successfully!"
     }
 
     try:

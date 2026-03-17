@@ -51,7 +51,7 @@ async def send_daily_digest() -> None:
                 unprocessed = [e for e in emails if not e.get("category")]
 
                 lines = [
-                    f"*📬 InboxIQ Daily Digest — {now.strftime('%B %d, %Y')}*",
+                    f"*📬 Mailair Daily Digest — {now.strftime('%B %d, %Y')}*",
                     f"You received *{total}* email{'s' if total != 1 else ''} in the last 24 hours.\n",
                 ]
 
@@ -70,7 +70,7 @@ async def send_daily_digest() -> None:
                 if unprocessed:
                     lines.append(f"\n*⚙️ {len(unprocessed)} email{'s' if len(unprocessed) != 1 else ''} not yet processed by AI*")
 
-                lines.append("\n_Manage your inbox at InboxIQ_")
+                lines.append("\n_Manage your inbox at Mailair_")
 
                 await send_slack_notification(webhook_url, "\n".join(lines))
                 logger.info("Daily digest sent to user %s (%d emails)", user_id, total)

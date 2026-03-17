@@ -79,7 +79,7 @@ export default function AdminPage() {
 
   return (
     <>
-      <Head><title>Admin Dashboard — InboxIQ</title></Head>
+      <Head><title>Admin Dashboard — Mailair</title></Head>
       <Layout title="Admin Dashboard">
         <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
 

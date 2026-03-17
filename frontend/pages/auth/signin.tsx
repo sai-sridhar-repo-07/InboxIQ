@@ -22,8 +22,8 @@ export default function SigninPage() {
   return (
     <>
       <Head>
-        <title>Sign In — Threadly</title>
-        <meta name="description" content="Sign in to your Threadly account." />
+        <title>Sign In — Mailair</title>
+        <meta name="description" content="Sign in to your Mailair account." />
       </Head>
       <div className="flex min-h-screen bg-gray-50">
         <div className="flex flex-1 flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -39,7 +39,7 @@ export default function SigninPage() {
 
             {/* Logo */}
             <div className="flex items-center mb-8">
-              <img src="/logo.svg" alt="Threadly" className="h-9 w-auto" />
+              <img src="/logo.svg" alt="Mailair" className="h-9 w-auto" />
             </div>
 
             {/* Header */}
@@ -97,7 +97,7 @@ export default function SigninPage() {
                     sign_in: {
                       email_label: 'Email address',
                       password_label: 'Password',
-                      button_label: 'Sign in to Threadly',
+                      button_label: 'Sign in to Mailair',
                       social_provider_text: 'Continue with {{provider}}',
                       link_text: 'Forgot your password?',
                     },

@@ -1,5 +1,5 @@
 """
-InboxIQ FastAPI application entry point.
+Mailair FastAPI application entry point.
 """
 
 import logging
@@ -39,10 +39,10 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown hooks."""
-    logger.info("InboxIQ backend starting up (env=%s).", settings.ENVIRONMENT)
+    logger.info("Mailair backend starting up (env=%s).", settings.ENVIRONMENT)
     start_email_listener()
     yield
-    logger.info("InboxIQ backend shutting down.")
+    logger.info("Mailair backend shutting down.")
     stop_email_listener()
 
 
@@ -50,7 +50,7 @@ async def lifespan(app: FastAPI):
 # FastAPI app
 # ---------------------------------------------------------------------------
 app = FastAPI(
-    title="InboxIQ API",
+    title="Mailair API",
     description="AI-powered email management SaaS backend.",
     version="1.0.0",
     docs_url="/docs" if settings.ENVIRONMENT != "production" else None,
@@ -166,4 +166,4 @@ async def health_check():
 
 @app.get("/", include_in_schema=False)
 async def root():
-    return {"message": "InboxIQ API is running.", "docs": "/docs"}
+    return {"message": "Mailair API is running.", "docs": "/docs"}

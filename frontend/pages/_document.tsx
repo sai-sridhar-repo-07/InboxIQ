@@ -11,7 +11,7 @@ export default function Document() {
           rel="stylesheet"
         />
         <link rel="icon" href="/favicon.ico" />
-        <meta name="description" content="Threadly - AI-powered email thread management for service businesses" />
+        <meta name="description" content="Mailair - AI-powered email thread management for service businesses" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#7C3AED" />
       </Head>

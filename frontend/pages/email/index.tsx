@@ -192,7 +192,7 @@ export default function EmailListPage() {
   return (
     <>
       <Head>
-        <title>Inbox — InboxIQ</title>
+        <title>Inbox — Mailair</title>
       </Head>
       <Layout title="Inbox">
         <div className="max-w-4xl mx-auto space-y-4">

@@ -215,7 +215,7 @@ export const emailsApi = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `threadly-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `mailair-export-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -601,7 +601,7 @@ export const gdprApi = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `inboxiq-data-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `mailair-data-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   },

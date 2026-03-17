@@ -27,7 +27,7 @@ export interface AutoRule {
   created_at: string;
 }
 
-const STORAGE_KEY = 'inboxiq_auto_rules';
+const STORAGE_KEY = 'mailair_auto_rules';
 
 export function loadRules(): AutoRule[] {
   if (typeof window === 'undefined') return [];

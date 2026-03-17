@@ -104,7 +104,7 @@ async def sync_email_to_hubspot(api_key: str, sender_email: str, sender_name: st
 
     contact_id = await upsert_contact(api_key, sender_email, first, last)
     if contact_id:
-        await create_note(api_key, contact_id, subject, summary or "Email received via InboxIQ.")
+        await create_note(api_key, contact_id, subject, summary or "Email received via Mailair.")
         logger.info("HubSpot: synced email from %s (contact=%s)", sender_email, contact_id)
     else:
         logger.warning("HubSpot: could not upsert contact for %s", sender_email)

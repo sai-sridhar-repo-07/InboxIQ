@@ -1,11 +1,11 @@
 {
-  "name": "Threadly",
-  "short_name": "Threadly",
-  "description": "AI-powered email thread management",
+  "name": "Mailair",
+  "short_name": "Mailair",
+  "description": "AI-powered email management for service businesses",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#f9fafb",
-  "theme_color": "#7C3AED",
+  "theme_color": "#2563eb",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },

@@ -84,6 +84,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "https://mailair.company",
+        "https://www.mailair.company",
     ]
 
     @field_validator("CORS_ORIGINS", mode="before")

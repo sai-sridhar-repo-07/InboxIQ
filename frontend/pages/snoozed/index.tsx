@@ -37,7 +37,7 @@ export default function SnoozedPage() {
   return (
     <>
       <Head>
-        <title>Snoozed — InboxIQ</title>
+        <title>Snoozed — Mailair</title>
       </Head>
       <Layout title="Snoozed">
         <div className="max-w-4xl mx-auto space-y-4">

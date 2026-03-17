@@ -145,7 +145,7 @@ export default function DashboardPage() {
   return (
     <>
       <Head>
-        <title>Dashboard — InboxIQ</title>
+        <title>Dashboard — Mailair</title>
       </Head>
       <Layout title="Dashboard">
         <div className="max-w-6xl mx-auto space-y-6">

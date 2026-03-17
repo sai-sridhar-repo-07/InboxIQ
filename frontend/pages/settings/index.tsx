@@ -586,7 +586,7 @@ function IntegrationsTab({
   };
 
   const handleDisconnectGmail = async () => {
-    if (!confirm('Disconnect Gmail? You will stop receiving new emails in InboxIQ.')) return;
+    if (!confirm('Disconnect Gmail? You will stop receiving new emails in Mailair.')) return;
     setIsDisconnectingGmail(true);
     try {
       await integrationsApi.disconnectGmail();
@@ -851,7 +851,7 @@ function NotificationsTab({
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <div className="card p-6">
         <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Notification Preferences</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Control how and when InboxIQ notifies you.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Control how and when Mailair notifies you.</p>
 
         <ToggleRow
           label="Email Notifications"
@@ -1182,7 +1182,7 @@ function WebhooksTab() {
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Receive HTTP POST notifications when events occur in InboxIQ.
+          Receive HTTP POST notifications when events occur in Mailair.
         </p>
         <button onClick={() => setAdding(true)} className="inline-flex items-center gap-1.5 rounded-xl bg-primary-600 hover:bg-primary-700 px-3 py-2 text-sm font-medium text-white transition-colors">
           <Plus className="h-4 w-4" />Add Webhook
@@ -1197,7 +1197,7 @@ function WebhooksTab() {
           <select value={form.event} onChange={(e) => setForm({ ...form, event: e.target.value })} className="input-field">
             {Object.entries(EVENT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
-          <input type="text" value={form.secret} onChange={(e) => setForm({ ...form, secret: e.target.value })} placeholder="Secret (optional, sent as X-InboxIQ-Secret header)" className="input-field" />
+          <input type="text" value={form.secret} onChange={(e) => setForm({ ...form, secret: e.target.value })} placeholder="Secret (optional, sent as X-Mailair-Secret header)" className="input-field" />
           <div className="flex gap-2 justify-end">
             <button type="button" onClick={() => setAdding(false)} className="btn-secondary text-sm">Cancel</button>
             <button type="submit" disabled={saving} className="btn-primary text-sm gap-2">
@@ -1368,7 +1368,7 @@ export default function SettingsPage() {
   return (
     <>
       <Head>
-        <title>Settings — InboxIQ</title>
+        <title>Settings — Mailair</title>
       </Head>
       <Layout title="Settings">
         <div className="max-w-4xl mx-auto">

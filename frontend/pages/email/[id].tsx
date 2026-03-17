@@ -241,7 +241,7 @@ export default function EmailDetailPage() {
 
   const handleDelete = async () => {
     if (!emailId) return;
-    if (!confirm('Remove this email from InboxIQ? It will not be synced again.')) return;
+    if (!confirm('Remove this email from Mailair? It will not be synced again.')) return;
     setIsDeleting(true);
     try {
       await emailsApi.deleteEmail(emailId);
@@ -502,7 +502,7 @@ export default function EmailDetailPage() {
         </div>
       )}
 
-      <Head><title>{email.subject} — InboxIQ</title></Head>
+      <Head><title>{email.subject} — Mailair</title></Head>
       <Layout title="Email Detail">
         <div className="max-w-4xl mx-auto space-y-4 animate-fade-in">
 

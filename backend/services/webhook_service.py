@@ -1,6 +1,6 @@
 """
 Webhook dispatcher — fires outbound HTTP POST requests to user-configured
-webhook URLs when InboxIQ events occur.
+webhook URLs when Mailair events occur.
 """
 import asyncio
 import logging
@@ -37,7 +37,7 @@ async def fire_event(user_id: str, event: str, payload: dict[str, Any]) -> None:
     async def _send(wh: dict) -> None:
         headers = {"Content-Type": "application/json"}
         if wh.get("secret"):
-            headers["X-InboxIQ-Secret"] = wh["secret"]
+            headers["X-Mailair-Secret"] = wh["secret"]
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(wh["url"], json=body, headers=headers)

@@ -212,7 +212,7 @@ export default function AnalyticsPage() {
 
   return (
     <>
-      <Head><title>Analytics — InboxIQ</title></Head>
+      <Head><title>Analytics — Mailair</title></Head>
       <Layout title="Analytics">
         <div className="max-w-5xl mx-auto space-y-5 animate-fade-in">
 

@@ -30,14 +30,14 @@ export default function SignupPage() {
   return (
     <>
       <Head>
-        <title>Sign Up — Threadly</title>
-        <meta name="description" content="Create your Threadly account and start managing email with AI." />
+        <title>Sign Up — Mailair</title>
+        <meta name="description" content="Create your Mailair account and start managing email with AI." />
       </Head>
       <div className="flex min-h-screen">
         {/* Left Panel */}
         <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-600 to-primary-800 flex-col justify-center px-16">
           <div className="flex items-center mb-12">
-            <img src="/logo-dark.svg" alt="Threadly" className="h-9 w-auto" />
+            <img src="/logo-dark.svg" alt="Mailair" className="h-9 w-auto" />
           </div>
           <h2 className="text-4xl font-extrabold text-white leading-tight mb-6">
             Your inbox, finally under control
@@ -68,7 +68,7 @@ export default function SignupPage() {
           <div className="mx-auto w-full max-w-md">
             {/* Mobile logo */}
             <div className="lg:hidden flex items-center mb-8">
-              <img src="/logo.svg" alt="Threadly" className="h-8 w-auto" />
+              <img src="/logo.svg" alt="Mailair" className="h-8 w-auto" />
             </div>
 
             <div className="mb-8">
