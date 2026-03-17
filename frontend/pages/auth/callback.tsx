@@ -8,18 +8,9 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // With implicit flow, Supabase parses the hash automatically.
-    // Listen for the auth state change which fires once tokens are processed.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        router.replace('/dashboard');
-      } else if (event === 'SIGNED_OUT') {
-        router.replace('/auth/signin');
-      }
-    });
-
-    // Also check for error params in the URL
     const url = new URL(window.location.href);
+
+    // Check for OAuth error first
     const errorParam = url.searchParams.get('error');
     const errorDescription = url.searchParams.get('error_description');
     if (errorParam) {
@@ -27,12 +18,32 @@ export default function AuthCallback() {
       return;
     }
 
-    // Fallback: if already has a session (page refreshed), go to dashboard
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.replace('/dashboard');
-    });
+    const code = url.searchParams.get('code');
 
-    return () => subscription.unsubscribe();
+    if (code) {
+      // PKCE flow — exchange the one-time code for a session
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) {
+          setError(error.message);
+        } else {
+          router.replace('/dashboard');
+        }
+      });
+    } else {
+      // Implicit flow fallback — token is in the URL hash, Supabase handles it automatically
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          router.replace('/dashboard');
+        }
+      });
+
+      // Also handle already-authenticated case (e.g. page refresh)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) router.replace('/dashboard');
+      });
+
+      return () => subscription.unsubscribe();
+    }
   }, [router]);
 
   if (error) {
