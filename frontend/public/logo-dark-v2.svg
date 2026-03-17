@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 188 56" fill="none" role="img" aria-label="Mailair">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1e40af"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+  </defs>
+  <rect width="56" height="56" rx="13" fill="url(#bg)"/>
+  <circle cx="14" cy="28" r="3.2" fill="white"/>
+  <path d="M14,20 A8,8 0 0,1 14,36" stroke="white" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M14,16 A12,12 0 0,1 14,40" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <path d="M14,12 A16,16 0 0,1 14,44" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.3"/>
+  <text x="69" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif" font-size="28" font-weight="800" letter-spacing="-1">
+    <tspan fill="white">Mail</tspan><tspan fill="#60a5fa">air</tspan>
+  </text>
+</svg>

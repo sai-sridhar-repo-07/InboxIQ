@@ -63,6 +63,14 @@ export default function Layout({ children, title }: LayoutProps) {
   const router = useRouter();
   const user = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const LOGOS = ['/logo.svg', '/logo-v2.svg', '/logo-v3.svg'];
+  const LOGOS_DARK = ['/logo-dark.svg', '/logo-dark-v2.svg', '/logo-dark-v3.svg'];
+  const [logoIdx, setLogoIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setLogoIdx(i => (i + 1) % LOGOS.length), 2 * 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
   const [profileOpen, setProfileOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -178,8 +186,8 @@ export default function Layout({ children, title }: LayoutProps) {
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 dark:border-gray-700 lg:bg-white dark:lg:bg-gray-900 lg:fixed lg:inset-y-0">
         {/* Logo */}
         <div className="flex items-center px-4 py-5 animate-fade-in">
-          <img src="/logo.svg" alt="Mailair" className="h-8 w-auto dark:hidden" />
-          <img src="/logo-dark.svg" alt="Mailair" className="h-8 w-auto hidden dark:block" />
+          <img src={LOGOS[logoIdx]} alt="Mailair" className="h-8 w-auto dark:hidden transition-opacity duration-500" />
+          <img src={LOGOS_DARK[logoIdx]} alt="Mailair" className="h-8 w-auto hidden dark:block transition-opacity duration-500" />
         </div>
 
         <div className="flex flex-1 flex-col overflow-y-auto">
