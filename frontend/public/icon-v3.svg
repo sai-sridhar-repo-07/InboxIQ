@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" fill="none" role="img" aria-label="Mailair variant 3 — send mark">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1e40af"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="56" height="56" rx="13" fill="url(#bg)"/>
+
+  <!-- Send arrow — classic notched polygon (the universal "send" symbol) -->
+  <!-- Full white upper wing -->
+  <path d="M10,13 L47,28 L20,28 Z" fill="white"/>
+  <!-- Lower wing at 65% opacity for depth -->
+  <path d="M10,43 L47,28 L20,28 Z" fill="white" opacity="0.55"/>
+  <!-- Thin separation line between wings -->
+  <line x1="10" y1="28" x2="47" y2="28" stroke="#1e3a8a" stroke-width="0.8"/>
+</svg>
