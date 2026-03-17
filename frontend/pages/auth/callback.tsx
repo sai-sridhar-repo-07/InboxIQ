@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabase';
 import { Zap } from 'lucide-react';
@@ -6,6 +6,8 @@ import { Zap } from 'lucide-react';
 export default function AuthCallback() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  // useRef persists across re-renders so the guard survives effect re-runs.
+  const redirected = useRef(false);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -18,12 +20,9 @@ export default function AuthCallback() {
       return;
     }
 
-    // Guard against double-navigation: both onAuthStateChange and getSession
-    // can fire with a session, causing Next.js to abort the first navigation.
-    let redirected = false;
     const go = () => {
-      if (redirected) return;
-      redirected = true;
+      if (redirected.current) return;
+      redirected.current = true;
       router.replace('/dashboard');
     };
 
@@ -39,7 +38,8 @@ export default function AuthCallback() {
     });
 
     return () => subscription.unsubscribe();
-  }, [router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (error) {
     return (
