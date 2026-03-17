@@ -26,7 +26,9 @@ function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <img src="/logo.svg" alt="Mailair" className="h-8 w-auto" />
+            <Link href="/">
+              <img src="/logo.svg" alt="Mailair" className="h-11 w-auto cursor-pointer" />
+            </Link>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Features</a>
@@ -542,7 +544,7 @@ function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2">
             <div className="flex items-center mb-4">
-              <img src="/logo-dark.svg" alt="Mailair" className="h-8 w-auto" />
+              <Link href="/"><img src="/logo-dark.svg" alt="Mailair" className="h-11 w-auto cursor-pointer" /></Link>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
               AI-powered email management for service businesses. Triage, prioritize, and respond — faster than ever.
