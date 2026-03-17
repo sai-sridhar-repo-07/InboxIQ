@@ -65,9 +65,18 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Always include FRONTEND_URL in allowed origins so changing the domain
+# in one env var is enough — no need to also update CORS_ORIGINS.
+_allowed_origins = list(settings.CORS_ORIGINS)
+if settings.FRONTEND_URL and settings.FRONTEND_URL not in _allowed_origins:
+    _allowed_origins.append(settings.FRONTEND_URL.rstrip("/"))
+    www = settings.FRONTEND_URL.rstrip("/").replace("https://", "https://www.", 1)
+    if www not in _allowed_origins:
+        _allowed_origins.append(www)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
