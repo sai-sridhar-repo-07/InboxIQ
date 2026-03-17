@@ -86,17 +86,23 @@ async def _get_or_create_customer(user_id: str, email: str) -> str | None:
 
 async def create_checkout_session(
     user_id: str, price_id: str, email: str = ""
-) -> str | None:
+) -> str:
     """
     Create a Stripe Checkout Session for subscription upgrade.
-    Returns the session URL.
+    Returns the session URL or raises RuntimeError with a descriptive message.
     """
-    try:
-        customer_id = await _get_or_create_customer(user_id, email)
-        if not customer_id:
-            return None
+    if not settings.STRIPE_SECRET_KEY:
+        raise RuntimeError("Stripe is not configured — set STRIPE_SECRET_KEY in Render environment variables.")
 
-        frontend_url = settings.FRONTEND_URL.rstrip("/") if hasattr(settings, "FRONTEND_URL") and settings.FRONTEND_URL else "http://localhost:3000"
+    if not price_id:
+        raise RuntimeError("No price_id provided — set STRIPE_PRO_PRICE_ID / STRIPE_AGENCY_PRICE_ID in Render environment variables.")
+
+    customer_id = await _get_or_create_customer(user_id, email)
+    if not customer_id:
+        raise RuntimeError("Could not create or retrieve Stripe customer.")
+
+    frontend_url = (settings.FRONTEND_URL or "http://localhost:3000").rstrip("/")
+    try:
         session = stripe.checkout.Session.create(
             customer=customer_id,
             payment_method_types=["card"],
@@ -107,10 +113,13 @@ async def create_checkout_session(
             metadata={"user_id": user_id},
         )
         return session.url
-
+    except stripe.error.AuthenticationError:
+        raise RuntimeError("Stripe authentication failed — check STRIPE_SECRET_KEY in Render.")
+    except stripe.error.InvalidRequestError as exc:
+        raise RuntimeError(f"Stripe invalid request: {exc.user_message or str(exc)}")
     except Exception as exc:
         logger.error("create_checkout_session error (user_id=%s): %s", user_id, exc)
-        return None
+        raise RuntimeError(f"Stripe error: {exc}")
 
 
 async def create_billing_portal_session(customer_id: str) -> str | None:

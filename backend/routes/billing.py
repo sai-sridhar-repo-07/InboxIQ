@@ -64,16 +64,15 @@ async def create_checkout(
             detail="No valid price_id or plan_id provided.",
         )
 
-    url = await create_checkout_session(
-        user_id=current_user["id"],
-        price_id=price_id,
-        email=current_user.get("email", ""),
-    )
-    if not url:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to create checkout session.",
+    try:
+        url = await create_checkout_session(
+            user_id=current_user["id"],
+            price_id=price_id,
+            email=current_user.get("email", ""),
         )
+    except RuntimeError as exc:
+        logger.error("Checkout failed for user %s: %s", current_user["id"], exc)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
     return {"checkout_url": url}
 
 
