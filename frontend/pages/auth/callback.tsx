@@ -10,7 +10,7 @@ export default function AuthCallback() {
   useEffect(() => {
     const url = new URL(window.location.href);
 
-    // Check for OAuth error first
+    // Check for OAuth error in query params
     const errorParam = url.searchParams.get('error');
     const errorDescription = url.searchParams.get('error_description');
     if (errorParam) {
@@ -18,32 +18,20 @@ export default function AuthCallback() {
       return;
     }
 
-    const code = url.searchParams.get('code');
+    // Implicit flow: Supabase parses the access_token from the URL hash automatically.
+    // onAuthStateChange fires once the token is processed.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
+        router.replace('/dashboard');
+      }
+    });
 
-    if (code) {
-      // PKCE flow — exchange the one-time code for a session
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        if (error) {
-          setError(error.message);
-        } else {
-          router.replace('/dashboard');
-        }
-      });
-    } else {
-      // Implicit flow fallback — token is in the URL hash, Supabase handles it automatically
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-          router.replace('/dashboard');
-        }
-      });
+    // Fallback: session already exists (e.g. page refresh)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.replace('/dashboard');
+    });
 
-      // Also handle already-authenticated case (e.g. page refresh)
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) router.replace('/dashboard');
-      });
-
-      return () => subscription.unsubscribe();
-    }
+    return () => subscription.unsubscribe();
   }, [router]);
 
   if (error) {
