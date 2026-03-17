@@ -18,17 +18,24 @@ export default function AuthCallback() {
       return;
     }
 
+    // Guard against double-navigation: both onAuthStateChange and getSession
+    // can fire with a session, causing Next.js to abort the first navigation.
+    let redirected = false;
+    const go = () => {
+      if (redirected) return;
+      redirected = true;
+      router.replace('/dashboard');
+    };
+
     // Implicit flow: Supabase parses the access_token from the URL hash automatically.
     // onAuthStateChange fires once the token is processed.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
-        router.replace('/dashboard');
-      }
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) go();
     });
 
     // Fallback: session already exists (e.g. page refresh)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.replace('/dashboard');
+      if (session) go();
     });
 
     return () => subscription.unsubscribe();

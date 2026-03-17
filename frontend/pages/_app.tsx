@@ -1,13 +1,13 @@
 import type { AppProps } from 'next/app';
-import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { supabase } from '@/lib/supabase';
 import '@/styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
-  const [supabaseClient] = useState(() => createClientComponentClient());
+  // Use the single shared client so there is only one GoTrueClient instance.
+  const supabaseClient = supabase;
 
   return (
     <ErrorBoundary>
