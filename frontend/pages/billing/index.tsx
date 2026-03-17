@@ -116,13 +116,11 @@ export default function BillingPage() {
       const { checkout_url } = await billingApi.createCheckoutSession(planId, 'monthly', priceId);
       window.location.href = checkout_url;
     } catch (err: unknown) {
-      const msg =
+      const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      toast.error(
-        msg === 'No valid price_id or plan_id provided.'
-          ? 'Stripe is not configured. Set STRIPE_PRO_PRICE_ID / STRIPE_AGENCY_PRICE_ID in your backend .env.'
-          : 'Failed to start checkout. Please try again.'
-      );
+      const msg = detail || (err instanceof Error ? err.message : null);
+      toast.error(msg || 'Failed to start checkout. Please try again.', { duration: 6000 });
+      console.error('[checkout]', err);
       setLoadingPlan(null);
     }
   };

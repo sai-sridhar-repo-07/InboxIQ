@@ -33,6 +33,19 @@ async def billing_status(current_user: Annotated[dict, Depends(get_current_user)
     return await get_subscription_status(user_id=current_user["id"])
 
 
+@router.get("/stripe-check")
+async def stripe_config_check(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Return which Stripe env vars are configured (values masked)."""
+    from config import settings
+    return {
+        "STRIPE_SECRET_KEY":       bool(settings.STRIPE_SECRET_KEY),
+        "STRIPE_WEBHOOK_SECRET":   bool(settings.STRIPE_WEBHOOK_SECRET),
+        "STRIPE_PRO_PRICE_ID":     settings.pro_monthly_price_id or "NOT SET",
+        "STRIPE_AGENCY_PRICE_ID":  settings.agency_monthly_price_id or "NOT SET",
+        "FRONTEND_URL":            settings.FRONTEND_URL or "NOT SET",
+    }
+
+
 @router.post("/checkout")
 async def create_checkout(
     body: CheckoutRequest,
