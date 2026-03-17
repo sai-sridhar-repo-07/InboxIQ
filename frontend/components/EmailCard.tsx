@@ -20,8 +20,8 @@ interface EmailCardProps {
 
 // Gradient colors for avatars based on first letter
 const AVATAR_GRADIENTS = [
-  'from-violet-400 to-violet-600',
-  'from-violet-400 to-violet-600',
+  'from-blue-400 to-blue-600',
+  'from-blue-400 to-blue-600',
   'from-emerald-400 to-emerald-600',
   'from-rose-400 to-rose-600',
   'from-amber-400 to-amber-600',
@@ -155,7 +155,7 @@ export default function EmailCard({ email, className, onDismiss, selected, onTog
               {/* Snooze button */}
               <button
                 onClick={handleSnoozeClick}
-                className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-gray-300 dark:text-gray-600 hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-150"
+                className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-150"
                 title="Snooze"
               >
                 <AlarmClock className="h-3.5 w-3.5" />
@@ -200,7 +200,7 @@ export default function EmailCard({ email, className, onDismiss, selected, onTog
               </span>
             )}
             {isSnoozed && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600 border border-violet-100">
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600 border border-blue-100">
                 <AlarmClock className="h-3 w-3" />
                 Snoozed
               </span>

@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" fill="none">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7C3AED"/>
-      <stop offset="1" stop-color="#4338CA"/>
+      <stop stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
     </linearGradient>
   </defs>
 
@@ -20,7 +20,7 @@
   <circle cx="15" cy="28" r="2.8" fill="rgba(255,255,255,0.8)"/>
   <path d="M18.5 28 L43 28" stroke="rgba(255,255,255,0.78)" stroke-width="2.5" stroke-linecap="round"/>
 
-  <!-- Thread 3 — bottom (lower opacity = deeper in thread) -->
+  <!-- Thread 3 — bottom (lower opacity + shorter = deeper in thread) -->
   <circle cx="15" cy="39" r="2.8" fill="rgba(255,255,255,0.55)"/>
-  <path d="M18.5 39 L43 39" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M18.5 39 L37 39" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round"/>
 </svg>

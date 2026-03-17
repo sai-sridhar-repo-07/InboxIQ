@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212 56" fill="none">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7C3AED"/>
-      <stop offset="1" stop-color="#4338CA"/>
+      <stop stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
     </linearGradient>
   </defs>
 
@@ -29,6 +29,6 @@
     font-weight="700"
     letter-spacing="-0.8"
   >
-    <tspan fill="white">Thread</tspan><tspan fill="#A78BFA">ly</tspan>
+    <tspan fill="white">Thread</tspan><tspan fill="#60a5fa">ly</tspan>
   </text>
 </svg>

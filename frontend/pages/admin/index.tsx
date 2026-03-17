@@ -127,7 +127,7 @@ export default function AdminPage() {
                   icon={BarChart2}
                   label="Emails Today"
                   value={stats.emails_today}
-                  color="bg-violet-600"
+                  color="bg-blue-600"
                 />
               </div>
 

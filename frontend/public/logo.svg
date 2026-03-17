@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212 56" fill="none">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7C3AED"/>
-      <stop offset="1" stop-color="#4338CA"/>
+      <stop stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
     </linearGradient>
   </defs>
 
@@ -22,7 +22,7 @@
 
   <!-- Thread 3 -->
   <circle cx="15" cy="39" r="2.8" fill="rgba(255,255,255,0.55)"/>
-  <path d="M18.5 39 L43 39" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M18.5 39 L37 39" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round"/>
 
   <!-- ── Wordmark ── -->
   <text
@@ -33,6 +33,6 @@
     font-weight="700"
     letter-spacing="-0.8"
   >
-    <tspan fill="#0F172A">Thread</tspan><tspan fill="#7C3AED">ly</tspan>
+    <tspan fill="#0F172A">Thread</tspan><tspan fill="#2563eb">ly</tspan>
   </text>
 </svg>

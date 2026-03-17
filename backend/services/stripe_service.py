@@ -119,9 +119,10 @@ async def create_billing_portal_session(customer_id: str) -> str | None:
     subscription.  Returns the portal URL.
     """
     try:
+        frontend_url = settings.FRONTEND_URL.rstrip("/") if settings.FRONTEND_URL else "http://localhost:3000"
         session = stripe.billing_portal.Session.create(
             customer=customer_id,
-            return_url="https://inboxiq.app/billing",
+            return_url=f"{frontend_url}/billing",
         )
         return session.url
     except Exception as exc:

@@ -197,8 +197,8 @@ function OutlookIntegration() {
     <div className="card p-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-            <Mail className="h-5 w-5 text-violet-500" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+            <Mail className="h-5 w-5 text-blue-500" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Outlook / Microsoft 365</h3>
@@ -1292,8 +1292,8 @@ function DataTab() {
     <div className="space-y-6 max-w-2xl">
       <div className="card p-6">
         <div className="flex items-start gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-900/20">
-            <Download className="h-5 w-5 text-violet-500" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/20">
+            <Download className="h-5 w-5 text-blue-500" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Export My Data</h3>
@@ -1305,7 +1305,7 @@ function DataTab() {
         <button
           onClick={handleExport}
           disabled={exporting}
-          className="inline-flex items-center gap-2 rounded-xl bg-violet-600 hover:bg-violet-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
         >
           {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
           {exporting ? 'Exporting...' : 'Download My Data'}

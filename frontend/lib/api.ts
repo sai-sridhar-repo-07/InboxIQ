@@ -205,16 +205,20 @@ export const emailsApi = {
 
   exportCSV: async (): Promise<void> => {
     const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('Not authenticated');
     const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     const res = await fetch(`${base}/api/emails/export`, {
-      headers: { Authorization: `Bearer ${session?.access_token}` },
+      headers: { Authorization: `Bearer ${session.access_token}` },
     });
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `inboxiq-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `threadly-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   },
 

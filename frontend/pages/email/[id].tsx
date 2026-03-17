@@ -77,7 +77,7 @@ function getFileColor(mimeType: string): string {
   if (mimeType.startsWith('image/'))   return 'text-pink-500 bg-pink-50';
   if (mimeType.includes('pdf'))        return 'text-red-500 bg-red-50';
   if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return 'text-green-600 bg-green-50';
-  if (mimeType.includes('word') || mimeType.includes('document')) return 'text-violet-500 bg-violet-50';
+  if (mimeType.includes('word') || mimeType.includes('document')) return 'text-blue-500 bg-blue-50';
   return 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700';
 }
 
@@ -550,7 +550,7 @@ export default function EmailDetailPage() {
                 className="btn-secondary text-sm"
                 title="Snooze"
               >
-                <AlarmClock className="h-4 w-4 text-violet-500" />
+                <AlarmClock className="h-4 w-4 text-blue-500" />
                 <span className="hidden sm:inline ml-1.5">Snooze</span>
               </button>
 
@@ -563,7 +563,7 @@ export default function EmailDetailPage() {
               >
                 {loadingThreadSummary
                   ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                  : <Layers className="h-4 w-4 mr-1.5 text-violet-500" />}
+                  : <Layers className="h-4 w-4 mr-1.5 text-blue-500" />}
                 <span className="hidden sm:inline">Thread</span>
               </button>
 
@@ -727,28 +727,28 @@ export default function EmailDetailPage() {
 
             {/* Thread Summary Card */}
             {threadSummary && threadSummary.status === 'summarized' && (
-              <div className="mt-4 rounded-lg border border-violet-200 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/20 px-4 py-3">
+              <div className="mt-4 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-2 min-w-0 flex-1">
-                    <Layers className="h-4 w-4 text-violet-600 dark:text-violet-400 flex-shrink-0 mt-0.5" />
+                    <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-violet-800 dark:text-violet-300">
+                      <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">
                         Thread Summary ({threadSummary.thread_length} emails)
                       </p>
-                      <p className="mt-1 text-xs text-violet-700 dark:text-violet-400 leading-relaxed">
+                      <p className="mt-1 text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
                         {threadSummary.summary}
                       </p>
                       {threadSummary.key_points.length > 0 && (
                         <ul className="mt-2 space-y-0.5">
                           {threadSummary.key_points.map((pt, i) => (
-                            <li key={i} className="text-xs text-violet-700 dark:text-violet-400 flex items-start gap-1.5">
+                            <li key={i} className="text-xs text-blue-700 dark:text-blue-400 flex items-start gap-1.5">
                               <span className="flex-shrink-0 mt-0.5">•</span>{pt}
                             </li>
                           ))}
                         </ul>
                       )}
                       {threadSummary.next_action && (
-                        <p className="mt-2 text-xs font-medium text-violet-800 dark:text-violet-300">
+                        <p className="mt-2 text-xs font-medium text-blue-800 dark:text-blue-300">
                           Next: {threadSummary.next_action}
                         </p>
                       )}
@@ -756,7 +756,7 @@ export default function EmailDetailPage() {
                   </div>
                   <button
                     onClick={() => setThreadSummary(null)}
-                    className="flex-shrink-0 p-1 rounded text-violet-500 hover:text-violet-700 dark:hover:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/40 transition-colors"
+                    className="flex-shrink-0 p-1 rounded text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -1001,7 +1001,7 @@ export default function EmailDetailPage() {
           {/* Reply Editor */}
           <div className="animate-slide-up stagger-4">
             <div className="flex items-center gap-2 mb-3">
-              <MessageSquare className="h-4 w-4 text-violet-600" />
+              <MessageSquare className="h-4 w-4 text-blue-600" />
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">AI Reply Draft</h2>
             </div>
             <ReplyEditor emailId={email.id} draft={replyDraft} onSent={() => mutateEmail()} />

@@ -36,8 +36,8 @@ type SenderInsight = {
 };
 
 const SENDER_GRADIENTS = [
-  'from-violet-400 to-violet-600',
-  'from-violet-400 to-violet-600',
+  'from-blue-400 to-blue-600',
+  'from-blue-400 to-blue-600',
   'from-emerald-400 to-emerald-600',
   'from-rose-400 to-rose-600',
   'from-amber-400 to-amber-600',
@@ -383,7 +383,7 @@ export default function AnalyticsPage() {
           {(loading || responseTime) && (
             <div className="card p-5 animate-slide-up">
               <div className="flex items-center gap-2 mb-5">
-                <TrendingUp className="h-4 w-4 text-violet-600" />
+                <TrendingUp className="h-4 w-4 text-blue-600" />
                 <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Response Time Analytics</h2>
                 {responseTime && (
                   <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
@@ -407,7 +407,7 @@ export default function AnalyticsPage() {
                         </div>
                         <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-violet-500 transition-all duration-700"
+                            className="h-full rounded-full bg-blue-500 transition-all duration-700"
                             style={{ width: `${Math.min((hours / (responseTime.overall_avg_hours * 2 || 1)) * 100, 100)}%` }}
                           />
                         </div>
