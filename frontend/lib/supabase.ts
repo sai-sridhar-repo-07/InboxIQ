@@ -1,14 +1,13 @@
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { createClient } from '@supabase/supabase-js';
 
-// Force implicit flow so the OAuth code_verifier survives the redirect.
-// PKCE flow loses the verifier stored in localStorage when Next.js does
-// a full-page navigation during the Google OAuth redirect.
-export const supabase = createClientComponentClient({
-  options: { auth: { flowType: 'implicit' } },
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+// Use implicit flow so the OAuth token arrives in the URL hash and survives
+// the full-page navigation that Next.js performs during Google OAuth redirect.
+// PKCE flow stores the code_verifier in localStorage which gets lost on redirect.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { flowType: 'implicit' },
 });
 
-export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const supabaseAdmin = createClient(supabaseUrl, supabaseAnonKey);
