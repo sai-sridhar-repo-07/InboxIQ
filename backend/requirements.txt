@@ -10,7 +10,7 @@ google-auth==2.36.0
 google-auth-oauthlib==1.2.1
 google-auth-httplib2==0.2.0
 google-api-python-client==2.154.0
-stripe==11.3.0
+razorpay==1.4.2
 python-dotenv==1.0.1
 pydantic==2.10.3
 email-validator==2.2.0

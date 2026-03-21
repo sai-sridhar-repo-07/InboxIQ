@@ -38,33 +38,12 @@ class Settings(BaseSettings):
     # Slack
     SLACK_WEBHOOK_URL: str = ""
 
-    # Stripe
-    STRIPE_SECRET_KEY: str = ""
-    STRIPE_WEBHOOK_SECRET: str = ""
-    # Primary price IDs (from .env — STRIPE_PRO_PRICE_ID / STRIPE_AGENCY_PRICE_ID)
-    STRIPE_PRO_PRICE_ID: str = ""
-    STRIPE_AGENCY_PRICE_ID: str = ""
-    # Aliases for monthly/yearly — fall back to the primary IDs if not set separately
-    STRIPE_PRICE_PRO_MONTHLY: str = ""
-    STRIPE_PRICE_PRO_YEARLY: str = ""
-    STRIPE_PRICE_AGENCY_MONTHLY: str = ""
-    STRIPE_PRICE_AGENCY_YEARLY: str = ""
-
-    @property
-    def pro_monthly_price_id(self) -> str:
-        return self.STRIPE_PRICE_PRO_MONTHLY or self.STRIPE_PRO_PRICE_ID
-
-    @property
-    def pro_yearly_price_id(self) -> str:
-        return self.STRIPE_PRICE_PRO_YEARLY or self.STRIPE_PRO_PRICE_ID
-
-    @property
-    def agency_monthly_price_id(self) -> str:
-        return self.STRIPE_PRICE_AGENCY_MONTHLY or self.STRIPE_AGENCY_PRICE_ID
-
-    @property
-    def agency_yearly_price_id(self) -> str:
-        return self.STRIPE_PRICE_AGENCY_YEARLY or self.STRIPE_AGENCY_PRICE_ID
+    # Razorpay
+    RAZORPAY_KEY_ID: str = ""
+    RAZORPAY_KEY_SECRET: str = ""
+    RAZORPAY_WEBHOOK_SECRET: str = ""
+    RAZORPAY_PRO_PLAN_ID: str = ""      # plan_xxx from Razorpay dashboard
+    RAZORPAY_AGENCY_PLAN_ID: str = ""   # plan_xxx from Razorpay dashboard
 
     # Frontend base URL (used for Stripe redirect URLs)
     FRONTEND_URL: str = "http://localhost:3000"

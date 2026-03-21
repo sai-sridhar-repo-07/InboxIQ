@@ -172,7 +172,6 @@ export interface Plan {
   email_limit: number | null; // null = unlimited
   gmail_accounts: number;
   features: string[];
-  stripe_price_id?: string;
 }
 
 export interface BillingStatus {

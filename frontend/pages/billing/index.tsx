@@ -50,7 +50,6 @@ const PLANS: Plan[] = [
       'Slack notifications',
       'Priority support',
     ],
-    stripe_price_id: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || '',
   },
   {
     id: 'agency',
@@ -66,7 +65,6 @@ const PLANS: Plan[] = [
       'API access',
       'Dedicated support',
     ],
-    stripe_price_id: process.env.NEXT_PUBLIC_STRIPE_AGENCY_PRICE_ID || '',
   },
 ];
 
@@ -82,18 +80,17 @@ export default function BillingPage() {
   const router = useRouter();
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [loadingPlan, setLoadingPlan] = useState<PlanId | null>(null);
-  const [loadingPortal, setLoadingPortal] = useState(false);
-  const [stripeConfig, setStripeConfig] = useState<Record<string, string | boolean> | null>(null);
+  const [paymentConfig, setPaymentConfig] = useState<Record<string, string | boolean> | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const { data: billing, isLoading: billingLoading, error: billingError } = useBillingStatus();
 
-  // Check Stripe env var configuration on mount
+  // Check Razorpay env var configuration on mount
   useEffect(() => {
     if (!session) return;
     import('@/lib/api').then(({ default: api }) => {
-      api.get('/api/billing/stripe-check')
-        .then(r => setStripeConfig(r.data))
+      api.get('/api/billing/payment-check')
+        .then(r => setPaymentConfig(r.data))
         .catch(() => {});
     });
   }, [session]);
@@ -123,9 +120,7 @@ export default function BillingPage() {
     if (planId === 'free') return;
     setLoadingPlan(planId);
     try {
-      const plan = PLANS.find((p) => p.id === planId);
-      const priceId = plan?.stripe_price_id || undefined;
-      const { checkout_url } = await billingApi.createCheckoutSession(planId, 'monthly', priceId);
+      const { checkout_url } = await billingApi.createCheckoutSession(planId, 'monthly');
       window.location.href = checkout_url;
     } catch (err: unknown) {
       const detail =
@@ -135,17 +130,6 @@ export default function BillingPage() {
       toast.error(msg, { duration: 8000 });
       console.error('[checkout]', err);
       setLoadingPlan(null);
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    setLoadingPortal(true);
-    try {
-      const { portal_url } = await billingApi.createPortalSession();
-      window.location.href = portal_url;
-    } catch {
-      toast.error('Failed to open billing portal');
-      setLoadingPortal(false);
     }
   };
 
@@ -164,21 +148,21 @@ export default function BillingPage() {
       </Head>
       <Layout title="Billing & Plans">
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* Stripe misconfiguration warning */}
-          {stripeConfig && (!stripeConfig.STRIPE_SECRET_KEY || stripeConfig.STRIPE_PRO_PRICE_ID === 'NOT SET') && (
+          {/* Razorpay misconfiguration warning */}
+          {paymentConfig && (!paymentConfig.RAZORPAY_KEY_ID || paymentConfig.RAZORPAY_PRO_PLAN_ID === 'NOT SET') && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Stripe not fully configured</p>
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Razorpay not fully configured</p>
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                     Set these environment variables in your <strong>Render dashboard</strong> to enable payments:
                   </p>
                   <ul className="mt-2 space-y-0.5 text-xs font-mono text-amber-800 dark:text-amber-300">
-                    {!stripeConfig.STRIPE_SECRET_KEY && <li>• STRIPE_SECRET_KEY — missing</li>}
-                    {stripeConfig.STRIPE_PRO_PRICE_ID === 'NOT SET' && <li>• STRIPE_PRO_PRICE_ID — missing</li>}
-                    {stripeConfig.STRIPE_AGENCY_PRICE_ID === 'NOT SET' && <li>• STRIPE_AGENCY_PRICE_ID — missing</li>}
-                    {stripeConfig.FRONTEND_URL === 'NOT SET' && <li>• FRONTEND_URL — missing</li>}
+                    {!paymentConfig.RAZORPAY_KEY_ID && <li>• RAZORPAY_KEY_ID — missing</li>}
+                    {!paymentConfig.RAZORPAY_KEY_SECRET && <li>• RAZORPAY_KEY_SECRET — missing</li>}
+                    {paymentConfig.RAZORPAY_PRO_PLAN_ID === 'NOT SET' && <li>• RAZORPAY_PRO_PLAN_ID — missing</li>}
+                    {paymentConfig.RAZORPAY_AGENCY_PLAN_ID === 'NOT SET' && <li>• RAZORPAY_AGENCY_PLAN_ID — missing</li>}
                   </ul>
                 </div>
               </div>
@@ -233,18 +217,15 @@ export default function BillingPage() {
                   )}
                 </div>
                 {billing.stripe_subscription_id && (
-                  <button
-                    onClick={handleManageSubscription}
-                    disabled={loadingPortal}
-                    className="btn-secondary text-sm gap-2 flex-shrink-0"
+                  <a
+                    href="https://dashboard.razorpay.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary text-sm gap-2 flex-shrink-0 inline-flex items-center"
                   >
-                    {loadingPortal ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ExternalLink className="h-4 w-4" />
-                    )}
+                    <ExternalLink className="h-4 w-4" />
                     Manage Subscription
-                  </button>
+                  </a>
                 )}
               </div>
 

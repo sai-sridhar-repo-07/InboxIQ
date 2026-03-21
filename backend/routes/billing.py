@@ -5,9 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
 from middleware.auth import get_current_user
-from services.stripe_service import (
-    create_billing_portal_session,
-    create_checkout_session,
+from services.razorpay_service import (
+    create_subscription,
     get_subscription_status,
     handle_webhook,
 )
@@ -17,10 +16,8 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 
 class CheckoutRequest(BaseModel):
-    # Accept either a direct price_id or a plan_id + interval combo
-    price_id: str | None = None
-    plan_id: str | None = None
-    interval: str = "monthly"  # "monthly" | "yearly"
+    plan_id: str           # "pro" | "agency"
+    interval: str = "monthly"
 
 
 # ---------------------------------------------------------------------------
@@ -29,19 +26,19 @@ class CheckoutRequest(BaseModel):
 
 @router.get("/status")
 async def billing_status(current_user: Annotated[dict, Depends(get_current_user)]):
-    """Return the current subscription plan and Stripe status."""
+    """Return the current subscription plan and usage."""
     return await get_subscription_status(user_id=current_user["id"])
 
 
-@router.get("/stripe-check")
-async def stripe_config_check(current_user: Annotated[dict, Depends(get_current_user)]):
-    """Return which Stripe env vars are configured (values masked)."""
+@router.get("/payment-check")
+async def payment_config_check(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Return which Razorpay env vars are configured (values masked)."""
     from config import settings
     return {
-        "STRIPE_SECRET_KEY":       bool(settings.STRIPE_SECRET_KEY),
-        "STRIPE_WEBHOOK_SECRET":   bool(settings.STRIPE_WEBHOOK_SECRET),
-        "STRIPE_PRO_PRICE_ID":     settings.pro_monthly_price_id or "NOT SET",
-        "STRIPE_AGENCY_PRICE_ID":  settings.agency_monthly_price_id or "NOT SET",
+        "RAZORPAY_KEY_ID":         bool(settings.RAZORPAY_KEY_ID),
+        "RAZORPAY_KEY_SECRET":     bool(settings.RAZORPAY_KEY_SECRET),
+        "RAZORPAY_PRO_PLAN_ID":    settings.RAZORPAY_PRO_PLAN_ID or "NOT SET",
+        "RAZORPAY_AGENCY_PLAN_ID": settings.RAZORPAY_AGENCY_PLAN_ID or "NOT SET",
         "FRONTEND_URL":            settings.FRONTEND_URL or "NOT SET",
     }
 
@@ -52,86 +49,35 @@ async def create_checkout(
     current_user: Annotated[dict, Depends(get_current_user)],
 ):
     """
-    Create a Stripe Checkout Session and return the hosted payment URL.
+    Create a Razorpay subscription and return the hosted checkout URL.
     """
-    from config import settings
-
-    # Resolve price_id from plan_id + interval if needed
-    price_id = body.price_id
-    if not price_id and body.plan_id:
-        plan_to_price = {
-            "pro":    {"monthly": settings.pro_monthly_price_id,    "yearly": settings.pro_yearly_price_id},
-            "agency": {"monthly": settings.agency_monthly_price_id, "yearly": settings.agency_yearly_price_id},
-        }
-        price_id = plan_to_price.get(body.plan_id, {}).get(body.interval, "")
-
-    if not price_id:
-        logger.error(
-            "Checkout failed: no price_id resolved. plan_id=%s interval=%s — "
-            "set STRIPE_PRO_PRICE_ID / STRIPE_AGENCY_PRICE_ID in backend .env",
-            body.plan_id,
-            body.interval,
-        )
+    if body.plan_id not in ("pro", "agency"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No valid price_id or plan_id provided.",
+            detail="plan_id must be 'pro' or 'agency'.",
         )
 
     try:
-        url = await create_checkout_session(
+        url = await create_subscription(
             user_id=current_user["id"],
-            price_id=price_id,
+            plan_id=body.plan_id,
             email=current_user.get("email", ""),
         )
     except RuntimeError as exc:
         logger.error("Checkout failed for user %s: %s", current_user["id"], exc)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
     return {"checkout_url": url}
 
 
-@router.get("/portal")
-async def billing_portal(current_user: Annotated[dict, Depends(get_current_user)]):
-    """
-    Create a Stripe Customer Portal session and return the portal URL so
-    the user can manage/cancel their subscription.
-    """
-    from database import get_supabase
-
-    supabase = get_supabase()
-    result = (
-        supabase.table("user_profiles")
-        .select("stripe_customer_id")
-        .eq("id", current_user["id"])
-        .single()
-        .execute()
-    )
-    customer_id = (result.data or {}).get("stripe_customer_id")
-
-    if not customer_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No Stripe customer found. Please subscribe first.",
-        )
-
-    url = await create_billing_portal_session(customer_id=customer_id)
-    if not url:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to create billing portal session.",
-        )
-    return {"portal_url": url}
-
-
 @router.post("/webhook", include_in_schema=False)
-async def stripe_webhook(request: Request):
+async def razorpay_webhook(request: Request):
     """
-    Receive and process Stripe webhook events.
-
-    This endpoint must be reachable by Stripe (public URL) and must NOT
-    require authentication.
+    Receive and process Razorpay webhook events.
+    Must be publicly reachable — no auth required.
     """
     payload = await request.body()
-    sig_header = request.headers.get("stripe-signature", "")
+    sig_header = request.headers.get("x-razorpay-signature", "")
 
     try:
         result = await handle_webhook(payload=payload, sig_header=sig_header)
@@ -142,7 +88,7 @@ async def stripe_webhook(request: Request):
             detail=str(exc),
         )
     except Exception as exc:
-        logger.error("Stripe webhook processing error: %s", exc)
+        logger.error("Razorpay webhook processing error: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Webhook processing failed.",
