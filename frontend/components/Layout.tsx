@@ -61,8 +61,16 @@ interface LayoutProps {
 
 export default function Layout({ children, title }: LayoutProps) {
   const router = useRouter();
+  const { isLoading, session } = useSessionContext();
   const user = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Client-side auth guard — middleware can't read localStorage sessions
+  useEffect(() => {
+    if (!isLoading && !session) {
+      router.replace(`/auth/signin?next=${encodeURIComponent(router.pathname)}`);
+    }
+  }, [isLoading, session, router]);
 
   const LOGOS = ['/logo.svg', '/logo-v2.svg', '/logo-v3.svg'];
   const LOGOS_DARK = ['/logo-dark.svg', '/logo-dark-v2.svg', '/logo-dark-v3.svg'];
