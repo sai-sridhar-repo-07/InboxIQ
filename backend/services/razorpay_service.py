@@ -114,10 +114,23 @@ async def handle_webhook(payload: bytes, sig_header: str) -> dict:
         await _handle_subscription_activated(
             event["payload"]["subscription"]["entity"]
         )
-    elif event_type in ("subscription.cancelled", "subscription.expired", "subscription.completed"):
+    elif event_type == "subscription.charged":
+        # Recurring payment succeeded — keep plan active
+        sub = event["payload"]["subscription"]["entity"]
+        logger.info("Subscription charged (renewed): %s", sub.get("id"))
+    elif event_type in (
+        "subscription.cancelled",
+        "subscription.expired",
+        "subscription.completed",
+        "subscription.halted",
+    ):
         await _handle_subscription_deactivated(
             event["payload"]["subscription"]["entity"]
         )
+    elif event_type == "invoice.paid":
+        logger.info("Invoice paid: %s", event["payload"].get("invoice", {}).get("entity", {}).get("id"))
+    elif event_type == "invoice.expired":
+        logger.warning("Invoice expired: %s", event["payload"].get("invoice", {}).get("entity", {}).get("id"))
     elif event_type == "payment.failed":
         logger.warning("Razorpay payment failed: %s", event.get("payload"))
 
