@@ -29,7 +29,7 @@ const defaultOptions: SWRConfiguration = {
 
 // Returns null (suspends SWR) until the session is confirmed loaded.
 // This prevents unauthenticated API calls that would fail with 401.
-function useReadyKey(key: unknown) {
+function useReadyKey<T>(key: T): T | null {
   const { isLoading, session } = useSessionContext();
   if (isLoading || !session) return null;
   return key;
