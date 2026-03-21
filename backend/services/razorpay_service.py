@@ -56,6 +56,7 @@ async def create_subscription(user_id: str, plan_id: str, email: str = "") -> st
             "Create plans at razorpay.com → Subscriptions → Plans."
         )
 
+    frontend_url = (settings.FRONTEND_URL or "http://localhost:3000").rstrip("/")
     client = _client()
     try:
         subscription = client.subscription.create({
@@ -65,6 +66,8 @@ async def create_subscription(user_id: str, plan_id: str, email: str = "") -> st
             "customer_notify": 1,
             "notes": {"user_id": user_id},
             "notify_info": {"notify_email": email} if email else {},
+            "callback_url": f"{frontend_url}/billing?success=true",
+            "callback_method": "get",
         })
 
         short_url = subscription.get("short_url")

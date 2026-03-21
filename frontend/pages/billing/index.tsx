@@ -101,17 +101,22 @@ export default function BillingPage() {
     }
   }, [session, sessionLoading, router]);
 
-  // Handle Stripe return
+  // Handle Razorpay return
+  const { mutate: refreshBilling } = useBillingStatus();
   useEffect(() => {
-    const { success, canceled } = router.query;
+    const { success } = router.query;
     if (success === 'true') {
-      toast.success('Subscription activated! Welcome to your new plan.');
+      toast.success('Payment successful! Activating your plan...');
       router.replace('/billing', undefined, { shallow: true });
-    } else if (canceled === 'true') {
-      toast('Checkout canceled.', { icon: 'ℹ️' });
-      router.replace('/billing', undefined, { shallow: true });
+      // Poll every 3s for up to 30s until plan updates via webhook
+      let attempts = 0;
+      const interval = setInterval(() => {
+        refreshBilling();
+        attempts++;
+        if (attempts >= 10) clearInterval(interval);
+      }, 3000);
     }
-  }, [router]);
+  }, [router.query.success]);
 
   if (sessionLoading || billingLoading) return <LoadingSpinner fullPage />;
   if (!session) return null;
