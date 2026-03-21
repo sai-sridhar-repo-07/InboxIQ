@@ -216,7 +216,7 @@ export default function BillingPage() {
                     </p>
                   )}
                 </div>
-                {billing.stripe_subscription_id && (
+                {billing.subscription_id && (
                   <a
                     href="https://dashboard.razorpay.com"
                     target="_blank"

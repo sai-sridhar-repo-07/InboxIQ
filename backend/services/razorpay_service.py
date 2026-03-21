@@ -74,7 +74,7 @@ async def create_subscription(user_id: str, plan_id: str, email: str = "") -> st
         # Store the pending subscription ID so the webhook can update it later
         supabase = get_supabase()
         supabase.table("user_profiles").update(
-            {"stripe_subscription_id": subscription["id"]}
+            {"subscription_id": subscription["id"]}
         ).eq("id", user_id).execute()
 
         return short_url
@@ -151,7 +151,7 @@ async def _handle_subscription_activated(subscription: dict) -> None:
 
     supabase = get_supabase()
     supabase.table("user_profiles").update(
-        {"plan": plan_name, "stripe_subscription_id": sub_id}
+        {"plan": plan_name, "subscription_id": sub_id}
     ).eq("id", user_id).execute()
 
     logger.info("User %s activated plan=%s (Razorpay sub=%s)", user_id, plan_name, sub_id)
@@ -164,7 +164,7 @@ async def _handle_subscription_deactivated(subscription: dict) -> None:
     result = (
         supabase.table("user_profiles")
         .select("id")
-        .eq("stripe_subscription_id", sub_id)
+        .eq("subscription_id", sub_id)
         .single()
         .execute()
     )
@@ -188,14 +188,14 @@ async def get_subscription_status(user_id: str) -> dict:
         supabase = get_supabase()
         result = (
             supabase.table("user_profiles")
-            .select("plan, stripe_subscription_id")
+            .select("plan, subscription_id")
             .eq("id", user_id)
             .single()
             .execute()
         )
         profile = result.data or {}
         plan = profile.get("plan", "free")
-        subscription_id = profile.get("stripe_subscription_id")
+        subscription_id = profile.get("subscription_id")
 
         now = datetime.now(timezone.utc)
         month_start = now.replace(
@@ -217,7 +217,7 @@ async def get_subscription_status(user_id: str) -> dict:
             "current_plan": plan,
             "plan_details": PLAN_DETAILS.get(plan, PLAN_DETAILS["free"]),
             "subscription_status": "active" if plan != "free" else "none",
-            "stripe_subscription_id": subscription_id,
+            "subscription_id": subscription_id,
             "current_period_end": None,
             "cancel_at_period_end": False,
             "emails_used_this_month": emails_used,
@@ -230,7 +230,7 @@ async def get_subscription_status(user_id: str) -> dict:
             "current_plan": "free",
             "plan_details": PLAN_DETAILS["free"],
             "subscription_status": "none",
-            "stripe_subscription_id": None,
+            "subscription_id": None,
             "current_period_end": None,
             "cancel_at_period_end": False,
             "emails_used_this_month": 0,

@@ -183,7 +183,7 @@ export interface BillingStatus {
   emails_used_this_month: number;
   email_limit: number | null;
   stripe_customer_id?: string;
-  stripe_subscription_id?: string;
+  subscription_id?: string;
 }
 
 // ─── API Response Types ───────────────────────────────────────────────────────
