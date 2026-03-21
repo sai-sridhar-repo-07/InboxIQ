@@ -14,7 +14,7 @@ from models.email import EmailFilter, EmailResponse
 from services import email_service
 from services.ai_processor import process_email
 from services.gmail_service import send_gmail_reply, get_email_attachments, get_attachment_data
-from services.stripe_service import PLAN_LIMITS
+from services.razorpay_service import PLAN_LIMITS
 from workers.email_listener import _process_user_emails
 
 logger = logging.getLogger(__name__)
