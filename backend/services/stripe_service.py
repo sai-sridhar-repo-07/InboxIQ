@@ -277,8 +277,8 @@ async def get_subscription_status(user_id: str) -> dict:
                 stripe_status = sub.get("status")
                 current_period_end = sub.get("current_period_end")
                 cancel_at_period_end = sub.get("cancel_at_period_end", False)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Could not retrieve Stripe subscription %s: %s", subscription_id, exc)
 
         # Count emails processed this calendar month
         now = datetime.now(timezone.utc)

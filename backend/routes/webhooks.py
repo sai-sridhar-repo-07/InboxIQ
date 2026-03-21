@@ -19,14 +19,14 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 class WebhookBody(BaseModel):
     name: str
-    url: str  # validated as string; we do basic check below
+    url: HttpUrl
     event: str  # "urgent_email" | "reply_sent" | "action_created" | "all"
     secret: Optional[str] = None
 
 
 class WebhookUpdateBody(BaseModel):
     name: Optional[str] = None
-    url: Optional[str] = None
+    url: Optional[HttpUrl] = None
     event: Optional[str] = None
     is_active: Optional[bool] = None
     secret: Optional[str] = None
@@ -53,14 +53,15 @@ async def create_webhook(body: WebhookBody, current_user: Annotated[dict, Depend
 
     if body.event not in ALLOWED_EVENTS:
         raise HTTPException(status_code=400, detail=f"event must be one of: {', '.join(ALLOWED_EVENTS)}")
-    if not body.url.startswith("https://"):
+    url_str = str(body.url)
+    if not url_str.startswith("https://"):
         raise HTTPException(status_code=400, detail="Webhook URL must use HTTPS.")
 
     supabase = get_supabase()
     result = supabase.table("webhooks").insert({
         "user_id": uid,
         "name": body.name,
-        "url": body.url,
+        "url": url_str,
         "event": body.event,
         "secret": body.secret,
         "is_active": True,
@@ -79,7 +80,7 @@ async def update_webhook(webhook_id: str, body: WebhookUpdateBody, current_user:
     if not existing.data:
         raise HTTPException(status_code=404, detail="Webhook not found.")
 
-    updates = body.model_dump(exclude_none=True)
+    updates = {k: (str(v) if k == "url" else v) for k, v in body.model_dump(exclude_none=True).items()}
     if "event" in updates and updates["event"] not in ALLOWED_EVENTS:
         raise HTTPException(status_code=400, detail=f"event must be one of: {', '.join(ALLOWED_EVENTS)}")
 

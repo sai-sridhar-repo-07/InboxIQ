@@ -35,6 +35,8 @@ export default function AuthCallback() {
     // Fallback: session already exists (e.g. page refresh)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) go();
+    }).catch(() => {
+      // getSession failing here just means we wait for onAuthStateChange
     });
 
     return () => subscription.unsubscribe();

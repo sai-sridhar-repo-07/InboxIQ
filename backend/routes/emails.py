@@ -742,8 +742,8 @@ async def send_email_reply(
     supabase = get_supabase()
     try:
         supabase.table("reply_drafts").update({"sent": True}).eq("email_id", email_id).execute()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Could not mark reply_draft as sent for email %s: %s", email_id, exc)
 
     return {"success": True, "message": "Reply sent successfully."}
 

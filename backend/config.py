@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # Gmail OAuth
     GMAIL_CLIENT_ID: str = ""
     GMAIL_CLIENT_SECRET: str = ""
-    GMAIL_REDIRECT_URI: str = "http://localhost:8000/integrations/gmail/callback"
+    GMAIL_REDIRECT_URI: str = "http://localhost:8000/api/integrations/gmail/callback"
 
     # Microsoft / Outlook OAuth
     MS_CLIENT_ID: str = ""

@@ -7,7 +7,7 @@ import secrets
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from database import get_supabase
 from middleware.auth import get_current_user
@@ -36,7 +36,7 @@ class AssignEmailBody(BaseModel):
     assigned_to: str | None = None  # user_id or None to unassign
 
 class InternalNoteBody(BaseModel):
-    note: str
+    note: str = Field(..., min_length=1, max_length=5000)
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────

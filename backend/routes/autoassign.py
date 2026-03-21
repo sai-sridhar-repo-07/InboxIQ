@@ -82,6 +82,12 @@ async def create_rule(body: AutoAssignRuleBody, current_user: Annotated[dict, De
         raise HTTPException(status_code=400, detail=f"condition_type must be one of: {', '.join(ALLOWED_CONDITIONS)}")
 
     supabase = get_supabase()
+
+    # Verify assign_to_user_id is actually a member of this org
+    member_check = supabase.table("user_profiles").select("id").eq("id", body.assign_to_user_id).eq("org_id", org_id).execute()
+    if not member_check.data:
+        raise HTTPException(status_code=400, detail="assign_to_user_id is not a member of your organization.")
+
     result = supabase.table("auto_assign_rules").insert({
         "org_id": org_id,
         "condition_type": body.condition_type,
