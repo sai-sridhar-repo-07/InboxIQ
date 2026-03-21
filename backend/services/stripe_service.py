@@ -5,7 +5,14 @@ from database import get_supabase
 
 logger = logging.getLogger(__name__)
 
+# Set at import time. Render redeploys on env var change so this is safe,
+# but we also re-set it per call below to handle any edge cases.
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+def _init_stripe() -> None:
+    """Re-apply the API key before every Stripe call (defensive)."""
+    stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def _build_price_to_plan() -> dict[str, str]:
     """Build the price ID → plan name map from configured env vars."""
@@ -91,11 +98,13 @@ async def create_checkout_session(
     Create a Stripe Checkout Session for subscription upgrade.
     Returns the session URL or raises RuntimeError with a descriptive message.
     """
+    _init_stripe()
+
     if not settings.STRIPE_SECRET_KEY:
-        raise RuntimeError("Stripe is not configured — set STRIPE_SECRET_KEY in Render environment variables.")
+        raise RuntimeError("STRIPE_SECRET_KEY not set in Render — go to Render dashboard → Environment and add it (starts with sk_test_ or sk_live_).")
 
     if not price_id:
-        raise RuntimeError("No price_id provided — set STRIPE_PRO_PRICE_ID / STRIPE_AGENCY_PRICE_ID in Render environment variables.")
+        raise RuntimeError("Price ID not set — add STRIPE_PRO_PRICE_ID and STRIPE_AGENCY_PRICE_ID in Render. Get them from Stripe → Products → your plan → Price ID (starts with price_).")
 
     customer_id = await _get_or_create_customer(user_id, email)
     if not customer_id:

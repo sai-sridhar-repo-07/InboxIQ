@@ -84,6 +84,7 @@ export default function BillingPage() {
   const [loadingPlan, setLoadingPlan] = useState<PlanId | null>(null);
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [stripeConfig, setStripeConfig] = useState<Record<string, string | boolean> | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const { data: billing, isLoading: billingLoading, error: billingError } = useBillingStatus();
 
@@ -129,8 +130,9 @@ export default function BillingPage() {
     } catch (err: unknown) {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      const msg = detail || (err instanceof Error ? err.message : null);
-      toast.error(msg || 'Failed to start checkout. Please try again.', { duration: 6000 });
+      const msg = detail || (err instanceof Error ? err.message : 'Failed to start checkout. Please try again.');
+      setCheckoutError(msg);
+      toast.error(msg, { duration: 8000 });
       console.error('[checkout]', err);
       setLoadingPlan(null);
     }
@@ -179,6 +181,22 @@ export default function BillingPage() {
                     {stripeConfig.FRONTEND_URL === 'NOT SET' && <li>• FRONTEND_URL — missing</li>}
                   </ul>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Checkout error — persists until dismissed */}
+          {checkoutError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-800 dark:text-red-300">Checkout failed</p>
+                    <p className="text-xs text-red-700 dark:text-red-400 mt-1">{checkoutError}</p>
+                  </div>
+                </div>
+                <button onClick={() => setCheckoutError(null)} className="text-red-400 hover:text-red-600 text-lg leading-none">×</button>
               </div>
             </div>
           )}
