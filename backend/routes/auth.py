@@ -1,10 +1,11 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 
 from database import get_supabase
+from limiter import limiter
 from middleware.auth import get_current_user, verify_token
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,8 @@ class AuthResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-async def signup(body: SignUpRequest):
+@limiter.limit("5/minute")
+async def signup(request: Request, body: SignUpRequest):
     """Register a new user via Supabase Auth."""
     supabase = get_supabase()
     try:
@@ -86,7 +88,8 @@ async def signup(body: SignUpRequest):
 
 
 @router.post("/signin", response_model=AuthResponse)
-async def signin(body: SignInRequest):
+@limiter.limit("5/minute")
+async def signin(request: Request, body: SignInRequest):
     """Authenticate an existing user and return session tokens."""
     supabase = get_supabase()
     try:
@@ -127,7 +130,8 @@ async def signout(current_user: Annotated[dict, Depends(get_current_user)]):
 
 
 @router.post("/refresh", response_model=AuthResponse)
-async def refresh(body: RefreshRequest):
+@limiter.limit("10/minute")
+async def refresh(request: Request, body: RefreshRequest):
     """Refresh an expired access token using the refresh token."""
     supabase = get_supabase()
     try:

@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from database import get_supabase
 from middleware.auth import get_current_user
+from services.crypto_service import decrypt, encrypt
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/integrations/crm", tags=["crm-integrations"])
@@ -54,7 +55,7 @@ async def hubspot_connect(body: HubSpotSaveBody, current_user: Annotated[dict, D
 
     supabase = get_supabase()
     supabase.table("user_profiles").update({
-        "hubspot_api_key": body.api_key,
+        "hubspot_api_key": encrypt(body.api_key),
         "hubspot_connected": True,
     }).eq("id", uid).execute()
     return {"connected": True}
@@ -68,9 +69,10 @@ async def hubspot_test(current_user: Annotated[dict, Depends(get_current_user)])
     uid = current_user["id"]
     supabase = get_supabase()
     row = supabase.table("user_profiles").select("hubspot_api_key").eq("id", uid).single().execute()
-    api_key = (row.data or {}).get("hubspot_api_key", "")
-    if not api_key:
+    raw_key = (row.data or {}).get("hubspot_api_key", "")
+    if not raw_key:
         raise HTTPException(status_code=400, detail="HubSpot not connected.")
+    api_key = decrypt(raw_key)
 
     ok = await test_connection(api_key)
     return {"success": ok}
@@ -116,11 +118,11 @@ async def salesforce_connect(body: SalesforceSaveBody, current_user: Annotated[d
 
     supabase = get_supabase()
     supabase.table("user_profiles").update({
-        "sf_consumer_key": body.consumer_key,
-        "sf_consumer_secret": body.consumer_secret,
-        "sf_username": body.username,
-        "sf_password": body.password,
-        "sf_security_token": body.security_token,
+        "sf_consumer_key": encrypt(body.consumer_key),
+        "sf_consumer_secret": encrypt(body.consumer_secret),
+        "sf_username": body.username,  # not sensitive — used for display
+        "sf_password": encrypt(body.password),
+        "sf_security_token": encrypt(body.security_token),
         "sf_connected": True,
     }).eq("id", uid).execute()
     return {"connected": True}
@@ -141,8 +143,8 @@ async def salesforce_test(current_user: Annotated[dict, Depends(get_current_user
         raise HTTPException(status_code=400, detail="Salesforce not connected.")
 
     ok = await test_connection(
-        d.get("sf_consumer_key", ""), d.get("sf_consumer_secret", ""),
-        d.get("sf_username", ""), d.get("sf_password", ""), d.get("sf_security_token", ""),
+        decrypt(d.get("sf_consumer_key", "")), decrypt(d.get("sf_consumer_secret", "")),
+        d.get("sf_username", ""), decrypt(d.get("sf_password", "")), decrypt(d.get("sf_security_token", "")),
     )
     return {"success": ok}
 

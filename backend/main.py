@@ -10,11 +10,11 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from config import settings
+from limiter import limiter
 from routes import auth, emails, actions, replies, integrations, settings as settings_routes, billing, contacts, outlook, calendar, teams, webhooks as webhooks_routes, autoassign, crm_integrations
 from workers.email_listener import start_email_listener, stop_email_listener
 
@@ -26,11 +26,6 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Rate limiter
-# ---------------------------------------------------------------------------
-limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 
 # ---------------------------------------------------------------------------
 # Application lifespan

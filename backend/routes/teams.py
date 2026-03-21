@@ -236,12 +236,25 @@ async def assign_email(email_id: str, body: AssignEmailBody, current_user: Annot
 
 # ─── Internal notes endpoints ─────────────────────────────────────────────────
 
+def _verify_email_in_org(email_id: str, org_id: str) -> None:
+    """Raise 404 if the email does not belong to any member of this org."""
+    supabase = get_supabase()
+    members = supabase.table("user_profiles").select("id").eq("org_id", org_id).execute()
+    member_ids = [m["id"] for m in (members.data or [])]
+    if not member_ids:
+        raise HTTPException(status_code=404, detail="Email not found.")
+    email_row = supabase.table("emails").select("id").eq("id", email_id).in_("user_id", member_ids).execute()
+    if not email_row.data:
+        raise HTTPException(status_code=404, detail="Email not found.")
+
+
 @router.get("/notes/{email_id}")
 async def get_notes(email_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """Get all internal notes for an email."""
     uid = _uid(current_user)
     user_data = _get_user_org(uid)
-    _require_org(user_data)
+    org_id = _require_org(user_data)
+    _verify_email_in_org(email_id, org_id)
 
     supabase = get_supabase()
     notes = supabase.table("internal_notes").select(
@@ -256,6 +269,7 @@ async def add_note(email_id: str, body: InternalNoteBody, current_user: Annotate
     uid = _uid(current_user)
     user_data = _get_user_org(uid)
     org_id = _require_org(user_data)
+    _verify_email_in_org(email_id, org_id)
 
     supabase = get_supabase()
     result = supabase.table("internal_notes").insert({

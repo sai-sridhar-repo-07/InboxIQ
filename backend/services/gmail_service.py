@@ -1,4 +1,6 @@
 import base64
+import hashlib
+import hmac
 import json
 import logging
 from datetime import datetime, timezone
@@ -44,12 +46,30 @@ def _build_flow() -> Flow:
 # OAuth helpers
 # ---------------------------------------------------------------------------
 
+def _sign_state(user_id: str) -> str:
+    """Return 'user_id:hmac' — verifiable without a DB round-trip."""
+    sig = hmac.new(settings.SECRET_KEY.encode(), user_id.encode(), hashlib.sha256).hexdigest()
+    return f"{user_id}:{sig}"
+
+
+def verify_state(state: str) -> str:
+    """Verify the state param and return the embedded user_id, or raise ValueError."""
+    try:
+        user_id, sig = state.rsplit(":", 1)
+    except ValueError:
+        raise ValueError("Malformed OAuth state parameter.")
+    expected = hmac.new(settings.SECRET_KEY.encode(), user_id.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(sig, expected):
+        raise ValueError("OAuth state signature mismatch — possible CSRF attempt.")
+    return user_id
+
+
 def get_oauth_url(user_id: str) -> str:
     """Generate the Google OAuth consent URL for the given user."""
     flow = _build_flow()
     auth_url, _ = flow.authorization_url(
         access_type="offline",
-        state=user_id,
+        state=_sign_state(user_id),
         prompt="consent",
     )
     return auth_url

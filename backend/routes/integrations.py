@@ -13,6 +13,7 @@ from services.gmail_service import (
     exchange_code,
     get_gmail_tokens,
     get_oauth_url,
+    verify_state,
 )
 from services.slack_service import test_webhook
 
@@ -46,11 +47,12 @@ async def gmail_callback(request: Request, code: str, state: str):
     *state* carries the user_id set during the consent URL generation.
     Redirects the browser to the frontend after completing the exchange.
     """
-    user_id = state
-    if not user_id:
+    try:
+        user_id = verify_state(state)
+    except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing user identifier in OAuth state.",
+            detail=str(exc),
         )
 
     try:
