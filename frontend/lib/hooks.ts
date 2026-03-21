@@ -122,7 +122,7 @@ export function useBillingStatus(options?: SWRConfiguration) {
   return useSWR<BillingStatus>(
     key,
     () => billingApi.getBillingStatus(),
-    { ...defaultOptions, refreshInterval: 300000, ...options }
+    { ...defaultOptions, refreshInterval: 60000, revalidateOnMount: true, ...options }
   );
 }
 

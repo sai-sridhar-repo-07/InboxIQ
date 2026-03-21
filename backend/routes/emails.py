@@ -75,6 +75,7 @@ async def email_analytics(current_user: Annotated[dict, Depends(get_current_user
 
 
 async def _get_emails_used_this_month(user_id: str) -> int:
+    """Count AI-processed emails this calendar month for plan limit enforcement."""
     from datetime import timezone
     supabase = get_supabase()
     now = datetime.now(timezone.utc)
@@ -83,6 +84,7 @@ async def _get_emails_used_this_month(user_id: str) -> int:
         supabase.table("emails")
         .select("id", count="exact")
         .eq("user_id", user_id)
+        .eq("processed", True)
         .gte("created_at", month_start)
         .execute()
     )

@@ -280,13 +280,14 @@ async def get_subscription_status(user_id: str) -> dict:
             except Exception as exc:
                 logger.warning("Could not retrieve Stripe subscription %s: %s", subscription_id, exc)
 
-        # Count emails processed this calendar month
+        # Count AI-processed emails this calendar month
         now = datetime.now(timezone.utc)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
         usage_result = (
             supabase.table("emails")
             .select("id", count="exact")
             .eq("user_id", user_id)
+            .eq("processed", True)
             .gte("created_at", month_start)
             .execute()
         )
