@@ -83,8 +83,19 @@ export default function BillingPage() {
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [loadingPlan, setLoadingPlan] = useState<PlanId | null>(null);
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [stripeConfig, setStripeConfig] = useState<Record<string, string | boolean> | null>(null);
 
   const { data: billing, isLoading: billingLoading, error: billingError } = useBillingStatus();
+
+  // Check Stripe env var configuration on mount
+  useEffect(() => {
+    if (!session) return;
+    import('@/lib/api').then(({ default: api }) => {
+      api.get('/api/billing/stripe-check')
+        .then(r => setStripeConfig(r.data))
+        .catch(() => {});
+    });
+  }, [session]);
 
   useEffect(() => {
     if (!sessionLoading && !session) {
@@ -151,6 +162,27 @@ export default function BillingPage() {
       </Head>
       <Layout title="Billing & Plans">
         <div className="max-w-4xl mx-auto space-y-6">
+          {/* Stripe misconfiguration warning */}
+          {stripeConfig && (!stripeConfig.STRIPE_SECRET_KEY || stripeConfig.STRIPE_PRO_PRICE_ID === 'NOT SET') && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Stripe not fully configured</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                    Set these environment variables in your <strong>Render dashboard</strong> to enable payments:
+                  </p>
+                  <ul className="mt-2 space-y-0.5 text-xs font-mono text-amber-800 dark:text-amber-300">
+                    {!stripeConfig.STRIPE_SECRET_KEY && <li>• STRIPE_SECRET_KEY — missing</li>}
+                    {stripeConfig.STRIPE_PRO_PRICE_ID === 'NOT SET' && <li>• STRIPE_PRO_PRICE_ID — missing</li>}
+                    {stripeConfig.STRIPE_AGENCY_PRICE_ID === 'NOT SET' && <li>• STRIPE_AGENCY_PRICE_ID — missing</li>}
+                    {stripeConfig.FRONTEND_URL === 'NOT SET' && <li>• FRONTEND_URL — missing</li>}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Current plan card */}
           {billing && (
             <div className="card p-6">
