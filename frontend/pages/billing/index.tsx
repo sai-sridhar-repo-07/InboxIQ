@@ -39,7 +39,7 @@ const PLANS: Plan[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price_monthly: 29,
+    price_monthly: 199,
     email_limit: null,
     gmail_accounts: 5,
     features: [
@@ -54,7 +54,7 @@ const PLANS: Plan[] = [
   {
     id: 'agency',
     name: 'Agency',
-    price_monthly: 79,
+    price_monthly: 1499,
     email_limit: null,
     gmail_accounts: 999,
     features: [
@@ -341,7 +341,7 @@ export default function BillingPage() {
                       <div>
                         <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{plan.name}</h3>
                         <div className="flex items-baseline gap-0.5">
-                          <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">${plan.price_monthly}</span>
+                          <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">₹{plan.price_monthly}</span>
                           <span className="text-xs text-gray-400 dark:text-gray-500">/mo</span>
                         </div>
                       </div>

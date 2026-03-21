@@ -23,8 +23,8 @@ PLAN_LIMITS: dict[str, int | None] = {
 
 PLAN_DETAILS: dict[str, dict] = {
     "free":   {"name": "Free",   "price_monthly": 0},
-    "pro":    {"name": "Pro",    "price_monthly": 29},
-    "agency": {"name": "Agency", "price_monthly": 79},
+    "pro":    {"name": "Pro",    "price_monthly": 199},
+    "agency": {"name": "Agency", "price_monthly": 1499},
 }
 
 
