@@ -87,6 +87,8 @@ async def gmail_status(current_user: Annotated[dict, Depends(get_current_user)])
     return {
         "gmail_connected": connected,
         "gmail_address": tokens.get("gmail_address") if tokens else None,
+        "last_sync": tokens.get("last_sync") if tokens else None,
+        "total_synced": tokens.get("total_synced") if tokens else None,
     }
 
 

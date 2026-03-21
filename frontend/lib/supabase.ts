@@ -15,5 +15,3 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     storageKey: 'mailair-auth',
   },
 });
-
-export const supabaseAdmin = createClient(supabaseUrl, supabaseKey);

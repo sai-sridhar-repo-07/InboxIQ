@@ -269,7 +269,7 @@ export const actionsApi = {
     id: string,
     updates: { status?: ActionStatus; notes?: string; deadline?: string }
   ): Promise<Action> => {
-    const { data } = await api.patch(`/api/actions/${id}`, updates);
+    const { data } = await api.put(`/api/actions/${id}`, updates);
     return data;
   },
 
