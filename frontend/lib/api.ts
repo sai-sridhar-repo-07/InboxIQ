@@ -261,7 +261,7 @@ export const actionsApi = {
   },
 
   getEmailActions: async (emailId: string): Promise<Action[]> => {
-    const { data } = await api.get(`/api/emails/${emailId}/actions`);
+    const { data } = await api.get(`/api/actions/email/${emailId}`);
     return data;
   },
 
@@ -382,7 +382,7 @@ export const billingApi = {
   },
 
   createPortalSession: async (): Promise<{ portal_url: string }> => {
-    const { data } = await api.post('/api/billing/portal');
+    const { data } = await api.get('/api/billing/portal');
     return data;
   },
 };
