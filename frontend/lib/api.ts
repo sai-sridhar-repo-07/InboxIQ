@@ -51,13 +51,11 @@ api.interceptors.request.use(
 // Response interceptor: normalize errors
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      await supabase.auth.signOut();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/auth/signin';
-      }
-    }
+  (error) => {
+    // Do NOT call signOut() here — that would wipe the localStorage session
+    // on any transient 401 (e.g. token not yet attached when SWR fires on mount),
+    // causing an infinite signout→redirect→signin loop.
+    // The Layout auth guard handles redirecting unauthenticated users.
     return Promise.reject(error);
   }
 );

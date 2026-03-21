@@ -84,15 +84,12 @@ export default function EmailListPage() {
     sort_order: 'desc',
   });
 
-  if (sessionLoading) return <LoadingSpinner fullPage />;
-  if (!session) return null;
-
   const rules = loadRules();
   const emails = (data?.items ?? []).map((e) => applyRules(e as unknown as Record<string, unknown>, rules) as unknown as Email);
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  // Thread grouping
+  // Thread grouping — must be before any conditional returns (Rules of Hooks)
   const displayEmails: Array<Email & { threadCount?: number }> = useMemo(() => {
     if (!threadView) return emails;
     const threadMap = new Map<string, Email[]>();
@@ -111,6 +108,10 @@ export default function EmailListPage() {
     result.sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime());
     return result;
   }, [emails, threadView]);
+
+  // All hooks above — safe to return early now
+  if (sessionLoading) return <LoadingSpinner fullPage />;
+  if (!session) return null;
 
   const handleSync = async () => {
     setSyncing(true);

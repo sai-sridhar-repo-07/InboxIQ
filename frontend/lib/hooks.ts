@@ -1,4 +1,5 @@
 import useSWR, { SWRConfiguration } from 'swr';
+import { useSessionContext } from '@supabase/auth-helpers-react';
 import {
   emailsApi,
   actionsApi,
@@ -26,10 +27,18 @@ const defaultOptions: SWRConfiguration = {
   shouldRetryOnError: false,
 };
 
+// Returns null (suspends SWR) until the session is confirmed loaded.
+// This prevents unauthenticated API calls that would fail with 401.
+function useReadyKey(key: unknown) {
+  const { isLoading, session } = useSessionContext();
+  if (isLoading || !session) return null;
+  return key;
+}
+
 // ─── Email Hooks ──────────────────────────────────────────────────────────────
 
 export function useEmails(filters: EmailFilters = {}, options?: SWRConfiguration) {
-  const key = ['emails', JSON.stringify(filters)];
+  const key = useReadyKey(['emails', JSON.stringify(filters)]);
   return useSWR<PaginatedResponse<Email>>(
     key,
     () => emailsApi.getEmails(filters),
@@ -38,24 +47,27 @@ export function useEmails(filters: EmailFilters = {}, options?: SWRConfiguration
 }
 
 export function useEmail(id: string | null | undefined, options?: SWRConfiguration) {
+  const key = useReadyKey(id ? ['email', id] : null);
   return useSWR<Email>(
-    id ? ['email', id] : null,
+    key,
     () => emailsApi.getEmail(id!),
     { ...defaultOptions, ...options }
   );
 }
 
 export function useEmailStats(options?: SWRConfiguration) {
+  const key = useReadyKey('email-stats');
   return useSWR<EmailStats>(
-    'email-stats',
+    key,
     () => emailsApi.getEmailStats(),
     { ...defaultOptions, refreshInterval: 60000, ...options }
   );
 }
 
 export function usePriorityInbox(options?: SWRConfiguration) {
+  const key = useReadyKey('priority-inbox');
   return useSWR<PriorityInbox>(
-    'priority-inbox',
+    key,
     () => emailsApi.getPriorityInbox(),
     { ...defaultOptions, refreshInterval: 30000, ...options }
   );
@@ -64,7 +76,7 @@ export function usePriorityInbox(options?: SWRConfiguration) {
 // ─── Actions Hooks ────────────────────────────────────────────────────────────
 
 export function useActions(filters: ActionFilters = {}, options?: SWRConfiguration) {
-  const key = ['actions', JSON.stringify(filters)];
+  const key = useReadyKey(['actions', JSON.stringify(filters)]);
   return useSWR<Action[]>(
     key,
     () => actionsApi.getActions(filters),
@@ -73,8 +85,9 @@ export function useActions(filters: ActionFilters = {}, options?: SWRConfigurati
 }
 
 export function useEmailActions(emailId: string | null | undefined, options?: SWRConfiguration) {
+  const key = useReadyKey(emailId ? ['email-actions', emailId] : null);
   return useSWR<Action[]>(
-    emailId ? ['email-actions', emailId] : null,
+    key,
     () => actionsApi.getEmailActions(emailId!),
     { ...defaultOptions, ...options }
   );
@@ -83,8 +96,9 @@ export function useEmailActions(emailId: string | null | undefined, options?: SW
 // ─── Reply Hooks ──────────────────────────────────────────────────────────────
 
 export function useReplyDraft(emailId: string | null | undefined, options?: SWRConfiguration) {
+  const key = useReadyKey(emailId ? ['reply-draft', emailId] : null);
   return useSWR<ReplyDraft>(
-    emailId ? ['reply-draft', emailId] : null,
+    key,
     () => repliesApi.getReplyDraft(emailId!),
     { ...defaultOptions, ...options }
   );
@@ -93,8 +107,9 @@ export function useReplyDraft(emailId: string | null | undefined, options?: SWRC
 // ─── Settings Hooks ───────────────────────────────────────────────────────────
 
 export function useSettings(options?: SWRConfiguration) {
+  const key = useReadyKey('settings');
   return useSWR<UserSettings>(
-    'settings',
+    key,
     () => settingsApi.getSettings(),
     { ...defaultOptions, ...options }
   );
@@ -103,8 +118,9 @@ export function useSettings(options?: SWRConfiguration) {
 // ─── Billing Hooks ────────────────────────────────────────────────────────────
 
 export function useBillingStatus(options?: SWRConfiguration) {
+  const key = useReadyKey('billing-status');
   return useSWR<BillingStatus>(
-    'billing-status',
+    key,
     () => billingApi.getBillingStatus(),
     { ...defaultOptions, refreshInterval: 300000, ...options }
   );
@@ -113,8 +129,9 @@ export function useBillingStatus(options?: SWRConfiguration) {
 // ─── Integration Hooks ────────────────────────────────────────────────────────
 
 export function useGmailStatus(options?: SWRConfiguration) {
+  const key = useReadyKey('gmail-status');
   return useSWR<GmailStatus>(
-    'gmail-status',
+    key,
     () => integrationsApi.getGmailStatus(),
     { ...defaultOptions, refreshInterval: 60000, ...options }
   );
