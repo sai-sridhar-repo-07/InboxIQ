@@ -16,7 +16,7 @@ import { ErrorCard } from '@/components/ErrorBoundary';
 import CategoryBadge from '@/components/CategoryBadge';
 import BatchActionBar from '@/components/BatchActionBar';
 import BulkSummaryModal from '@/components/BulkSummaryModal';
-import { useEmails } from '@/lib/hooks';
+import { useEmails, useBillingStatus } from '@/lib/hooks';
 import { emailsApi } from '@/lib/api';
 import { loadRules, applyRules } from '@/lib/rules';
 import type { EmailCategory, PriorityLevel, Email } from '@/lib/types';
@@ -74,6 +74,7 @@ export default function EmailListPage() {
     setPage(1);
   }, [router.query.category, router.query.priority_level]);
 
+  const { mutate: refreshBilling } = useBillingStatus();
   const { data, isLoading, error, mutate } = useEmails({
     category,
     priority_level: priorityLevel,
@@ -376,6 +377,7 @@ export default function EmailListPage() {
                   <EmailCard
                     email={email}
                     onDismiss={() => mutate()}
+                    onProcessed={() => { mutate(); refreshBilling(); }}
                     selected={selectionMode ? selectedIds.has(email.id) : undefined}
                     onToggleSelect={selectionMode ? () => toggleSelect(email.id) : undefined}
                   />

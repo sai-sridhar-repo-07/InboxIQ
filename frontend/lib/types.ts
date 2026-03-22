@@ -42,6 +42,7 @@ export interface Email {
   is_starred: boolean;
   snooze_until?: string | null;
   labels: string[];
+  processed?: boolean;
   ai_analysis?: AIAnalysis;
   action_count?: number;
   created_at: string;

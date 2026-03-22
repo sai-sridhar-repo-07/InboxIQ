@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronRight, CheckSquare, Paperclip, X, Star, AlarmClock } from 'lucide-react';
+import { ChevronRight, CheckSquare, Paperclip, X, Star, AlarmClock, Zap, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import type { Email } from '@/lib/types';
@@ -14,6 +14,7 @@ interface EmailCardProps {
   email: Email;
   className?: string;
   onDismiss?: (id: string) => void;
+  onProcessed?: () => void;
   selected?: boolean;
   onToggleSelect?: () => void;
 }
@@ -35,9 +36,10 @@ function getGradient(name: string) {
   return AVATAR_GRADIENTS[code];
 }
 
-export default function EmailCard({ email, className, onDismiss, selected, onToggleSelect }: EmailCardProps) {
+export default function EmailCard({ email, className, onDismiss, onProcessed, selected, onToggleSelect }: EmailCardProps) {
   const router = useRouter();
   const [dismissing, setDismissing] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [starred, setStarred] = useState(email.is_starred);
   const [snoozeOpen, setSnoozeOpen] = useState(false);
 
@@ -68,6 +70,21 @@ export default function EmailCard({ email, className, onDismiss, selected, onTog
     } catch {
       setStarred(!next); // revert
       toast.error('Failed to update star');
+    }
+  };
+
+  const handleProcess = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setProcessing(true);
+    try {
+      await emailsApi.processEmail(email.id);
+      toast.success('Processing with AI…');
+      onProcessed?.();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(msg || 'Failed to process email');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -181,6 +198,17 @@ export default function EmailCard({ email, className, onDismiss, selected, onTog
 
           {/* Badges row */}
           <div className="mt-2 flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            {/* Process with AI button — only shown for unprocessed emails */}
+            {!email.processed && !email.ai_analysis && (
+              <button
+                onClick={handleProcess}
+                disabled={processing}
+                className="inline-flex items-center gap-1 rounded-full bg-primary-50 dark:bg-primary-900/30 px-2 py-0.5 text-xs font-medium text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-700 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+              >
+                {processing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+                {processing ? 'Processing…' : 'Process with AI'}
+              </button>
+            )}
             {analysis?.category && (
               <CategoryBadge category={analysis.category} size="sm" />
             )}

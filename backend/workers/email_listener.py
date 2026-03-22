@@ -36,14 +36,11 @@ async def _get_gmail_connected_users() -> list[str]:
         return []
 
 
-async def _process_user_emails(user_id: str) -> None:
+async def _sync_user_emails(user_id: str) -> None:
     """
-    Fetch unread Gmail messages for one user, store new ones in Supabase,
-    then queue AI processing.
+    Fetch unread Gmail messages for one user and store new ones in Supabase.
+    Does NOT run AI processing — users trigger that manually per email.
     """
-    # Import here to avoid circular dependency at module load time
-    from services.ai_processor import process_email as ai_process
-
     try:
         raw_emails = await fetch_new_emails(user_id=user_id)
         if not raw_emails:
@@ -78,9 +75,51 @@ async def _process_user_emails(user_id: str) -> None:
                 thread_id=raw.get("thread_id"),
             )
 
+            await create_email(email_create)
+
+
+async def _process_user_emails(user_id: str) -> None:
+    """
+    Fetch and store emails, then auto-run AI processing.
+    Used by the background poll (poll_all_users) — not triggered by manual sync.
+    """
+    from services.ai_processor import process_email as ai_process
+
+    try:
+        raw_emails = await fetch_new_emails(user_id=user_id)
+        if not raw_emails:
+            return
+
+        logger.info("Fetched %d emails for user_id=%s", len(raw_emails), user_id)
+
+        supabase = get_supabase()
+
+        for raw in raw_emails:
+            gmail_message_id = raw.get("gmail_message_id")
+
+            if gmail_message_id:
+                existing = (
+                    supabase.table("emails")
+                    .select("id")
+                    .eq("gmail_message_id", gmail_message_id)
+                    .eq("user_id", user_id)
+                    .execute()
+                )
+                if existing.data:
+                    continue
+
+            email_create = EmailCreate(
+                user_id=user_id,
+                subject=raw.get("subject", "(No Subject)"),
+                sender=raw.get("sender", ""),
+                body=raw.get("body", ""),
+                received_at=raw.get("received_at"),
+                gmail_message_id=gmail_message_id,
+                thread_id=raw.get("thread_id"),
+            )
+
             stored = await create_email(email_create)
             if stored:
-                # Run AI pipeline asynchronously — don't block the listener
                 asyncio.create_task(ai_process(stored))
 
     except Exception as exc:
