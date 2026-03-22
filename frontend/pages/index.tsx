@@ -558,30 +558,27 @@ function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
             <ul className="space-y-2">
-              {['Features', 'Pricing', 'Integrations', 'Changelog'].map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">{item}</a>
-                </li>
-              ))}
+              <li><Link href="/#features" className="text-sm text-gray-400 hover:text-white transition-colors">Features</Link></li>
+              <li><Link href="/#pricing" className="text-sm text-gray-400 hover:text-white transition-colors">Pricing</Link></li>
+              <li><Link href="/integrations" className="text-sm text-gray-400 hover:text-white transition-colors">Integrations</Link></li>
+              <li><Link href="/changelog" className="text-sm text-gray-400 hover:text-white transition-colors">Changelog</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Resources</h4>
             <ul className="space-y-2">
-              {['Docs', 'Blog', 'Support', 'Status'].map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">{item}</a>
-                </li>
-              ))}
+              <li><Link href="/docs" className="text-sm text-gray-400 hover:text-white transition-colors">Docs</Link></li>
+              <li><Link href="/support" className="text-sm text-gray-400 hover:text-white transition-colors">Support</Link></li>
+              <li><Link href="/status" className="text-sm text-gray-400 hover:text-white transition-colors">Status</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
             <ul className="space-y-2">
               <li><Link href="/privacy" className="text-sm text-gray-400 hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/privacy" className="text-sm text-gray-400 hover:text-white transition-colors">Terms of Service</Link></li>
-              <li><a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Cookie Policy</a></li>
-              <li><a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">GDPR</a></li>
+              <li><Link href="/terms" className="text-sm text-gray-400 hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><Link href="/cookies" className="text-sm text-gray-400 hover:text-white transition-colors">Cookie Policy</Link></li>
+              <li><Link href="/gdpr" className="text-sm text-gray-400 hover:text-white transition-colors">GDPR</Link></li>
             </ul>
           </div>
         </div>
