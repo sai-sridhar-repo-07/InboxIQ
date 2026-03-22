@@ -35,7 +35,7 @@ function Navbar() {
             <a href="#how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">How It Works</a>
             <a href="#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
             <Link href="/auth/signin" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Sign In</Link>
-            <Link href="/auth/signup" className="btn-primary text-sm">Start Free</Link>
+            <a href="#waitlist" className="btn-primary text-sm">Join Waitlist</a>
           </div>
           <button
             className="md:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
@@ -51,7 +51,7 @@ function Navbar() {
           <a href="#how-it-works" className="block text-sm text-gray-600" onClick={() => setMobileOpen(false)}>How It Works</a>
           <a href="#pricing" className="block text-sm text-gray-600" onClick={() => setMobileOpen(false)}>Pricing</a>
           <Link href="/auth/signin" className="block text-sm text-gray-600">Sign In</Link>
-          <Link href="/auth/signup" className="btn-primary text-sm w-full justify-center">Start Free</Link>
+          <a href="#waitlist" className="btn-primary text-sm w-full justify-center">Join Waitlist</a>
         </div>
       )}
     </nav>
@@ -80,13 +80,13 @@ function Hero() {
             Never miss an urgent client message, auto-draft replies, and extract action items — all with AI.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/auth/signup"
+            <a
+              href="#waitlist"
               className="btn-primary text-base px-8 py-3 shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40"
             >
-              Start Free — No Credit Card
+              Join the Waitlist
               <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
+            </a>
             <a
               href="#how-it-works"
               className="btn-secondary text-base px-8 py-3"
@@ -94,7 +94,7 @@ function Hero() {
               View Demo
             </a>
           </div>
-          <p className="mt-4 text-sm text-gray-400">Free for up to 5 AI-processed emails · No credit card · Setup in 2 minutes</p>
+          <p className="mt-4 text-sm text-gray-400">Coming soon · Join the waitlist to get early access</p>
         </div>
 
         {/* Dashboard Mockup */}
@@ -327,8 +327,8 @@ const plans = [
       'Action item extraction',
       'Priority inbox',
     ],
-    cta: 'Get Started Free',
-    href: '/auth/signup',
+    cta: 'Join Waitlist',
+    href: '#waitlist',
     highlight: false,
   },
   {
@@ -346,8 +346,8 @@ const plans = [
       'Slack notifications',
       'Priority support',
     ],
-    cta: 'Upgrade to Pro',
-    href: '/auth/signup?plan=pro',
+    cta: 'Join Waitlist',
+    href: '#waitlist',
     highlight: true,
     badge: 'Most Popular',
   },
@@ -366,8 +366,8 @@ const plans = [
       'API access',
       'Dedicated support',
     ],
-    cta: 'Upgrade to Agency',
-    href: '/auth/signup?plan=agency',
+    cta: 'Join Waitlist',
+    href: '#waitlist',
     highlight: false,
   },
 ];
@@ -431,7 +431,7 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <Link
+              <a
                 href={plan.href}
                 className={`mt-8 block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all ${
                   plan.highlight
@@ -440,7 +440,7 @@ function Pricing() {
                 }`}
               >
                 {plan.cta}
-              </Link>
+              </a>
             </div>
           ))}
         </div>
@@ -538,7 +538,7 @@ function CTABanner() {
   };
 
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary-600 to-primary-800">
+    <section id="waitlist" className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary-600 to-primary-800">
       <div className="mx-auto max-w-2xl text-center">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-white">
           <Zap className="h-4 w-4 text-yellow-300" />
