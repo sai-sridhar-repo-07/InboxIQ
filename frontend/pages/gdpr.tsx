@@ -83,7 +83,7 @@ export default function GDPRPage() {
         <h2 style={s.h2}>9. Complaints</h2>
         <p style={s.p}>If you believe we have not handled your data correctly, you have the right to lodge a complaint with your local data protection authority.</p>
 
-        <p style={{ ...s.meta, marginTop: 48, borderTop: '1px solid #e5e7eb', paddingTop: 24 }}>© 2025 Mailair. All rights reserved.</p>
+        <p style={{ ...s.meta, marginTop: 48, borderTop: '1px solid #e5e7eb', paddingTop: 24, textAlign: 'center' }}>© 2025 Mailair. All rights reserved.</p>
       </div>
       </div>
     </>

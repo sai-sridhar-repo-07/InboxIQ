@@ -83,7 +83,7 @@ export default function TermsOfService() {
         <h2 style={s.h2}>12. Contact</h2>
         <p style={s.p}>For questions about these Terms, contact us at: <a href="mailto:saisridhart@gmail.com" style={{ color: '#2563eb' }}>saisridhart@gmail.com</a></p>
 
-        <p style={{ ...s.meta, marginTop: 48, borderTop: '1px solid #e5e7eb', paddingTop: 24 }}>© 2025 Mailair. All rights reserved.</p>
+        <p style={{ ...s.meta, marginTop: 48, borderTop: '1px solid #e5e7eb', paddingTop: 24, textAlign: 'center' }}>© 2025 Mailair. All rights reserved.</p>
       </div>
       </div>
     </>

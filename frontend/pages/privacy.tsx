@@ -112,7 +112,7 @@ export default function PrivacyPolicy() {
         </p>
 
         <hr style={{ margin: '48px 0', borderColor: '#e5e7eb' }} />
-        <p style={{ color: '#999', fontSize: 13 }}>© 2025 Mailair. All rights reserved.</p>
+        <p style={{ color: '#999', fontSize: 13, textAlign: 'center' }}>© 2025 Mailair. All rights reserved.</p>
       </div>
       </div>
     </>
