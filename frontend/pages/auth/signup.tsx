@@ -55,14 +55,6 @@ export default function SignupPage() {
               </li>
             ))}
           </ul>
-          {plan && (
-            <div className="mt-10 rounded-xl bg-white/10 border border-white/20 px-5 py-4">
-              <p className="text-white text-sm font-semibold">
-                You are signing up for the <span className="capitalize">{plan}</span> plan.
-              </p>
-              <p className="text-primary-200 text-xs mt-1">You can change your plan any time from billing settings.</p>
-            </div>
-          )}
         </div>
 
         {/* Right Panel */}
