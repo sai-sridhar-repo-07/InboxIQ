@@ -115,7 +115,7 @@ function Hero() {
               <div className="w-14 sm:w-52 bg-white border-r border-gray-100 p-3 flex flex-col gap-2">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-6 w-6 rounded-md bg-primary-600 flex-shrink-0" />
-                  <span className="hidden sm:block text-xs font-bold text-gray-900">Thread<span className="text-primary-600">ly</span></span>
+                  <span className="hidden sm:block text-xs font-bold text-gray-900">Mail<span className="text-primary-600">air</span></span>
                 </div>
                 {['Dashboard','Inbox','Actions','Settings'].map((item, i) => (
                   <div
