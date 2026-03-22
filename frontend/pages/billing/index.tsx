@@ -29,7 +29,7 @@ const PLANS: Plan[] = [
     email_limit: 5,
     gmail_accounts: 1,
     features: [
-      '5 emails/month',
+      '5 AI-processed emails/month',
       '1 Gmail account',
       'Basic AI categorization',
       'Action item extraction',
@@ -351,8 +351,12 @@ export default function BillingPage() {
                       <div>
                         <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{plan.name}</h3>
                         <div className="flex items-baseline gap-0.5">
-                          <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">₹{plan.price_monthly}</span>
-                          <span className="text-xs text-gray-400 dark:text-gray-500">/mo</span>
+                          <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+                            {plan.price_monthly === 0 ? 'Free' : `₹${plan.price_monthly.toLocaleString()}`}
+                          </span>
+                          {plan.price_monthly > 0 && (
+                            <span className="text-xs text-gray-400 dark:text-gray-500">/mo</span>
+                          )}
                         </div>
                       </div>
                     </div>

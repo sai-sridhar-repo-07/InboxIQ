@@ -94,7 +94,7 @@ function Hero() {
               View Demo
             </a>
           </div>
-          <p className="mt-4 text-sm text-gray-400">Free for up to 100 emails/month · Setup in 2 minutes</p>
+          <p className="mt-4 text-sm text-gray-400">Free for up to 5 AI-processed emails · No credit card · Setup in 2 minutes</p>
         </div>
 
         {/* Dashboard Mockup */}
@@ -265,8 +265,8 @@ function HowItWorks() {
     {
       step: '02',
       icon: Zap,
-      title: 'AI reads and categorizes',
-      description: 'Our AI engine reads every incoming email, categorizes it, extracts action items, scores priority, and drafts a reply — in seconds.',
+      title: 'Click to process with AI',
+      description: 'Click "Process with AI" on any email. Our AI categorizes it, extracts action items, scores priority, and drafts a reply — in seconds. You stay in control of your usage.',
       color: 'bg-purple-600',
     },
     {
@@ -317,10 +317,11 @@ const plans = [
     id: 'free',
     name: 'Free',
     price: 0,
+    currency: '',
     period: '/month',
     description: 'Perfect for individuals just getting started.',
     features: [
-      '100 emails/month',
+      '5 AI-processed emails/month',
       '1 Gmail account',
       'Basic AI categorization',
       'Action item extraction',
@@ -333,18 +334,19 @@ const plans = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 29,
+    price: 199,
+    currency: '₹',
     period: '/month',
     description: 'For growing service businesses.',
     features: [
-      'Unlimited emails',
+      'Unlimited AI-processed emails',
       '5 Gmail accounts',
       'Advanced AI models',
       'Smart reply drafts',
       'Slack notifications',
       'Priority support',
     ],
-    cta: 'Start Pro Free Trial',
+    cta: 'Upgrade to Pro',
     href: '/auth/signup?plan=pro',
     highlight: true,
     badge: 'Most Popular',
@@ -352,18 +354,19 @@ const plans = [
   {
     id: 'agency',
     name: 'Agency',
-    price: 79,
+    price: 1499,
+    currency: '₹',
     period: '/month',
     description: 'For agencies and teams.',
     features: [
       'Everything in Pro',
       'Unlimited Gmail accounts',
       'Team member access',
-      'Custom AI training',
+      'CRM integrations (HubSpot, Salesforce)',
       'API access',
       'Dedicated support',
     ],
-    cta: 'Contact Sales',
+    cta: 'Upgrade to Agency',
     href: '/auth/signup?plan=agency',
     highlight: false,
   },
@@ -404,11 +407,13 @@ function Pricing() {
               </p>
               <div className="mt-6 flex items-baseline gap-1">
                 <span className={`text-5xl font-extrabold ${plan.highlight ? 'text-white' : 'text-gray-900'}`}>
-                  ${plan.price}
+                  {plan.price === 0 ? 'Free' : `${plan.currency}${plan.price.toLocaleString()}`}
                 </span>
-                <span className={`text-sm ${plan.highlight ? 'text-primary-200' : 'text-gray-500'}`}>
-                  {plan.period}
-                </span>
+                {plan.price > 0 && (
+                  <span className={`text-sm ${plan.highlight ? 'text-primary-200' : 'text-gray-500'}`}>
+                    {plan.period}
+                  </span>
+                )}
               </div>
               <ul className="mt-8 space-y-3">
                 {plan.features.map((feature) => (
@@ -581,7 +586,7 @@ function Footer() {
           </div>
         </div>
         <div className="mt-12 border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-500">© 2024 Mailair. All rights reserved.</p>
+          <p className="text-sm text-gray-500">© 2025 Mailair. All rights reserved.</p>
           <p className="text-sm text-gray-500">Made with care for service businesses everywhere.</p>
         </div>
       </div>

@@ -9,7 +9,7 @@ import { Zap, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const benefits = [
-  'Free for up to 100 emails/month',
+  'Free for up to 5 AI-processed emails/month',
   'AI email categorization & prioritization',
   'Action item extraction',
   'Smart reply drafts',
