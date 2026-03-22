@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     # Platform admin
     ADMIN_EMAIL: str = "saisridhart@gmail.com"
 
+    # Resend (email sending)
+    RESEND_API_KEY: str = ""
+
     # JWT / Auth
     SECRET_KEY: str
     ALGORITHM: str = "HS256"

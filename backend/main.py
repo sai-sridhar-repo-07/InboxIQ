@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 
 from config import settings
 from limiter import limiter
-from routes import auth, emails, actions, replies, integrations, settings as settings_routes, billing, contacts, outlook, calendar, teams, webhooks as webhooks_routes, autoassign, crm_integrations, admin as admin_routes
+from routes import auth, emails, actions, replies, integrations, settings as settings_routes, billing, contacts, outlook, calendar, teams, webhooks as webhooks_routes, autoassign, crm_integrations, admin as admin_routes, waitlist as waitlist_routes
 from workers.email_listener import start_email_listener, stop_email_listener
 
 # ---------------------------------------------------------------------------
@@ -165,6 +165,7 @@ app.include_router(webhooks_routes.router, prefix="/api")
 app.include_router(autoassign.router, prefix="/api")
 app.include_router(crm_integrations.router, prefix="/api")
 app.include_router(admin_routes.router, prefix="/api")
+app.include_router(waitlist_routes.router)
 
 
 # ---------------------------------------------------------------------------

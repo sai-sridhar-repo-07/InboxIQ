@@ -511,31 +511,80 @@ function Testimonials() {
   );
 }
 
-// ─── CTA Banner ───────────────────────────────────────────────────────────────
+// ─── CTA Banner / Waitlist ────────────────────────────────────────────────────
 function CTABanner() {
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [msg, setMsg] = useState('');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setStatus('loading');
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/waitlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name }),
+      });
+      const data = await res.json();
+      setMsg(data.message || 'You\'re on the list!');
+      setStatus('done');
+    } catch {
+      setMsg('Something went wrong. Please try again.');
+      setStatus('error');
+    }
+  };
+
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary-600 to-primary-700">
-      <div className="mx-auto max-w-4xl text-center">
-        <div className="mb-4 flex justify-center">
-          <Shield className="h-12 w-12 text-primary-200" />
+    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary-600 to-primary-800">
+      <div className="mx-auto max-w-2xl text-center">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-white">
+          <Zap className="h-4 w-4 text-yellow-300" />
+          Coming Soon — Join the Waitlist
         </div>
-        <h2 className="text-4xl font-bold text-white">Start for free today</h2>
-        <p className="mt-4 text-xl text-primary-200 max-w-2xl mx-auto">
-          No credit card required. Connect your Gmail in 2 minutes and let AI take control of your inbox chaos.
+        <h2 className="mt-4 text-4xl font-bold text-white leading-tight">
+          Be first when Mailair launches
+        </h2>
+        <p className="mt-4 text-lg text-primary-200 max-w-xl mx-auto">
+          Drop your email. We'll notify you the moment early access opens — no spam, just the launch email.
         </p>
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            href="/auth/signup"
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-primary-600 shadow-lg hover:bg-primary-50 transition-colors"
-          >
-            Get Started Free
-            <ArrowRight className="h-5 w-5" />
-          </Link>
-          <div className="flex items-center gap-2 text-primary-200 text-sm">
-            <Clock className="h-4 w-4" />
-            Setup takes less than 2 minutes
+
+        {status === 'done' ? (
+          <div className="mt-10 rounded-2xl bg-white/10 border border-white/20 px-8 py-8 text-center">
+            <CheckCircle className="h-12 w-12 text-green-300 mx-auto mb-3" />
+            <p className="text-white text-xl font-bold">You're on the list!</p>
+            <p className="text-primary-200 mt-2">Check your inbox — a confirmation email is on its way.</p>
           </div>
-        </div>
+        ) : (
+          <form onSubmit={submit} className="mt-10 flex flex-col gap-3 max-w-md mx-auto">
+            <input
+              type="text"
+              placeholder="Your name (optional)"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-primary-300 text-base focus:outline-none focus:ring-2 focus:ring-white/40"
+            />
+            <input
+              type="email"
+              placeholder="Your email address"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-primary-300 text-base focus:outline-none focus:ring-2 focus:ring-white/40"
+            />
+            <button
+              type="submit"
+              disabled={status === 'loading'}
+              className="w-full rounded-xl bg-white px-6 py-3.5 text-base font-bold text-primary-700 hover:bg-primary-50 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {status === 'loading' ? 'Joining…' : <>Notify Me at Launch <ArrowRight className="h-5 w-5" /></>}
+            </button>
+            {status === 'error' && <p className="text-red-300 text-sm text-center">{msg}</p>}
+            <p className="text-primary-300 text-xs text-center">No spam. No newsletters. Just the launch email.</p>
+          </form>
+        )}
       </div>
     </section>
   );
