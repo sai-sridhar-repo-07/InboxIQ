@@ -22,10 +22,12 @@ export default function SignupPage() {
   useEffect(() => {
     if (!isLoading && session) {
       router.replace('/dashboard');
+      return;
+    }
+    if (!isLoading && !session) {
+      router.replace('/#waitlist');
     }
   }, [session, isLoading, router]);
-
-  const plan = router.query.plan as string | undefined;
 
   return (
     <>
