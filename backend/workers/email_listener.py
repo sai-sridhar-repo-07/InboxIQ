@@ -77,6 +77,9 @@ async def _sync_user_emails(user_id: str) -> None:
 
             await create_email(email_create)
 
+    except Exception as exc:
+        logger.error("Error syncing emails for user_id=%s: %s", user_id, exc)
+
 
 async def _process_user_emails(user_id: str) -> None:
     """
