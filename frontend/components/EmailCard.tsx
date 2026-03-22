@@ -81,8 +81,13 @@ export default function EmailCard({ email, className, onDismiss, onProcessed, se
       toast.success('Processing with AI…');
       onProcessed?.();
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      toast.error(msg || 'Failed to process email');
+      if (status === 402) {
+        toast.error('Monthly limit reached. Upgrade to Pro for unlimited processing.', { duration: 6000, icon: '⚡' });
+      } else {
+        toast.error(msg || 'Failed to process email');
+      }
     } finally {
       setProcessing(false);
     }

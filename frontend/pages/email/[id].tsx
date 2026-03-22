@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSessionContext } from '@supabase/auth-helpers-react';
 import { format } from 'date-fns';
 import {
@@ -79,6 +79,48 @@ function getFileColor(mimeType: string): string {
   if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return 'text-green-600 bg-green-50';
   if (mimeType.includes('word') || mimeType.includes('document')) return 'text-blue-500 bg-blue-50';
   return 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700';
+}
+
+// Renders HTML email inside a sandboxed iframe that auto-resizes — links open in new tab
+function EmailBodyFrame({ html }: { html: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(300);
+
+  // Inject base target + minimal reset so email CSS doesn't bleed into the page
+  const doc = `<!DOCTYPE html>
+<html>
+<head>
+<base target="_blank">
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #202124; word-break: break-word; }
+  a { color: #1a73e8; }
+  img { max-width: 100%; height: auto; }
+  * { box-sizing: border-box; }
+</style>
+</head>
+<body>${html}</body>
+</html>`;
+
+  const handleLoad = () => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    try {
+      const body = iframe.contentDocument?.body;
+      if (body) setHeight(body.scrollHeight + 24);
+    } catch {}
+  };
+
+  return (
+    <iframe
+      ref={iframeRef}
+      srcDoc={doc}
+      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      onLoad={handleLoad}
+      style={{ width: '100%', height, border: 'none', display: 'block' }}
+      title="Email body"
+    />
+  );
 }
 
 export default function EmailDetailPage() {
@@ -767,13 +809,17 @@ export default function EmailDetailPage() {
             {/* Email body */}
             <div className="mt-5 border-t border-gray-100 dark:border-gray-700 pt-5">
               {email.body_html ? (
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed overflow-x-auto"
-                  dangerouslySetInnerHTML={{ __html: email.body_html }}
-                />
+                <EmailBodyFrame html={email.body_html} />
               ) : (
                 <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 dark:text-gray-300 leading-relaxed break-words">
-                  {email.body_text || email.snippet}
+                  {(email.body_text || email.snippet || '').replace(
+                    /(https?:\/\/[^\s]+)/g,
+                    '$1'
+                  ).split(/(https?:\/\/[^\s]+)/).map((part, i) =>
+                    /^https?:\/\//.test(part)
+                      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary-600 underline break-all">{part}</a>
+                      : part
+                  )}
                 </pre>
               )}
             </div>

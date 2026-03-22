@@ -74,7 +74,7 @@ export default function EmailListPage() {
     setPage(1);
   }, [router.query.category, router.query.priority_level]);
 
-  const { mutate: refreshBilling } = useBillingStatus();
+  const { data: billing, mutate: refreshBilling } = useBillingStatus();
   const { data, isLoading, error, mutate } = useEmails({
     category,
     priority_level: priorityLevel,
@@ -198,6 +198,20 @@ export default function EmailListPage() {
       </Head>
       <Layout title="Inbox">
         <div className="max-w-4xl mx-auto space-y-4">
+          {/* Plan limit banner */}
+          {billing && billing.email_limit !== null && Number(billing.emails_used_this_month) >= Number(billing.email_limit) && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  <strong>You've used all {billing.email_limit} free AI processes this month.</strong> Upgrade to Pro for unlimited processing.
+                </p>
+              </div>
+              <a href="/billing" className="shrink-0 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-1.5 transition-colors">
+                Upgrade
+              </a>
+            </div>
+          )}
           {/* Search and filter bar */}
           <div className="card p-3 flex flex-col sm:flex-row gap-3">
             <button
