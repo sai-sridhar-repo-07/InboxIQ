@@ -7,8 +7,12 @@ export default function PrivacyPolicy() {
       <Head>
         <title>Privacy Policy — Mailair</title>
       </Head>
-      <div style={{ maxWidth: 760, margin: '60px auto', padding: '0 24px', fontFamily: 'sans-serif', lineHeight: 1.7, color: '#1a1a1a' }}>
-        <Link href="/" style={{ color: '#6366f1', textDecoration: 'none', fontSize: 14 }}>← Back to Mailair</Link>
+      <div style={{ background: '#fff', minHeight: '100vh' }}>
+        <nav style={{ borderBottom: '1px solid #e5e7eb', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', background: '#fff' }}>
+          <Link href="/"><img src="/logo.svg" alt="Mailair" style={{ height: 32 }} /></Link>
+        </nav>
+      <div style={{ maxWidth: 760, margin: '60px auto', padding: '0 24px', fontFamily: 'ui-sans-serif, system-ui, sans-serif', lineHeight: 1.8, color: '#1a1a1a' }}>
+        <Link href="/" style={{ color: '#2563eb', textDecoration: 'none', fontSize: 14 }}>← Back to Mailair</Link>
 
         <h1 style={{ marginTop: 32, fontSize: 32, fontWeight: 700 }}>Privacy Policy</h1>
         <p style={{ color: '#666', fontSize: 14 }}>Last updated: March 15, 2026</p>
@@ -16,7 +20,7 @@ export default function PrivacyPolicy() {
         <h2>1. Introduction</h2>
         <p>
           Mailair ("we", "our", or "us") operates the Mailair email management application
-          available at <strong>inbox-iq-lilac.vercel.app</strong>. This Privacy Policy explains
+          available at <strong>mailair.company</strong>. This Privacy Policy explains
           how we collect, use, and protect your information when you use our service.
         </p>
 
@@ -70,7 +74,7 @@ export default function PrivacyPolicy() {
           <li><strong>Anthropic (Claude AI):</strong> Email content is sent to Anthropic's API to generate summaries and reply drafts. Anthropic's privacy policy applies.</li>
           <li><strong>Google:</strong> OAuth tokens are used to access Gmail via the Gmail API.</li>
           <li><strong>Supabase:</strong> Your data is stored in Supabase's secure database infrastructure.</li>
-          <li><strong>Stripe:</strong> Payment information is handled by Stripe. We do not store credit card details.</li>
+          <li><strong>Razorpay:</strong> Payment information is handled by Razorpay. We do not store credit card details.</li>
         </ul>
 
         <h2>7. Data Retention</h2>
@@ -108,7 +112,8 @@ export default function PrivacyPolicy() {
         </p>
 
         <hr style={{ margin: '48px 0', borderColor: '#e5e7eb' }} />
-        <p style={{ color: '#999', fontSize: 13 }}>© 2026 Mailair. All rights reserved.</p>
+        <p style={{ color: '#999', fontSize: 13 }}>© 2025 Mailair. All rights reserved.</p>
+      </div>
       </div>
     </>
   );

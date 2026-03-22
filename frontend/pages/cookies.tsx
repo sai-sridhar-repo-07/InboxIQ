@@ -18,6 +18,10 @@ export default function CookiePolicy() {
   return (
     <>
       <Head><title>Cookie Policy — Mailair</title></Head>
+      <div style={{ background: '#fff', minHeight: '100vh' }}>
+        <nav style={{ borderBottom: '1px solid #e5e7eb', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', background: '#fff' }}>
+          <Link href="/"><img src="/logo.svg" alt="Mailair" style={{ height: 32 }} /></Link>
+        </nav>
       <div style={s.wrap}>
         <Link href="/" style={s.back}>← Back to Mailair</Link>
         <h1 style={s.h1}>Cookie Policy</h1>
@@ -73,6 +77,7 @@ export default function CookiePolicy() {
         <p style={s.p}>Questions about our cookie use? Email us at <a href="mailto:saisridhart@gmail.com" style={{ color: '#2563eb' }}>saisridhart@gmail.com</a></p>
 
         <p style={{ ...s.meta, marginTop: 48, borderTop: '1px solid #e5e7eb', paddingTop: 24 }}>© 2025 Mailair. All rights reserved.</p>
+      </div>
       </div>
     </>
   );
