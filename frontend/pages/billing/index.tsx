@@ -221,16 +221,21 @@ export default function BillingPage() {
                     </p>
                   )}
                 </div>
-                {billing.subscription_id && (
-                  <a
-                    href="https://dashboard.razorpay.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary text-sm gap-2 flex-shrink-0 inline-flex items-center"
+                {billing.subscription_id && billing.subscription_status === 'active' && (
+                  <button
+                    onClick={async () => {
+                      if (!confirm('Are you sure you want to cancel your subscription? You will keep access until the end of your billing period.')) return;
+                      try {
+                        await billingApi.cancelSubscription();
+                        toast.success('Subscription cancelled. Access continues until end of billing period.');
+                      } catch {
+                        toast.error('Failed to cancel subscription. Please try again.');
+                      }
+                    }}
+                    className="btn-secondary text-sm gap-2 flex-shrink-0 inline-flex items-center text-red-600 border-red-200 hover:bg-red-50"
                   >
-                    <ExternalLink className="h-4 w-4" />
-                    Manage Subscription
-                  </a>
+                    Cancel Subscription
+                  </button>
                 )}
               </div>
 

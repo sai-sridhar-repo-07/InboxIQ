@@ -376,6 +376,10 @@ export const billingApi = {
     });
     return data;
   },
+
+  cancelSubscription: async (): Promise<void> => {
+    await api.post('/api/billing/cancel');
+  },
 };
 
 // ─── Outlook Endpoints ────────────────────────────────────────────────────────

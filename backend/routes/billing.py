@@ -8,6 +8,7 @@ from middleware.auth import get_current_user
 from services.razorpay_service import (
     create_subscription,
     get_subscription_status,
+    cancel_subscription,
     handle_webhook,
 )
 
@@ -68,6 +69,29 @@ async def create_checkout(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
 
     return {"checkout_url": url}
+
+
+@router.post("/cancel")
+async def cancel_user_subscription(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Cancel the current user's active Razorpay subscription."""
+    from database import get_supabase
+    supabase = get_supabase()
+    result = (
+        supabase.table("user_profiles")
+        .select("subscription_id")
+        .eq("id", current_user["id"])
+        .single()
+        .execute()
+    )
+    subscription_id = (result.data or {}).get("subscription_id")
+    if not subscription_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active subscription found.")
+    try:
+        await cancel_subscription(subscription_id)
+        return {"message": "Subscription cancelled successfully."}
+    except Exception as exc:
+        logger.error("Cancel subscription error for user %s: %s", current_user["id"], exc)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
 
 
 @router.post("/webhook", include_in_schema=False)

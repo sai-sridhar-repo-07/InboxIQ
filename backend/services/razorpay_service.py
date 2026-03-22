@@ -92,6 +92,19 @@ async def create_subscription(user_id: str, plan_id: str, email: str = "") -> st
 
 
 # ---------------------------------------------------------------------------
+# Cancel subscription
+# ---------------------------------------------------------------------------
+
+async def cancel_subscription(subscription_id: str) -> None:
+    """Cancel a Razorpay subscription at the end of the current billing cycle."""
+    client = _client()
+    try:
+        client.subscription.cancel(subscription_id, {"cancel_at_cycle_end": 1})
+    except Exception as exc:
+        raise RuntimeError(f"Failed to cancel subscription: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
 # Webhook
 # ---------------------------------------------------------------------------
 
