@@ -83,10 +83,6 @@ export default function SigninPage() {
                         messageText: '#374151',
                         messageBackground: '#f9fafb',
                         messageBorder: '#e5e7eb',
-                        // Force white background throughout
-                        backgroundPrimary: '#ffffff',
-                        backgroundSecondary: '#f9fafb',
-                        backgroundAlternative: '#ffffff',
                       },
                       radii: {
                         borderRadiusButton: '0.75rem',

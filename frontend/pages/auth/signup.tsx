@@ -109,9 +109,6 @@ export default function SignupPage() {
                       messageText: '#374151',
                       messageBackground: '#f9fafb',
                       messageBorder: '#e5e7eb',
-                      backgroundPrimary: '#ffffff',
-                      backgroundSecondary: '#f9fafb',
-                      backgroundAlternative: '#ffffff',
                     },
                     radii: {
                       borderRadiusButton: '0.75rem',
