@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     RAZORPAY_PRO_PLAN_ID: str = ""      # plan_xxx from Razorpay dashboard
     RAZORPAY_AGENCY_PLAN_ID: str = ""   # plan_xxx from Razorpay dashboard
 
-    # Frontend base URL (used for Stripe redirect URLs)
+    # Frontend base URL (used for Razorpay checkout callback URLs)
     FRONTEND_URL: str = "http://localhost:3000"
 
     # Platform admin

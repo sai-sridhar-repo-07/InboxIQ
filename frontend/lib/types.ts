@@ -183,7 +183,6 @@ export interface BillingStatus {
   cancel_at_period_end?: boolean;
   emails_used_this_month: number;
   email_limit: number | null;
-  stripe_customer_id?: string;
   subscription_id?: string;
 }
 
