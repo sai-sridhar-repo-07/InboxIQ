@@ -382,6 +382,27 @@ export const billingApi = {
   },
 };
 
+// ─── Platform Admin Endpoints ──────────────────────────────────────────────
+
+export const adminApi = {
+  getStats: async () => {
+    const { data } = await api.get('/api/admin/stats');
+    return data;
+  },
+  getUsers: async () => {
+    const { data } = await api.get('/api/admin/users');
+    return data;
+  },
+  updateUserPlan: async (userId: string, plan: string) => {
+    const { data } = await api.patch(`/api/admin/users/${userId}/plan`, { plan });
+    return data;
+  },
+  getWebhookLogs: async () => {
+    const { data } = await api.get('/api/admin/webhooks');
+    return data;
+  },
+};
+
 // ─── Outlook Endpoints ────────────────────────────────────────────────────────
 
 export const outlookApi = {

@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     # Frontend base URL (used for Stripe redirect URLs)
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # Platform admin
+    ADMIN_EMAIL: str = "saisridhart@gmail.com"
+
     # JWT / Auth
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
