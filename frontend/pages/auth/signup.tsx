@@ -97,7 +97,7 @@ export default function SignupPage() {
                       inputBorderHover: '#d1d5db',
                       inputLabelText: '#374151',
                       inputText: '#111827',
-                      inputPlaceholderText: '#9ca3af',
+                      inputPlaceholder: '#9ca3af',
                       inputBackground: '#ffffff',
                       defaultButtonBackground: '#ffffff',
                       defaultButtonBackgroundHover: '#f9fafb',
