@@ -109,6 +109,7 @@ async def _send_confirmation(email: str, name: str) -> None:
     """
 
     async with httpx.AsyncClient() as client:
+        # Send confirmation to user
         await client.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
@@ -117,6 +118,34 @@ async def _send_confirmation(email: str, name: str) -> None:
                 "to": [email],
                 "subject": "You're on the Mailair waitlist 🎉",
                 "html": html,
+            },
+            timeout=10,
+        )
+        # Notify admin
+        await client.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+            json={
+                "from": "Mailair Waitlist <hello@mailair.company>",
+                "to": ["saisridhart@gmail.com"],
+                "subject": f"🎉 New waitlist signup: {email}",
+                "html": f"""
+                <div style="font-family:sans-serif;max-width:480px;margin:40px auto;background:#f8fafc;border-radius:16px;padding:32px;border:1px solid #e2e8f0;">
+                  <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;">New waitlist signup</h2>
+                  <p style="margin:0 0 20px;color:#64748b;font-size:14px;">Someone just joined the Mailair waitlist.</p>
+                  <table style="width:100%;border-collapse:collapse;">
+                    <tr>
+                      <td style="padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px 8px 0 0;font-size:13px;color:#64748b;font-weight:600;">NAME</td>
+                      <td style="padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-top:none;font-size:14px;color:#0f172a;">{name or "—"}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;font-size:13px;color:#64748b;font-weight:600;">EMAIL</td>
+                      <td style="padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-top:none;font-size:14px;color:#2563eb;">{email}</td>
+                    </tr>
+                  </table>
+                  <p style="margin:24px 0 0;color:#94a3b8;font-size:12px;text-align:center;">Mailair · mailair.company</p>
+                </div>
+                """,
             },
             timeout=10,
         )
