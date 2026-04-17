@@ -145,7 +145,7 @@ export interface GmailStatus {
   connected: boolean;
   email?: string;
   last_sync?: string;
-  total_synced?: number;
+  total_synced?: number | null;
   auth_url?: string;
 }
 

@@ -668,8 +668,8 @@ function IntegrationsTab({
                   Last synced: {new Date(gmailStatus.last_sync).toLocaleString()}
                 </p>
               )}
-              {gmailStatus.total_synced !== undefined && (
-                <p className="mt-0.5 text-gray-500 dark:text-gray-400">Total emails synced: {gmailStatus.total_synced.toLocaleString()}</p>
+              {gmailStatus.total_synced != null && (
+                <p className="mt-0.5 text-gray-500 dark:text-gray-400">Total emails synced: {gmailStatus.total_synced?.toLocaleString()}</p>
               )}
             </div>
             <button
