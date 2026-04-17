@@ -35,7 +35,7 @@ function Navbar() {
             <a href="#how-it-works" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">How It Works</a>
             <a href="#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
             <Link href="/auth/signin" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Sign In</Link>
-            <a href="#waitlist" className="btn-primary text-sm">Join Waitlist</a>
+            <Link href="/auth/signup" className="btn-primary text-sm">Get Started Free</Link>
           </div>
           <button
             className="md:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
@@ -51,7 +51,7 @@ function Navbar() {
           <a href="#how-it-works" className="block text-sm text-gray-600" onClick={() => setMobileOpen(false)}>How It Works</a>
           <a href="#pricing" className="block text-sm text-gray-600" onClick={() => setMobileOpen(false)}>Pricing</a>
           <Link href="/auth/signin" className="block text-sm text-gray-600">Sign In</Link>
-          <a href="#waitlist" className="btn-primary text-sm w-full justify-center">Join Waitlist</a>
+          <Link href="/auth/signup" className="btn-primary text-sm w-full justify-center">Get Started Free</Link>
         </div>
       )}
     </nav>
@@ -80,21 +80,21 @@ function Hero() {
             Never miss an urgent client message, auto-draft replies, and extract action items — all with AI.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="#waitlist"
+            <Link
+              href="/auth/signup"
               className="btn-primary text-base px-8 py-3 shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40"
             >
-              Join the Waitlist
+              Get Started Free
               <ArrowRight className="ml-2 h-5 w-5" />
-            </a>
+            </Link>
             <a
               href="#how-it-works"
               className="btn-secondary text-base px-8 py-3"
             >
-              View Demo
+              See How It Works
             </a>
           </div>
-          <p className="mt-4 text-sm text-gray-400">Coming soon · Join the waitlist to get early access</p>
+          <p className="mt-4 text-sm text-gray-400">Free plan available · No credit card required</p>
         </div>
 
         {/* Dashboard Mockup */}
@@ -327,8 +327,8 @@ const plans = [
       'Action item extraction',
       'Priority inbox',
     ],
-    cta: 'Join Waitlist',
-    href: '#waitlist',
+    cta: 'Get Started Free',
+    href: '/auth/signup',
     highlight: false,
   },
   {
@@ -346,8 +346,8 @@ const plans = [
       'Slack notifications',
       'Priority support',
     ],
-    cta: 'Join Waitlist',
-    href: '#waitlist',
+    cta: 'Start Pro',
+    href: '/auth/signup',
     highlight: true,
     badge: 'Most Popular',
   },
@@ -366,8 +366,8 @@ const plans = [
       'API access',
       'Dedicated support',
     ],
-    cta: 'Join Waitlist',
-    href: '#waitlist',
+    cta: 'Start Agency',
+    href: '/auth/signup',
     highlight: false,
   },
 ];
@@ -511,80 +511,37 @@ function Testimonials() {
   );
 }
 
-// ─── CTA Banner / Waitlist ────────────────────────────────────────────────────
+// ─── CTA Banner ───────────────────────────────────────────────────────────────
 function CTABanner() {
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
-  const [msg, setMsg] = useState('');
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    setStatus('loading');
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/waitlist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name }),
-      });
-      const data = await res.json();
-      setMsg(data.message || 'You\'re on the list!');
-      setStatus('done');
-    } catch {
-      setMsg('Something went wrong. Please try again.');
-      setStatus('error');
-    }
-  };
-
   return (
-    <section id="waitlist" className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary-600 to-primary-800">
+    <section id="cta" className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary-600 to-primary-800">
       <div className="mx-auto max-w-2xl text-center">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-white">
           <Zap className="h-4 w-4 text-yellow-300" />
-          Coming Soon — Join the Waitlist
+          Free plan available — no credit card required
         </div>
         <h2 className="mt-4 text-4xl font-bold text-white leading-tight">
-          Be first when Mailair launches
+          Start managing email with AI today
         </h2>
         <p className="mt-4 text-lg text-primary-200 max-w-xl mx-auto">
-          Drop your email. We'll notify you the moment early access opens — no spam, just the launch email.
+          Connect your Gmail, let AI triage your inbox, and never miss a critical client message again.
         </p>
-
-        {status === 'done' ? (
-          <div className="mt-10 rounded-2xl bg-white/10 border border-white/20 px-8 py-8 text-center">
-            <CheckCircle className="h-12 w-12 text-green-300 mx-auto mb-3" />
-            <p className="text-white text-xl font-bold">You're on the list!</p>
-            <p className="text-primary-200 mt-2">Check your inbox — a confirmation email is on its way.</p>
-          </div>
-        ) : (
-          <form onSubmit={submit} className="mt-10 flex flex-col gap-3 max-w-md mx-auto">
-            <input
-              type="text"
-              placeholder="Your name (optional)"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-primary-300 text-base focus:outline-none focus:ring-2 focus:ring-white/40"
-            />
-            <input
-              type="email"
-              placeholder="Your email address"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-primary-300 text-base focus:outline-none focus:ring-2 focus:ring-white/40"
-            />
-            <button
-              type="submit"
-              disabled={status === 'loading'}
-              className="w-full rounded-xl bg-white px-6 py-3.5 text-base font-bold text-primary-700 hover:bg-primary-50 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-            >
-              {status === 'loading' ? 'Joining…' : <>Notify Me at Launch <ArrowRight className="h-5 w-5" /></>}
-            </button>
-            {status === 'error' && <p className="text-red-300 text-sm text-center">{msg}</p>}
-            <p className="text-primary-300 text-xs text-center">No spam. No newsletters. Just the launch email.</p>
-          </form>
-        )}
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/auth/signup"
+            className="rounded-xl bg-white px-8 py-3.5 text-base font-bold text-primary-700 hover:bg-primary-50 transition-colors flex items-center gap-2 shadow-lg"
+          >
+            Get Started Free
+            <ArrowRight className="h-5 w-5" />
+          </Link>
+          <Link
+            href="/auth/signin"
+            className="rounded-xl border border-white/30 px-8 py-3.5 text-base font-semibold text-white hover:bg-white/10 transition-colors"
+          >
+            Sign In
+          </Link>
+        </div>
+        <p className="mt-6 text-primary-300 text-sm">5 AI-processed emails free every month. Upgrade anytime.</p>
       </div>
     </section>
   );

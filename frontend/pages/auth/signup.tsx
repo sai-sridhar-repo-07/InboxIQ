@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useSessionContext } from '@supabase/auth-helpers-react';
-import { Zap, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const benefits = [
@@ -22,10 +22,6 @@ export default function SignupPage() {
   useEffect(() => {
     if (!isLoading && session) {
       router.replace('/dashboard');
-      return;
-    }
-    if (!isLoading && !session) {
-      router.replace('/#waitlist');
     }
   }, [session, isLoading, router]);
 
