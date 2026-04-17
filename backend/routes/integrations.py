@@ -70,14 +70,24 @@ async def gmail_callback(request: Request, code: str, state: str):
 
 
 @router.delete("/gmail/disconnect", status_code=status.HTTP_204_NO_CONTENT)
-async def gmail_disconnect(current_user: Annotated[dict, Depends(get_current_user)]):
-    """Revoke Gmail access and remove stored tokens."""
-    success = await disconnect_gmail(user_id=_user_id(current_user))
+async def gmail_disconnect(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    delete_emails: bool = False,
+):
+    """Revoke Gmail access and remove stored tokens. Optionally delete synced emails."""
+    user_id = _user_id(current_user)
+    success = await disconnect_gmail(user_id=user_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to disconnect Gmail.",
         )
+    if delete_emails:
+        try:
+            supabase = get_supabase()
+            supabase.table("emails").delete().eq("user_id", user_id).execute()
+        except Exception as exc:
+            logger.error("Failed to delete emails on disconnect (user_id=%s): %s", user_id, exc)
     return None
 
 

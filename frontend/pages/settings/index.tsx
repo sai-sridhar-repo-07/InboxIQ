@@ -573,6 +573,7 @@ function IntegrationsTab({
   const [isTestingSlack, setIsTestingSlack] = useState(false);
   const [isConnectingGmail, setIsConnectingGmail] = useState(false);
   const [isDisconnectingGmail, setIsDisconnectingGmail] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   const handleConnectGmail = async () => {
     setIsConnectingGmail(true);
@@ -585,13 +586,13 @@ function IntegrationsTab({
     }
   };
 
-  const handleDisconnectGmail = async () => {
-    if (!confirm('Disconnect Gmail? You will stop receiving new emails in Mailair.')) return;
+  const handleDisconnectGmail = async (deleteEmails: boolean) => {
+    setShowDisconnectModal(false);
     setIsDisconnectingGmail(true);
     try {
-      await integrationsApi.disconnectGmail();
+      await integrationsApi.disconnectGmail(deleteEmails);
       await mutateGmail();
-      toast.success('Gmail disconnected');
+      toast.success(deleteEmails ? 'Gmail disconnected and emails deleted' : 'Gmail disconnected');
     } catch {
       toast.error('Failed to disconnect Gmail');
     } finally {
@@ -660,31 +661,66 @@ function IntegrationsTab({
         </div>
 
         {gmailStatus?.connected ? (
-          <div className="space-y-3">
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 text-sm text-gray-700 dark:text-gray-300">
-              <p><span className="font-medium">Account:</span> {gmailStatus.email}</p>
-              {gmailStatus.last_sync && (
-                <p className="mt-0.5 text-gray-500 dark:text-gray-400">
-                  Last synced: {new Date(gmailStatus.last_sync).toLocaleString()}
-                </p>
-              )}
-              {gmailStatus.total_synced != null && (
-                <p className="mt-0.5 text-gray-500 dark:text-gray-400">Total emails synced: {gmailStatus.total_synced?.toLocaleString()}</p>
-              )}
+          <>
+            <div className="space-y-3">
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 text-sm text-gray-700 dark:text-gray-300">
+                <p><span className="font-medium">Account:</span> {gmailStatus.email}</p>
+                {gmailStatus.last_sync && (
+                  <p className="mt-0.5 text-gray-500 dark:text-gray-400">
+                    Last synced: {new Date(gmailStatus.last_sync).toLocaleString()}
+                  </p>
+                )}
+                {gmailStatus.total_synced != null && (
+                  <p className="mt-0.5 text-gray-500 dark:text-gray-400">Total emails synced: {gmailStatus.total_synced?.toLocaleString()}</p>
+                )}
+              </div>
+              <button
+                onClick={() => setShowDisconnectModal(true)}
+                disabled={isDisconnectingGmail}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                {isDisconnectingGmail ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Disconnect Gmail
+              </button>
             </div>
-            <button
-              onClick={handleDisconnectGmail}
-              disabled={isDisconnectingGmail}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-            >
-              {isDisconnectingGmail ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-              Disconnect Gmail
-            </button>
-          </div>
+
+            {showDisconnectModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-xl">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Disconnect Gmail</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+                    What would you like to do with your existing emails in Mailair?
+                  </p>
+                  <div className="space-y-3 mb-6">
+                    <button
+                      onClick={() => handleDisconnectGmail(false)}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Keep my emails</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Disconnect Gmail but keep all synced emails in Mailair.</p>
+                    </button>
+                    <button
+                      onClick={() => handleDisconnectGmail(true)}
+                      className="w-full rounded-xl border border-red-200 dark:border-red-800 p-4 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      <p className="text-sm font-medium text-red-600 dark:text-red-400">Delete my emails</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Disconnect Gmail and permanently delete all synced emails.</p>
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShowDisconnectModal(false)}
+                    className="w-full text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <button
             onClick={handleConnectGmail}

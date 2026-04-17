@@ -327,8 +327,8 @@ export const integrationsApi = {
     return data;
   },
 
-  disconnectGmail: async (): Promise<void> => {
-    await api.delete('/api/integrations/gmail/disconnect');
+  disconnectGmail: async (deleteEmails = false): Promise<void> => {
+    await api.delete('/api/integrations/gmail/disconnect', { params: { delete_emails: deleteEmails } });
   },
 
   saveSlackWebhook: async (webhookUrl: string): Promise<{ success: boolean }> => {
