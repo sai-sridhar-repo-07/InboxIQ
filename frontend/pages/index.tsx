@@ -17,9 +17,10 @@ import {
   Clock,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useSessionContext } from '@supabase/auth-helpers-react';
 
 // ─── Nav ─────────────────────────────────────────────────────────────────────
-function Navbar() {
+function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-white/10">
@@ -34,8 +35,14 @@ function Navbar() {
             <a href="#features" className="text-sm text-slate-300 hover:text-white transition-colors">Features</a>
             <a href="#how-it-works" className="text-sm text-slate-300 hover:text-white transition-colors">How It Works</a>
             <a href="#pricing" className="text-sm text-slate-300 hover:text-white transition-colors">Pricing</a>
-            <Link href="/auth/signin" className="text-sm text-slate-300 hover:text-white transition-colors">Sign In</Link>
-            <Link href="/auth/signup" className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors shadow-lg shadow-blue-600/25">Get Started Free</Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard" className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors shadow-lg shadow-blue-600/25">Go to Dashboard</Link>
+            ) : (
+              <>
+                <Link href="/auth/signin" className="text-sm text-slate-300 hover:text-white transition-colors">Sign In</Link>
+                <Link href="/auth/signup" className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors shadow-lg shadow-blue-600/25">Get Started Free</Link>
+              </>
+            )}
           </div>
           <button
             className="md:hidden p-1.5 rounded-lg text-slate-400 hover:bg-white/10"
@@ -50,8 +57,14 @@ function Navbar() {
           <a href="#features" className="block text-sm text-slate-300" onClick={() => setMobileOpen(false)}>Features</a>
           <a href="#how-it-works" className="block text-sm text-slate-300" onClick={() => setMobileOpen(false)}>How It Works</a>
           <a href="#pricing" className="block text-sm text-slate-300" onClick={() => setMobileOpen(false)}>Pricing</a>
-          <Link href="/auth/signin" className="block text-sm text-slate-300">Sign In</Link>
-          <Link href="/auth/signup" className="block text-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Get Started Free</Link>
+          {isLoggedIn ? (
+            <Link href="/dashboard" className="block text-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Go to Dashboard</Link>
+          ) : (
+            <>
+              <Link href="/auth/signin" className="block text-sm text-slate-300">Sign In</Link>
+              <Link href="/auth/signup" className="block text-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Get Started Free</Link>
+            </>
+          )}
         </div>
       )}
     </nav>
@@ -59,7 +72,7 @@ function Navbar() {
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
-function Hero() {
+function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <section className="relative pt-32 pb-24 px-4 sm:px-6 lg:px-8 bg-slate-950 overflow-hidden">
       {/* Background orbs */}
@@ -94,10 +107,10 @@ function Hero() {
           {/* CTAs */}
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/auth/signup"
+              href={isLoggedIn ? '/dashboard' : '/auth/signup'}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-8 py-3.5 text-base font-bold text-white shadow-xl shadow-blue-600/30 hover:shadow-blue-500/40 transition-all"
             >
-              Get Started Free
+              {isLoggedIn ? 'Go to Dashboard' : 'Get Started Free'}
               <ArrowRight className="h-5 w-5" />
             </Link>
             <a
@@ -107,7 +120,7 @@ function Hero() {
               See How It Works
             </a>
           </div>
-          <p className="mt-4 text-sm text-slate-500">Free plan available · No credit card required</p>
+          {!isLoggedIn && <p className="mt-4 text-sm text-slate-500">Free plan available · No credit card required</p>}
         </div>
 
         {/* Dashboard Mockup */}
@@ -541,7 +554,7 @@ function Testimonials() {
 }
 
 // ─── CTA Banner ───────────────────────────────────────────────────────────────
-function CTABanner() {
+function CTABanner({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <section id="cta" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-slate-950 overflow-hidden">
       {/* Background glow */}
@@ -565,20 +578,22 @@ function CTABanner() {
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="/auth/signup"
+            href={isLoggedIn ? '/dashboard' : '/auth/signup'}
             className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-8 py-3.5 text-base font-bold text-white shadow-xl shadow-blue-600/30 hover:shadow-blue-500/40 transition-all"
           >
-            Get Started Free
+            {isLoggedIn ? 'Go to Dashboard' : 'Get Started Free'}
             <ArrowRight className="h-5 w-5" />
           </Link>
-          <Link
-            href="/auth/signin"
-            className="rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-8 py-3.5 text-base font-semibold text-slate-200 transition-all backdrop-blur-sm"
-          >
-            Sign In
-          </Link>
+          {!isLoggedIn && (
+            <Link
+              href="/auth/signin"
+              className="rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-8 py-3.5 text-base font-semibold text-slate-200 transition-all backdrop-blur-sm"
+            >
+              Sign In
+            </Link>
+          )}
         </div>
-        <p className="mt-6 text-slate-500 text-sm">5 AI-processed emails free every month. Upgrade anytime.</p>
+        {!isLoggedIn && <p className="mt-6 text-slate-500 text-sm">5 AI-processed emails free every month. Upgrade anytime.</p>}
       </div>
     </section>
   );
@@ -636,6 +651,9 @@ function Footer() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  const { session } = useSessionContext();
+  const isLoggedIn = !!session;
+
   return (
     <>
       <Head>
@@ -644,14 +662,14 @@ export default function LandingPage() {
         <meta property="og:title" content="Mailair — AI Email Command Center" />
         <meta property="og:description" content="Stop drowning in email. Let AI triage, prioritize, and draft replies for your service business." />
       </Head>
-      <Navbar />
+      <Navbar isLoggedIn={isLoggedIn} />
       <main>
-        <Hero />
+        <Hero isLoggedIn={isLoggedIn} />
         <Features />
         <HowItWorks />
         <Pricing />
         <Testimonials />
-        <CTABanner />
+        <CTABanner isLoggedIn={isLoggedIn} />
       </main>
       <Footer />
     </>
