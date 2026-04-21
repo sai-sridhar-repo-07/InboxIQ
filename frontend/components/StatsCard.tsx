@@ -20,7 +20,7 @@ export default function StatsCard({
   value,
   icon: Icon,
   iconColor = 'text-primary-600',
-  iconBg = 'bg-primary-50',
+  iconBg = 'bg-primary-50 dark:bg-primary-900/30',
   trend,
   onClick,
   className,

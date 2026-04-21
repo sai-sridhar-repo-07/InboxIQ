@@ -199,7 +199,7 @@ function OutlookIntegration() {
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-            <Mail className="h-5 w-5 text-blue-500" />
+            <Mail className="h-5 w-5 text-blue-500 dark:text-blue-400" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Outlook / Microsoft 365</h3>
@@ -208,7 +208,7 @@ function OutlookIntegration() {
         </div>
         {!loading && (
           status?.connected ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700">
               <CheckCircle2 className="h-3.5 w-3.5" />Connected
             </span>
           ) : (
@@ -282,7 +282,7 @@ function CalendarIntegration() {
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
-            <PenLine className="h-5 w-5 text-amber-500" />
+            <PenLine className="h-5 w-5 text-amber-500 dark:text-amber-400" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Google Calendar</h3>
@@ -291,7 +291,7 @@ function CalendarIntegration() {
         </div>
         {!loading && (
           status?.connected ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700">
               <CheckCircle2 className="h-3.5 w-3.5" />Connected
             </span>
           ) : (
@@ -378,7 +378,7 @@ function HubSpotIntegration() {
         </div>
         {status && (
           status.connected ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700">
               <CheckCircle2 className="h-3.5 w-3.5" />Connected
             </span>
           ) : (
@@ -490,7 +490,7 @@ function SalesforceIntegration() {
         </div>
         {status && (
           status.connected ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700">
               <CheckCircle2 className="h-3.5 w-3.5" />Connected
             </span>
           ) : (
@@ -681,7 +681,7 @@ function IntegrationsTab({
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-              <Mail className="h-5 w-5 text-red-500" />
+              <Mail className="h-5 w-5 text-red-500 dark:text-red-400" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Gmail</h3>
@@ -689,7 +689,7 @@ function IntegrationsTab({
             </div>
           </div>
           {gmailStatus?.connected ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Connected
             </span>
@@ -1559,7 +1559,7 @@ function DataTab() {
       <div className="card p-6">
         <div className="flex items-start gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/20">
-            <Download className="h-5 w-5 text-blue-500" />
+            <Download className="h-5 w-5 text-blue-500 dark:text-blue-400" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Export My Data</h3>
@@ -1581,7 +1581,7 @@ function DataTab() {
       <div className="card p-6 border-red-200 dark:border-red-800">
         <div className="flex items-start gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20">
-            <Trash2 className="h-5 w-5 text-red-500" />
+            <Trash2 className="h-5 w-5 text-red-500 dark:text-red-400" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-red-700 dark:text-red-400">Delete Account</h3>

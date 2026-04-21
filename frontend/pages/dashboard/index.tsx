@@ -31,10 +31,10 @@ import type { Email } from '@/lib/types';
 
 function GmailConnectBanner({ onConnect }: { onConnect: () => void }) {
   return (
-    <div className="rounded-xl border-2 border-dashed border-primary-200 bg-primary-50 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="rounded-xl border-2 border-dashed border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/20 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div className="flex items-start gap-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-100 flex-shrink-0">
-          <Mail className="h-5 w-5 text-primary-600" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-100 dark:bg-primary-800/40 flex-shrink-0">
+          <Mail className="h-5 w-5 text-primary-600 dark:text-primary-400" />
         </div>
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-gray-100">Connect your Gmail account</h3>
@@ -172,8 +172,8 @@ export default function DashboardPage() {
                 title="Total Emails"
                 value={stats?.total_emails ?? 0}
                 icon={Mail}
-                iconColor="text-primary-600"
-                iconBg="bg-primary-50"
+                iconColor="text-primary-600 dark:text-primary-400"
+                iconBg="bg-primary-50 dark:bg-primary-900/30"
                 onClick={() => router.push('/email')}
               />
             </div>
@@ -182,8 +182,8 @@ export default function DashboardPage() {
                 title="Urgent"
                 value={stats?.urgent_count ?? 0}
                 icon={AlertCircle}
-                iconColor="text-red-600"
-                iconBg="bg-red-50"
+                iconColor="text-red-600 dark:text-red-400"
+                iconBg="bg-red-50 dark:bg-red-900/30"
                 onClick={() => router.push('/email?category=urgent')}
               />
             </div>
@@ -192,8 +192,8 @@ export default function DashboardPage() {
                 title="Needs Response"
                 value={stats?.needs_response_count ?? 0}
                 icon={MessageSquare}
-                iconColor="text-amber-600"
-                iconBg="bg-amber-50"
+                iconColor="text-amber-600 dark:text-amber-400"
+                iconBg="bg-amber-50 dark:bg-amber-900/30"
                 onClick={() => router.push('/email?category=needs_response')}
               />
             </div>
@@ -202,8 +202,8 @@ export default function DashboardPage() {
                 title="Action Items"
                 value={stats?.action_items_count ?? 0}
                 icon={CheckSquare}
-                iconColor="text-green-600"
-                iconBg="bg-green-50"
+                iconColor="text-green-600 dark:text-green-400"
+                iconBg="bg-green-50 dark:bg-green-900/30"
                 onClick={() => router.push('/actions')}
               />
             </div>
@@ -243,7 +243,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2 mb-3">
                 <AlarmClock className="h-4 w-4 text-amber-600" />
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Follow-up Needed</h2>
-                <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-100">
+                <span className="rounded-full bg-amber-50 dark:bg-amber-900/30 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-700">
                   {followUps.length}
                 </span>
               </div>
