@@ -402,3 +402,154 @@ export interface AISearchResult {
   parsed_query: Record<string, unknown>;
   original_query: string;
 }
+
+// ─── Relationship Types ───────────────────────────────────────────────────────
+export interface RelationshipContact {
+  contact_email: string;
+  contact_name: string;
+  health_score: number;
+  health_label: 'excellent' | 'good' | 'fair' | 'at_risk';
+  days_since_last_email: number;
+  emails_30d: number;
+  emails_90d: number;
+  trend: 'growing' | 'stable' | 'declining' | 'new';
+  last_email_at: string;
+  alert: boolean;
+  alert_message: string | null;
+}
+
+export interface SentimentPoint {
+  week: string;
+  email_count: number;
+  sentiment_score: number;
+  avg_priority: number;
+}
+
+// ─── Revenue Types ────────────────────────────────────────────────────────────
+export interface RevenueSignal {
+  id: string;
+  email_id: string;
+  signal_type: 'quote' | 'invoice' | 'unpaid' | 'renewal' | 'upsell' | 'opportunity' | 'contract';
+  description: string;
+  amount: number | null;
+  currency: string;
+  due_date: string | null;
+  urgency: 'high' | 'medium' | 'low';
+  action_needed: string;
+  status: 'open' | 'won' | 'lost' | 'dismissed';
+  sender: string;
+  subject: string;
+  created_at: string;
+}
+
+export interface RevenueSummary {
+  total_signals: number;
+  total_pipeline_value: number;
+  by_type: Record<string, number>;
+  high_urgency_count: number;
+  high_urgency: RevenueSignal[];
+  signals: RevenueSignal[];
+}
+
+// ─── SLA Types ────────────────────────────────────────────────────────────────
+export interface SLAConfig {
+  id: string;
+  tier_name: string;
+  max_response_hours: number;
+  sender_patterns: string[];
+}
+
+export interface SLAEmailEntry {
+  id: string;
+  sender: string;
+  subject: string;
+  received_at: string;
+  sla_tier: string;
+  max_response_hours: number;
+  age_hours: number;
+  pct_used: number;
+}
+
+export interface SLAStatus {
+  breached: SLAEmailEntry[];
+  warning: SLAEmailEntry[];
+  ok: SLAEmailEntry[];
+  configs: SLAConfig[];
+  total_monitored: number;
+}
+
+// ─── Sequence Types ───────────────────────────────────────────────────────────
+export interface SequenceStep {
+  delay_days: number;
+  subject_template: string;
+  body_template: string;
+}
+
+export interface FollowUpSequence {
+  id: string;
+  name: string;
+  steps: SequenceStep[];
+  active_enrollments: number;
+  created_at: string;
+}
+
+export interface SequenceEnrollment {
+  id: string;
+  sequence_id: string;
+  contact_email: string;
+  current_step: number;
+  next_send_at: string;
+  status: 'active' | 'completed' | 'cancelled' | 'failed';
+  follow_up_sequences?: { name: string };
+}
+
+// ─── Knowledge Types ──────────────────────────────────────────────────────────
+export interface KnowledgeEntry {
+  id: string;
+  email_id: string;
+  entry_type: 'decision' | 'agreement' | 'price' | 'commitment' | 'deadline' | 'contact_info' | 'process';
+  title: string;
+  content: string;
+  parties: string[];
+  tags: string[];
+  sender: string;
+  subject: string;
+  created_at: string;
+}
+
+// ─── Brief Types ──────────────────────────────────────────────────────────────
+export interface MeetingBrief {
+  id: string;
+  meeting_title: string;
+  meeting_time: string;
+  attendee_emails: string[];
+  brief_content: string;
+  created_at: string;
+}
+
+// ─── Quote Types ──────────────────────────────────────────────────────────────
+export interface QuoteLineItem {
+  description: string;
+  quantity: number;
+  unit_price: number;
+  unit: 'fixed' | 'hour' | 'day';
+}
+
+export interface Quote {
+  id: string;
+  email_id: string;
+  project_title: string;
+  client_name: string;
+  client_email: string;
+  scope_summary: string;
+  line_items: QuoteLineItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  currency: string;
+  notes: string;
+  payment_terms: string;
+  validity_days: number;
+  status: 'draft' | 'sent' | 'accepted' | 'rejected';
+  created_at: string;
+}

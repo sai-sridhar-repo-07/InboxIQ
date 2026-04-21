@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mailair</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <div class="header">
+      <div class="logo">Mail<span>air</span></div>
+      <div id="status-dot" class="dot disconnected"></div>
+    </div>
+
+    <div id="auth-section" class="hidden">
+      <p class="label">Connect your Mailair account</p>
+      <input id="api-url" type="text" placeholder="https://mailair.company" class="input" />
+      <input id="api-token" type="password" placeholder="Paste your API token" class="input" />
+      <button id="save-token" class="btn-primary">Connect</button>
+      <p class="hint">Get your token from <strong>Mailair → Settings → API</strong></p>
+    </div>
+
+    <div id="composer-section" class="hidden">
+      <div class="tabs">
+        <button class="tab active" data-tab="compose">Compose</button>
+        <button class="tab" data-tab="context">Context</button>
+      </div>
+
+      <div id="tab-compose" class="tab-content">
+        <input id="to-email" type="email" placeholder="To: email@example.com" class="input" />
+        <input id="subject" type="text" placeholder="Subject" class="input" />
+        <textarea id="context-hint" placeholder="Describe what you want to say (optional)…" class="textarea" rows="3"></textarea>
+        <div class="actions">
+          <button id="ai-draft-btn" class="btn-secondary">
+            <span id="draft-spinner" class="spinner hidden"></span>
+            ✨ AI Draft
+          </button>
+          <button id="send-btn" class="btn-primary" disabled>Send via Mailair</button>
+        </div>
+        <textarea id="draft-output" placeholder="AI draft will appear here…" class="textarea output" rows="6"></textarea>
+        <div class="actions" id="draft-actions" style="display:none">
+          <button id="use-draft-btn" class="btn-primary">Use This Draft</button>
+          <button id="regenerate-btn" class="btn-secondary">Regenerate</button>
+        </div>
+      </div>
+
+      <div id="tab-context" class="tab-content hidden">
+        <p class="label">Page context extracted:</p>
+        <div id="page-context" class="context-box">Loading…</div>
+        <button id="search-knowledge-btn" class="btn-secondary">Search Knowledge Base</button>
+        <div id="knowledge-results" class="knowledge-results hidden"></div>
+      </div>
+
+      <button id="disconnect-btn" class="btn-ghost">Disconnect</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -277,6 +277,7 @@ def start_email_listener() -> AsyncIOScheduler:
     """
     from workers.digest_worker import send_daily_digest, send_weekly_digest
     from services.newsletter_service import send_weekly_ai_newsletter
+    from services.sequence_service import flush_sequence_steps
 
     scheduler.add_job(
         poll_all_users,
@@ -326,6 +327,15 @@ def start_email_listener() -> AsyncIOScheduler:
         name="Flush Scheduled Email Sends",
         replace_existing=True,
         misfire_grace_time=60,
+    )
+    scheduler.add_job(
+        flush_sequence_steps,
+        trigger="interval",
+        hours=4,
+        id="sequence_flush",
+        name="Follow-up Sequence Step Sender",
+        replace_existing=True,
+        misfire_grace_time=300,
     )
     scheduler.add_job(
         send_weekly_ai_newsletter,

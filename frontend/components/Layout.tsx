@@ -23,6 +23,13 @@ import {
   RefreshCw,
   Newspaper,
   Clock,
+  Heart,
+  TrendingUp,
+  Timer,
+  Repeat2,
+  BookOpen,
+  FileText,
+  DollarSign,
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -38,15 +45,22 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard',  icon: LayoutDashboard },
-  { label: 'Inbox',     href: '/email',      icon: Inbox },
-  { label: 'Snoozed',   href: '/snoozed',   icon: AlarmClock },
-  { label: 'Actions',   href: '/actions',    icon: CheckSquare },
-  { label: 'Analytics', href: '/analytics',  icon: BarChart2 },
-  { label: 'CRM',       href: '/crm',        icon: Users },
-  { label: 'Team',      href: '/team',       icon: Users },
-  { label: 'Settings',  href: '/settings',   icon: Settings },
-  { label: 'Billing',   href: '/billing',    icon: CreditCard },
+  { label: 'Dashboard',     href: '/dashboard',      icon: LayoutDashboard },
+  { label: 'Inbox',         href: '/email',           icon: Inbox },
+  { label: 'Snoozed',       href: '/snoozed',        icon: AlarmClock },
+  { label: 'Actions',       href: '/actions',         icon: CheckSquare },
+  { label: 'Analytics',     href: '/analytics',       icon: BarChart2 },
+  { label: 'Relationships', href: '/relationships',   icon: Heart },
+  { label: 'Revenue',       href: '/revenue',         icon: DollarSign },
+  { label: 'SLA Tracker',   href: '/sla',             icon: Timer },
+  { label: 'Sequences',     href: '/sequences',       icon: Repeat2 },
+  { label: 'Knowledge',     href: '/knowledge',       icon: BookOpen },
+  { label: 'Briefs',        href: '/briefs',          icon: FileText },
+  { label: 'Quotes',        href: '/quotes',          icon: TrendingUp },
+  { label: 'CRM',           href: '/crm',             icon: Users },
+  { label: 'Team',          href: '/team',            icon: Users },
+  { label: 'Settings',      href: '/settings',        icon: Settings },
+  { label: 'Billing',       href: '/billing',         icon: CreditCard },
 ];
 
 // Mobile bottom nav — only the 4 most important

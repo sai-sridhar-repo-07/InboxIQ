@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Mailair — AI Email Composer",
+  "version": "1.0.0",
+  "description": "Compose AI-powered emails from anywhere. Powered by Mailair.",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["https://mailair.company/*", "http://localhost:8000/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*", "https://linkedin.com/*", "https://www.linkedin.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -744,6 +744,81 @@ export const contactsApi = {
   },
 };
 
+// ─── Relationship Endpoints ───────────────────────────────────────────────────
+
+export const relationshipsApi = {
+  getAll: async () => { const { data } = await api.get('/api/relationships'); return data; },
+  getSentiment: async (email: string, days = 90) => { const { data } = await api.get(`/api/relationships/${encodeURIComponent(email)}/sentiment?days=${days}`); return data; },
+};
+
+// ─── Revenue Endpoints ────────────────────────────────────────────────────────
+
+export const revenueApi = {
+  getSummary: async () => { const { data } = await api.get('/api/revenue/summary'); return data; },
+  scan: async () => { const { data } = await api.post('/api/revenue/scan'); return data; },
+  extractFromEmail: async (emailId: string) => { const { data } = await api.post(`/api/revenue/signals/${emailId}`); return data; },
+  updateSignal: async (signalId: string, status: string) => { const { data } = await api.patch(`/api/revenue/signals/${signalId}`, { status }); return data; },
+};
+
+// ─── SLA Endpoints ────────────────────────────────────────────────────────────
+
+export const slaApi = {
+  getStatus: async () => { const { data } = await api.get('/api/sla/status'); return data; },
+  getConfigs: async () => { const { data } = await api.get('/api/sla/configs'); return data; },
+  createConfig: async (tierName: string, maxHours: number, patterns: string[]) => {
+    const { data } = await api.post('/api/sla/configs', { tier_name: tierName, max_response_hours: maxHours, sender_patterns: patterns });
+    return data;
+  },
+  deleteConfig: async (id: string) => { await api.delete(`/api/sla/configs/${id}`); },
+};
+
+// ─── Sequence Endpoints ───────────────────────────────────────────────────────
+
+export const sequencesApi = {
+  getAll: async () => { const { data } = await api.get('/api/sequences'); return data; },
+  create: async (name: string, steps: object[]) => { const { data } = await api.post('/api/sequences', { name, steps }); return data; },
+  delete: async (id: string) => { await api.delete(`/api/sequences/${id}`); },
+  enroll: async (seqId: string, contactEmail: string, emailId?: string) => {
+    const { data } = await api.post(`/api/sequences/${seqId}/enroll`, { contact_email: contactEmail, email_id: emailId });
+    return data;
+  },
+  getEnrollments: async () => { const { data } = await api.get('/api/sequences/enrollments'); return data; },
+  cancelEnrollment: async (id: string) => { await api.post(`/api/sequences/enrollments/${id}/cancel`); },
+};
+
+// ─── Knowledge Endpoints ──────────────────────────────────────────────────────
+
+export const knowledgeApi = {
+  getAll: async (q?: string, type?: string) => {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (type) params.set('entry_type', type);
+    const { data } = await api.get(`/api/knowledge?${params}`);
+    return data;
+  },
+  extractFromEmail: async (emailId: string) => { const { data } = await api.post(`/api/knowledge/extract/${emailId}`); return data; },
+  bulkExtract: async () => { const { data } = await api.post('/api/knowledge/bulk-extract'); return data; },
+  delete: async (id: string) => { await api.delete(`/api/knowledge/${id}`); },
+};
+
+// ─── Brief Endpoints ──────────────────────────────────────────────────────────
+
+export const briefsApi = {
+  getAll: async () => { const { data } = await api.get('/api/briefs'); return data; },
+  generate: async (title: string, startTime: string, attendeeEmails: string[], description?: string) => {
+    const { data } = await api.post('/api/briefs', { title, start_time: startTime, attendee_emails: attendeeEmails, description });
+    return data;
+  },
+};
+
+// ─── Quote Endpoints ──────────────────────────────────────────────────────────
+
+export const quotesApi = {
+  getAll: async () => { const { data } = await api.get('/api/quotes'); return data; },
+  generate: async (emailId: string) => { const { data } = await api.post(`/api/quotes/generate/${emailId}`); return data; },
+  updateStatus: async (id: string, status: string) => { const { data } = await api.patch(`/api/quotes/${id}/status`, { status }); return data; },
+};
+
 // ─── Newsletter Endpoints ─────────────────────────────────────────────────────
 
 export const newsletterApi = {
