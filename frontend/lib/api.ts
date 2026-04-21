@@ -744,4 +744,19 @@ export const contactsApi = {
   },
 };
 
+// ─── Newsletter Endpoints ─────────────────────────────────────────────────────
+
+export const newsletterApi = {
+  getStatus: async (): Promise<{ subscribed: boolean }> => {
+    const { data } = await api.get('/api/newsletter/status');
+    return data;
+  },
+  subscribe: async (): Promise<void> => {
+    await api.post('/api/newsletter/subscribe');
+  },
+  unsubscribe: async (): Promise<void> => {
+    await api.post('/api/newsletter/unsubscribe');
+  },
+};
+
 export default api;

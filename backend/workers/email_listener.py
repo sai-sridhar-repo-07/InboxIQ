@@ -276,6 +276,7 @@ def start_email_listener() -> AsyncIOScheduler:
     Called once during application startup.
     """
     from workers.digest_worker import send_daily_digest, send_weekly_digest
+    from services.newsletter_service import send_weekly_ai_newsletter
 
     scheduler.add_job(
         poll_all_users,
@@ -325,6 +326,17 @@ def start_email_listener() -> AsyncIOScheduler:
         name="Flush Scheduled Email Sends",
         replace_existing=True,
         misfire_grace_time=60,
+    )
+    scheduler.add_job(
+        send_weekly_ai_newsletter,
+        trigger="cron",
+        hour=9,
+        minute=0,
+        day_of_week="mon",
+        id="weekly_ai_newsletter",
+        name="Weekly AI Newsletter",
+        replace_existing=True,
+        misfire_grace_time=3600,
     )
     scheduler.start()
     logger.info("Email listener scheduler started (every 5 minutes).")

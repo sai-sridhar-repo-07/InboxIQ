@@ -28,7 +28,7 @@ import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import RulesManager from '@/components/RulesManager';
 import { useSettings, useGmailStatus } from '@/lib/hooks';
-import { settingsApi, integrationsApi, outlookApi, calendarApi, gdprApi, webhooksApi, crmApi, pushApi, type Webhook } from '@/lib/api';
+import { settingsApi, integrationsApi, outlookApi, calendarApi, gdprApi, webhooksApi, crmApi, pushApi, newsletterApi, type Webhook } from '@/lib/api';
 import { registerPushSubscription, unregisterPushSubscription } from '@/lib/push';
 import { loadTemplates, saveTemplates, createTemplate, type EmailTemplate } from '@/lib/templates';
 import type { UserSettings, TonePreference, NotificationFrequency } from '@/lib/types';
@@ -987,6 +987,12 @@ function NotificationsTab({
   const [isSaving, setIsSaving] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
+  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
+
+  useEffect(() => {
+    newsletterApi.getStatus().then((s) => setNewsletterSubscribed(s.subscribed)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
@@ -1017,6 +1023,25 @@ function NotificationsTab({
       toast.error('Failed to update push notifications');
     } finally {
       setPushLoading(false);
+    }
+  };
+
+  const handleToggleNewsletter = async (enabled: boolean) => {
+    setNewsletterLoading(true);
+    try {
+      if (enabled) {
+        await newsletterApi.subscribe();
+        setNewsletterSubscribed(true);
+        toast.success('Subscribed to AI Pulse newsletter!');
+      } else {
+        await newsletterApi.unsubscribe();
+        setNewsletterSubscribed(false);
+        toast.success('Unsubscribed from newsletter');
+      }
+    } catch {
+      toast.error('Failed to update newsletter subscription');
+    } finally {
+      setNewsletterLoading(false);
     }
   };
 
@@ -1188,6 +1213,45 @@ function NotificationsTab({
           <span>More alerts (1)</span>
           <span>Fewer alerts (10)</span>
         </div>
+      </div>
+
+      {/* AI Pulse Newsletter */}
+      <div className="card p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">AI Pulse Newsletter</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Weekly digest of AI trends, new tools, and industry news — delivered every Monday morning.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {['AI advancements', 'New LLM releases', 'Business AI tools', 'Industry trends'].map((tag) => (
+                <span key={tag} className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/20 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-700">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={newsletterLoading}
+            onClick={() => handleToggleNewsletter(!newsletterSubscribed)}
+            className={clsx(
+              'flex-shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none',
+              newsletterSubscribed ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'
+            )}
+          >
+            <span className={clsx(
+              'inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',
+              newsletterSubscribed ? 'translate-x-6' : 'translate-x-1'
+            )} />
+          </button>
+        </div>
+        {newsletterSubscribed && (
+          <p className="mt-3 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Subscribed — you&apos;ll receive your first issue next Monday.
+          </p>
+        )}
       </div>
 
       <div className="flex justify-end">
