@@ -7,7 +7,9 @@ import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import PageError from '@/components/PageError';
 import { quotesApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { Quote } from '@/lib/types';
 
 const STATUS_STYLES: Record<string, string> = {
@@ -103,6 +105,7 @@ export default function QuotesPage() {
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
@@ -113,8 +116,9 @@ export default function QuotesPage() {
     try {
       const data = await quotesApi.getAll();
       setQuotes(data.quotes || []);
-    } catch {
-      toast.error('Failed to load quotes');
+    } catch (err) {
+      setLoadError(true);
+      toast.error(apiErrorMessage(err, 'Failed to load quotes'));
     } finally {
       setLoading(false);
     }
@@ -127,12 +131,17 @@ export default function QuotesPage() {
       await quotesApi.updateStatus(id, status);
       await load();
       toast.success(`Quote marked as ${status}`);
-    } catch {
-      toast.error('Update failed');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Update failed'));
     }
   };
 
   if (sessionLoading || !session) return <LoadingSpinner fullPage />;
+  if (loadError && quotes.length === 0) return (
+    <Layout title="Quotes">
+      <PageError message="Couldn't load quotes" onRetry={() => { setLoadError(false); load(); }} />
+    </Layout>
+  );
 
   const filtered = statusFilter ? quotes.filter(q => q.status === statusFilter) : quotes;
   const totalPipeline = quotes.filter(q => q.status !== 'rejected').reduce((s, q) => s + q.total, 0);

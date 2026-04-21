@@ -16,8 +16,10 @@ import {
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import PageError from '@/components/PageError';
 import { useBillingStatus } from '@/lib/hooks';
 import { billingApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { PlanId, Plan } from '@/lib/types';
 import clsx from 'clsx';
 
@@ -120,6 +122,11 @@ export default function BillingPage() {
 
   if (sessionLoading || billingLoading) return <LoadingSpinner fullPage />;
   if (!session) return null;
+  if (billingError) return (
+    <Layout title="Billing">
+      <PageError message="Couldn't load billing status" onRetry={() => window.location.reload()} />
+    </Layout>
+  );
 
   const handleUpgrade = async (planId: PlanId) => {
     if (planId === 'free') return;
@@ -128,9 +135,7 @@ export default function BillingPage() {
       const { checkout_url } = await billingApi.createCheckoutSession(planId, 'monthly');
       window.location.href = checkout_url;
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      const msg = detail || (err instanceof Error ? err.message : 'Failed to start checkout. Please try again.');
+      const msg = apiErrorMessage(err, 'Failed to start checkout. Please try again.');
       setCheckoutError(msg);
       toast.error(msg, { duration: 8000 });
       console.error('[checkout]', err);

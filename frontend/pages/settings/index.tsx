@@ -26,8 +26,10 @@ import {
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import PageError from '@/components/PageError';
 import RulesManager from '@/components/RulesManager';
 import { useSettings, useGmailStatus } from '@/lib/hooks';
+import { apiErrorMessage } from '@/lib/apiError';
 import { settingsApi, integrationsApi, outlookApi, calendarApi, gdprApi, webhooksApi, crmApi, pushApi, newsletterApi, type Webhook } from '@/lib/api';
 import { registerPushSubscription, unregisterPushSubscription } from '@/lib/push';
 import { loadTemplates, saveTemplates, createTemplate, type EmailTemplate } from '@/lib/templates';
@@ -171,7 +173,7 @@ function OutlookIntegration() {
     try {
       const { auth_url } = await outlookApi.connect();
       window.location.href = auth_url;
-    } catch { toast.error('Failed to connect Outlook'); setConnecting(false); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to connect Outlook')); setConnecting(false); }
   };
 
   const handleSync = async () => {
@@ -179,7 +181,7 @@ function OutlookIntegration() {
     try {
       await outlookApi.sync();
       toast.success('Outlook sync started');
-    } catch { toast.error('Failed to start sync'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to start sync')); }
     finally { setSyncing(false); }
   };
 
@@ -190,7 +192,7 @@ function OutlookIntegration() {
       await outlookApi.disconnect();
       setStatus({ connected: false });
       toast.success('Outlook disconnected');
-    } catch { toast.error('Failed to disconnect'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to disconnect')); }
     finally { setDisconnecting(false); }
   };
 
@@ -263,7 +265,7 @@ function CalendarIntegration() {
     try {
       const { auth_url } = await calendarApi.connect();
       window.location.href = auth_url;
-    } catch { toast.error('Failed to connect Google Calendar'); setConnecting(false); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to connect Google Calendar')); setConnecting(false); }
   };
 
   const handleDisconnect = async () => {
@@ -273,7 +275,7 @@ function CalendarIntegration() {
       await calendarApi.disconnect();
       setStatus({ connected: false });
       toast.success('Google Calendar disconnected');
-    } catch { toast.error('Failed to disconnect'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to disconnect')); }
     finally { setDisconnecting(false); }
   };
 
@@ -340,7 +342,7 @@ function HubSpotIntegration() {
       setShowForm(false);
       setApiKey('');
       toast.success('HubSpot connected!');
-    } catch { toast.error('Connection failed — check your Private App token.'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Connection failed — check your Private App token.')); }
     finally { setConnecting(false); }
   };
 
@@ -349,7 +351,7 @@ function HubSpotIntegration() {
     try {
       const r = await crmApi.hubspot.test();
       r.success ? toast.success('HubSpot connection is working!') : toast.error('HubSpot test failed');
-    } catch { toast.error('Test failed'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Test failed')); }
     finally { setTesting(false); }
   };
 
@@ -360,7 +362,7 @@ function HubSpotIntegration() {
       await crmApi.hubspot.disconnect();
       setStatus({ connected: false });
       toast.success('HubSpot disconnected');
-    } catch { toast.error('Failed to disconnect'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to disconnect')); }
     finally { setDisconnecting(false); }
   };
 
@@ -452,7 +454,7 @@ function SalesforceIntegration() {
       setShowForm(false);
       setForm({ consumer_key: '', consumer_secret: '', username: '', password: '', security_token: '' });
       toast.success('Salesforce connected!');
-    } catch { toast.error('Connection failed — check your credentials.'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Connection failed — check your credentials.')); }
     finally { setConnecting(false); }
   };
 
@@ -461,7 +463,7 @@ function SalesforceIntegration() {
     try {
       const r = await crmApi.salesforce.test();
       r.success ? toast.success('Salesforce connection is working!') : toast.error('Salesforce test failed');
-    } catch { toast.error('Test failed'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Test failed')); }
     finally { setTesting(false); }
   };
 
@@ -472,7 +474,7 @@ function SalesforceIntegration() {
       await crmApi.salesforce.disconnect();
       setStatus({ connected: false });
       toast.success('Salesforce disconnected');
-    } catch { toast.error('Failed to disconnect'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to disconnect')); }
     finally { setDisconnecting(false); }
   };
 
@@ -609,8 +611,8 @@ function IntegrationsTab({
         sync_sender_blocklist: parseCsv(syncBlocklist).length > 0 ? parseCsv(syncBlocklist) : null,
       });
       toast.success('Sync filters saved');
-    } catch {
-      toast.error('Failed to save sync filters');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to save sync filters'));
     } finally {
       setIsSavingFilters(false);
     }
@@ -621,8 +623,8 @@ function IntegrationsTab({
     try {
       const { auth_url } = await integrationsApi.connectGmail();
       window.location.href = auth_url;
-    } catch {
-      toast.error('Failed to initiate Gmail connection');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to initiate Gmail connection'));
       setIsConnectingGmail(false);
     }
   };
@@ -634,8 +636,8 @@ function IntegrationsTab({
       await integrationsApi.disconnectGmail(deleteEmails);
       await mutateGmail();
       toast.success(deleteEmails ? 'Gmail disconnected and emails deleted' : 'Gmail disconnected');
-    } catch {
-      toast.error('Failed to disconnect Gmail');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to disconnect Gmail'));
     } finally {
       setIsDisconnectingGmail(false);
     }
@@ -647,8 +649,8 @@ function IntegrationsTab({
       await integrationsApi.saveSlackWebhook(slackWebhook);
       await onSave({ slack_webhook_url: slackWebhook });
       toast.success('Slack webhook saved');
-    } catch {
-      toast.error('Failed to save Slack webhook');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to save Slack webhook'));
     } finally {
       setIsSavingSlack(false);
     }
@@ -667,8 +669,8 @@ function IntegrationsTab({
       } else {
         toast.error(result.message || 'Slack test failed');
       }
-    } catch {
-      toast.error('Failed to send test message');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to send test message'));
     } finally {
       setIsTestingSlack(false);
     }
@@ -1019,8 +1021,8 @@ function NotificationsTab({
         setPushEnabled(false);
         toast.success('Push notifications disabled');
       }
-    } catch {
-      toast.error('Failed to update push notifications');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to update push notifications'));
     } finally {
       setPushLoading(false);
     }
@@ -1038,8 +1040,8 @@ function NotificationsTab({
         setNewsletterSubscribed(false);
         toast.success('Unsubscribed from newsletter');
       }
-    } catch {
-      toast.error('Failed to update newsletter subscription');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to update newsletter subscription'));
     } finally {
       setNewsletterLoading(false);
     }
@@ -1471,7 +1473,7 @@ function WebhooksTab() {
       setForm({ name: '', url: '', event: 'urgent_email', secret: '' });
       setAdding(false);
       toast.success('Webhook created');
-    } catch { toast.error('Failed to create webhook. URL must use HTTPS.'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to create webhook. URL must use HTTPS.')); }
     finally { setSaving(false); }
   };
 
@@ -1479,7 +1481,7 @@ function WebhooksTab() {
     try {
       const updated = await webhooksApi.update(wh.id, { is_active: !wh.is_active });
       setWebhooks((prev) => prev.map((w) => w.id === wh.id ? updated : w));
-    } catch { toast.error('Failed to update webhook'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to update webhook')); }
   };
 
   const handleDelete = async (id: string) => {
@@ -1488,7 +1490,7 @@ function WebhooksTab() {
       await webhooksApi.remove(id);
       setWebhooks((prev) => prev.filter((w) => w.id !== id));
       toast.success('Webhook deleted');
-    } catch { toast.error('Failed to delete webhook'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to delete webhook')); }
   };
 
   const handleTest = async (id: string) => {
@@ -1497,7 +1499,7 @@ function WebhooksTab() {
       const result = await webhooksApi.test(id);
       if (result.success) toast.success(`Test delivered (${result.status_code})`);
       else toast.error(result.error || `Delivery failed (${result.status_code})`);
-    } catch { toast.error('Test failed'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Test failed')); }
     finally { setTesting(null); }
   };
 
@@ -1597,8 +1599,8 @@ function DataTab() {
     try {
       await gdprApi.exportData();
       toast.success('Data exported!');
-    } catch {
-      toast.error('Failed to export data');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to export data'));
     } finally {
       setExporting(false);
     }
@@ -1612,8 +1614,8 @@ function DataTab() {
       await gdprApi.deleteAccount();
       toast.success('Account deleted. Redirecting...');
       setTimeout(() => { window.location.href = '/auth/signin'; }, 2000);
-    } catch {
-      toast.error('Failed to delete account');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to delete account'));
       setDeleting(false);
     }
   };
@@ -1673,7 +1675,7 @@ export default function SettingsPage() {
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
 
-  const { data: settings, isLoading: settingsLoading, mutate } = useSettings();
+  const { data: settings, isLoading: settingsLoading, error: settingsError, mutate } = useSettings();
 
   useEffect(() => {
     if (!sessionLoading && !session) {
@@ -1683,14 +1685,19 @@ export default function SettingsPage() {
 
   if (sessionLoading || settingsLoading) return <LoadingSpinner fullPage />;
   if (!session) return null;
+  if (settingsError) return (
+    <Layout title="Settings">
+      <PageError message="Couldn't load your settings" onRetry={() => mutate()} />
+    </Layout>
+  );
 
   const handleSave = async (updates: Partial<UserSettings>) => {
     try {
       const updated = await settingsApi.updateSettings(updates);
       await mutate(updated, false);
       toast.success('Settings saved');
-    } catch {
-      toast.error('Failed to save settings');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to save settings'));
       throw new Error('Save failed');
     }
   };

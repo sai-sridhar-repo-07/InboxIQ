@@ -6,7 +6,9 @@ import { BookOpen, Search, Zap, Trash2, Loader2, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import PageError from '@/components/PageError';
 import { knowledgeApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { KnowledgeEntry } from '@/lib/types';
 
 const TYPE_COLORS: Record<string, string> = {
@@ -26,6 +28,7 @@ export default function KnowledgePage() {
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -40,8 +43,9 @@ export default function KnowledgePage() {
     try {
       const data = await knowledgeApi.getAll(q || undefined, type || undefined);
       setEntries(data.entries || []);
-    } catch {
-      toast.error('Failed to load knowledge base');
+    } catch (err) {
+      setLoadError(true);
+      toast.error(apiErrorMessage(err, 'Failed to load knowledge base'));
     } finally {
       setLoading(false);
     }
@@ -60,8 +64,8 @@ export default function KnowledgePage() {
       const result = await knowledgeApi.bulkExtract();
       toast.success(`Extracted ${result.extracted} knowledge entries`);
       await load(query, typeFilter);
-    } catch {
-      toast.error('Extraction failed');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Extraction failed'));
     } finally {
       setExtracting(false);
     }
@@ -72,14 +76,19 @@ export default function KnowledgePage() {
     try {
       await knowledgeApi.delete(id);
       setEntries(prev => prev.filter(e => e.id !== id));
-    } catch {
-      toast.error('Delete failed');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Delete failed'));
     } finally {
       setDeletingId(null);
     }
   };
 
   if (sessionLoading || !session) return <LoadingSpinner fullPage />;
+  if (loadError && entries.length === 0 && !query && !typeFilter) return (
+    <Layout title="Knowledge Base">
+      <PageError message="Couldn't load knowledge base" onRetry={() => { setLoadError(false); load(); }} />
+    </Layout>
+  );
 
   return (
     <>

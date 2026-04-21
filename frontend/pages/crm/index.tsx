@@ -20,7 +20,9 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 import Layout from '@/components/Layout';
+import PageError from '@/components/PageError';
 import { contactsApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { ContactProfile, ContactDetail } from '@/lib/types';
 import toast from 'react-hot-toast';
 
@@ -683,6 +685,7 @@ export default function CRMPage() {
   const [activeTab, setActiveTab] = useState<'contacts' | 'pipeline'>('contacts');
   const [contacts, setContacts] = useState<ContactProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedContact, setSelectedContact] = useState<ContactDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -697,8 +700,9 @@ export default function CRMPage() {
       setLoading(true);
       const data = await contactsApi.getContacts(q || undefined);
       setContacts(data);
-    } catch {
-      toast.error('Failed to load contacts');
+    } catch (err) {
+      setLoadError(true);
+      toast.error(apiErrorMessage(err, 'Failed to load contacts'));
     } finally {
       setLoading(false);
     }
@@ -724,8 +728,8 @@ export default function CRMPage() {
     try {
       const detail = await contactsApi.getContact(contact.email);
       setSelectedContact(detail);
-    } catch {
-      toast.error('Failed to load contact details');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to load contact details'));
       setActiveProfile(null);
     } finally {
       setDetailLoading(false);
@@ -739,6 +743,11 @@ export default function CRMPage() {
   }, []);
 
   if (sessionLoading) return null;
+  if (loadError && contacts.length === 0 && !search) return (
+    <Layout title="CRM">
+      <PageError message="Couldn't load contacts" onRetry={() => { setLoadError(false); loadContacts(); }} />
+    </Layout>
+  );
 
   return (
     <>

@@ -10,8 +10,10 @@ import CreateTaskModal from '@/components/CreateTaskModal';
 import TaskDetailModal from '@/components/TaskDetailModal';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EmptyState from '@/components/EmptyState';
+import PageError from '@/components/PageError';
 import { useActions } from '@/lib/hooks';
 import { actionsApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { Action, ActionPriority } from '@/lib/types';
 import clsx from 'clsx';
 
@@ -33,7 +35,7 @@ export default function ActionsPage() {
     if (!sessionLoading && !session) router.replace('/auth/signin');
   }, [session, sessionLoading, router]);
 
-  const { data, isLoading } = useActions({});
+  const { data, isLoading, error: actionsError, mutate: reloadActions } = useActions({});
 
   useEffect(() => {
     if (data) setActions(data);
@@ -47,8 +49,8 @@ export default function ActionsPage() {
         deadline: updated.deadline,
       });
       setActions((prev) => prev.map((a) => (a.id === result.id ? { ...a, ...result } : a)));
-    } catch {
-      toast.error('Failed to update task');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to update task'));
     }
   };
 
@@ -56,8 +58,8 @@ export default function ActionsPage() {
     try {
       await actionsApi.deleteAction(id);
       setActions((prev) => prev.filter((a) => a.id !== id));
-    } catch {
-      toast.error('Failed to delete task');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to delete task'));
     }
   };
 
@@ -65,8 +67,13 @@ export default function ActionsPage() {
     setActions((prev) => [action, ...prev]);
   };
 
-  if (sessionLoading) return <LoadingSpinner fullPage />;
+  if (sessionLoading || isLoading) return <LoadingSpinner fullPage />;
   if (!session) return null;
+  if (actionsError) return (
+    <Layout title="Actions">
+      <PageError message="Couldn't load actions" onRetry={() => reloadActions()} />
+    </Layout>
+  );
 
   // Filter by priority
   const filtered =

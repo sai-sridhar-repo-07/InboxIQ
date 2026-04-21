@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import ShopLayout from '@/components/ShopLayout';
 import { useCart } from '@/lib/cart';
 import { shopApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/apiError';
 
 declare global {
   interface Window {
@@ -28,15 +29,6 @@ const FIELD_LABELS: Record<string, string> = {
   name: 'Full Name', email: 'Email', phone: 'Phone',
   line1: 'Address Line 1', city: 'City', state: 'State', pincode: 'Pincode',
 };
-
-function apiErrorMessage(err: unknown): string {
-  if (err && typeof err === 'object' && 'response' in err) {
-    const res = (err as { response?: { data?: { detail?: string } } }).response;
-    if (res?.data?.detail) return res.data.detail;
-  }
-  if (err instanceof Error) return err.message;
-  return 'Something went wrong. Please try again.';
-}
 
 export default function CheckoutPage() {
   const router = useRouter();

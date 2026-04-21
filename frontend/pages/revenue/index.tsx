@@ -6,7 +6,9 @@ import { DollarSign, AlertTriangle, RefreshCw, Loader2, Check, X, Zap } from 'lu
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import PageError from '@/components/PageError';
 import { revenueApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { RevenueSummary, RevenueSignal } from '@/lib/types';
 
 const TYPE_COLORS: Record<string, string> = {
@@ -35,6 +37,7 @@ export default function RevenuePage() {
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [summary, setSummary] = useState<RevenueSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -46,8 +49,9 @@ export default function RevenuePage() {
     try {
       const data = await revenueApi.getSummary();
       setSummary(data);
-    } catch {
-      toast.error('Failed to load revenue data');
+    } catch (err) {
+      setLoadError(true);
+      toast.error(apiErrorMessage(err, 'Failed to load revenue data'));
     } finally {
       setLoading(false);
     }
@@ -61,8 +65,8 @@ export default function RevenuePage() {
       const result = await revenueApi.scan();
       toast.success(`Found ${result.signals_found} new signals`);
       await load();
-    } catch {
-      toast.error('Scan failed');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Scan failed'));
     } finally {
       setScanning(false);
     }
@@ -73,14 +77,19 @@ export default function RevenuePage() {
     try {
       await revenueApi.updateSignal(signal.id, status);
       await load();
-    } catch {
-      toast.error('Update failed');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Update failed'));
     } finally {
       setUpdatingId(null);
     }
   };
 
   if (sessionLoading || !session) return <LoadingSpinner fullPage />;
+  if (loadError && !summary) return (
+    <Layout title="Revenue Signals">
+      <PageError message="Couldn't load revenue data" onRetry={() => { setLoadError(false); load(); }} />
+    </Layout>
+  );
 
   return (
     <>

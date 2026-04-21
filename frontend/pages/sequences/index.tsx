@@ -6,7 +6,9 @@ import { Repeat2, Plus, Trash2, Loader2, ChevronDown, ChevronUp, X } from 'lucid
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import PageError from '@/components/PageError';
 import { sequencesApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { FollowUpSequence, SequenceEnrollment } from '@/lib/types';
 
 const STATUS_STYLES: Record<string, string> = {
@@ -27,6 +29,7 @@ export default function SequencesPage() {
   const [sequences, setSequences] = useState<FollowUpSequence[]>([]);
   const [enrollments, setEnrollments] = useState<SequenceEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newSteps, setNewSteps] = useState(DEFAULT_STEPS);
@@ -42,8 +45,9 @@ export default function SequencesPage() {
       const [seqData, enrollData] = await Promise.all([sequencesApi.getAll(), sequencesApi.getEnrollments()]);
       setSequences(seqData.sequences || []);
       setEnrollments(enrollData.enrollments || []);
-    } catch {
-      toast.error('Failed to load sequences');
+    } catch (err) {
+      setLoadError(true);
+      toast.error(apiErrorMessage(err, 'Failed to load sequences'));
     } finally {
       setLoading(false);
     }
@@ -62,8 +66,8 @@ export default function SequencesPage() {
       setNewName('');
       setNewSteps(DEFAULT_STEPS);
       await load();
-    } catch {
-      toast.error('Failed to create sequence');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to create sequence'));
     } finally {
       setSaving(false);
     }
@@ -73,8 +77,8 @@ export default function SequencesPage() {
     try {
       await sequencesApi.delete(id);
       await load();
-    } catch {
-      toast.error('Delete failed');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Delete failed'));
     }
   };
 
@@ -82,8 +86,8 @@ export default function SequencesPage() {
     try {
       await sequencesApi.cancelEnrollment(id);
       await load();
-    } catch {
-      toast.error('Cancel failed');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Cancel failed'));
     }
   };
 
@@ -92,6 +96,11 @@ export default function SequencesPage() {
   };
 
   if (sessionLoading || !session) return <LoadingSpinner fullPage />;
+  if (loadError && sequences.length === 0) return (
+    <Layout title="Follow-up Sequences">
+      <PageError message="Couldn't load sequences" onRetry={() => { setLoadError(false); load(); }} />
+    </Layout>
+  );
 
   const activeEnrollments = enrollments.filter(e => e.status === 'active');
 

@@ -12,6 +12,7 @@ import clsx from 'clsx';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { teamsApi, autoAssignApi, type AutoAssignRule } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { Organization, OrgMember, ActivityLogEntry } from '@/lib/types';
 
 const ROLE_CONFIG = {
@@ -121,8 +122,8 @@ export default function TeamPage() {
       toast.success('Organization created!');
       setOrgName('');
       await loadOrg();
-    } catch {
-      toast.error('Failed to create organization');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to create organization'));
     } finally {
       setCreating(false);
     }
@@ -137,8 +138,8 @@ export default function TeamPage() {
       toast.success('Joined organization!');
       setJoinToken('');
       await loadOrg();
-    } catch {
-      toast.error('Invalid or expired invite token');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Invalid or expired invite token'));
     } finally {
       setJoining(false);
     }
@@ -154,8 +155,8 @@ export default function TeamPage() {
       setInviteEmail('');
       toast.success(`Invite created for ${inviteEmail}`);
       await loadOrg();
-    } catch {
-      toast.error('Failed to send invite');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to send invite'));
     } finally {
       setInviting(false);
     }
@@ -167,8 +168,8 @@ export default function TeamPage() {
       await teamsApi.removeMember(memberId);
       toast.success('Member removed');
       await loadOrg();
-    } catch {
-      toast.error('Failed to remove member');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to remove member'));
     }
   };
 
@@ -187,7 +188,7 @@ export default function TeamPage() {
       setRuleForm({ condition_type: 'sender_domain', condition_value: '', assign_to_user_id: '' });
       setAddingRule(false);
       toast.success('Auto-assign rule created');
-    } catch { toast.error('Failed to create rule'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to create rule')); }
     finally { setSavingRule(false); }
   };
 
@@ -197,14 +198,14 @@ export default function TeamPage() {
       await autoAssignApi.remove(id);
       setAutoRules((prev) => prev.filter((r) => r.id !== id));
       toast.success('Rule deleted');
-    } catch { toast.error('Failed to delete rule'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to delete rule')); }
   };
 
   const handleToggleRule = async (rule: AutoAssignRule) => {
     try {
       const updated = await autoAssignApi.update(rule.id, { is_active: !rule.is_active });
       setAutoRules((prev) => prev.map((r) => r.id === rule.id ? updated : r));
-    } catch { toast.error('Failed to update rule'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to update rule')); }
   };
 
   const copyInviteLink = () => {

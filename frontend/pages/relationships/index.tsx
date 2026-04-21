@@ -7,7 +7,9 @@ import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import PageError from '@/components/PageError';
 import { relationshipsApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { RelationshipContact } from '@/lib/types';
 
 const HEALTH_COLORS = {
@@ -35,6 +37,7 @@ export default function RelationshipsPage() {
   const { session, isLoading: sessionLoading } = useSessionContext();
   const [contacts, setContacts] = useState<RelationshipContact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'at_risk' | 'alert'>('all');
 
@@ -46,8 +49,9 @@ export default function RelationshipsPage() {
     try {
       const data = await relationshipsApi.getAll();
       setContacts(data.contacts || []);
-    } catch {
-      toast.error('Failed to load relationships');
+    } catch (err) {
+      setLoadError(true);
+      toast.error(apiErrorMessage(err, 'Failed to load relationships'));
     } finally {
       setLoading(false);
     }
@@ -62,6 +66,11 @@ export default function RelationshipsPage() {
   };
 
   if (sessionLoading || !session) return <LoadingSpinner fullPage />;
+  if (loadError && contacts.length === 0) return (
+    <Layout title="Relationships">
+      <PageError message="Couldn't load relationships" onRetry={() => { setLoadError(false); load(); }} />
+    </Layout>
+  );
 
   const filtered = contacts.filter(c => {
     if (filter === 'at_risk') return c.health_label === 'at_risk';
