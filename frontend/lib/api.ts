@@ -819,6 +819,36 @@ export const quotesApi = {
   updateStatus: async (id: string, status: string) => { const { data } = await api.patch(`/api/quotes/${id}/status`, { status }); return data; },
 };
 
+// ─── Shop Endpoints ───────────────────────────────────────────────────────────
+
+export const shopApi = {
+  listProducts: async (category?: string) => {
+    const params = category ? `?category=${encodeURIComponent(category)}` : '';
+    const { data } = await api.get(`/api/shop/products${params}`);
+    return data;
+  },
+  getProduct: async (id: string) => {
+    const { data } = await api.get(`/api/shop/products/${id}`);
+    return data;
+  },
+  createOrder: async (body: {
+    items: { product_id: string; variant?: string | null; quantity: number; unit_price: number; customization?: string | null }[];
+    shipping: { name: string; email: string; phone: string; line1: string; line2?: string; city: string; state: string; pincode: string };
+    notes?: string;
+  }) => {
+    const { data } = await api.post('/api/shop/orders', body);
+    return data;
+  },
+  verifyPayment: async (body: { order_id: string; razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+    const { data } = await api.post('/api/shop/orders/verify', body);
+    return data;
+  },
+  getOrder: async (orderId: string, email: string) => {
+    const { data } = await api.get(`/api/shop/orders/${orderId}?email=${encodeURIComponent(email)}`);
+    return data;
+  },
+};
+
 // ─── Newsletter Endpoints ─────────────────────────────────────────────────────
 
 export const newsletterApi = {

@@ -553,3 +553,57 @@ export interface Quote {
   status: 'draft' | 'sent' | 'accepted' | 'rejected';
   created_at: string;
 }
+
+// ─── Shop Types ───────────────────────────────────────────────────────────────
+export interface ShopProductVariant {
+  name: string;  // e.g. "S / Black"
+}
+
+export interface ShopProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: number;        // INR display
+  price_paise: number;  // INR × 100
+  images: string[];
+  category: 'apparel' | 'accessories' | 'stationery' | 'digital';
+  variants: ShopProductVariant[];
+  allows_custom: boolean;
+  custom_label: string;
+  available: boolean;
+  tags: string[];
+  created_at: string;
+}
+
+export interface ShopOrderItem {
+  product_id: string;
+  product_name: string;
+  variant: string | null;
+  quantity: number;
+  unit_price: number;   // paise
+  customization: string | null;
+}
+
+export interface ShopOrder {
+  id: string;
+  customer_email: string;
+  customer_name: string;
+  customer_phone: string;
+  items: ShopOrderItem[];
+  total_paise: number;
+  shipping_address: {
+    name: string;
+    email: string;
+    phone: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+  notes: string | null;
+  razorpay_order_id: string;
+  razorpay_payment_id: string | null;
+  status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled';
+  created_at: string;
+}

@@ -30,6 +30,7 @@ import {
   BookOpen,
   FileText,
   DollarSign,
+  ShoppingBag,
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -57,6 +58,7 @@ const navItems: NavItem[] = [
   { label: 'Knowledge',     href: '/knowledge',       icon: BookOpen },
   { label: 'Briefs',        href: '/briefs',          icon: FileText },
   { label: 'Quotes',        href: '/quotes',          icon: TrendingUp },
+  { label: 'Shop',          href: '/shop',            icon: ShoppingBag },
   { label: 'CRM',           href: '/crm',             icon: Users },
   { label: 'Team',          href: '/team',            icon: Users },
   { label: 'Settings',      href: '/settings',        icon: Settings },

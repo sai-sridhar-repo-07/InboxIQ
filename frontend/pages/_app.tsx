@@ -3,6 +3,7 @@ import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { CartProvider } from '@/lib/cart';
 import { supabase } from '@/lib/supabase';
 import '@/styles/globals.css';
 
@@ -21,6 +22,7 @@ export default function App({ Component, pageProps }: AppProps) {
         supabaseClient={supabaseClient}
         initialSession={pageProps.initialSession}
       >
+        <CartProvider>
         <Component {...pageProps} />
         <Toaster
         position="top-right"
@@ -42,6 +44,7 @@ export default function App({ Component, pageProps }: AppProps) {
           },
         }}
         />
+        </CartProvider>
       </SessionContextProvider>
     </ErrorBoundary>
   );

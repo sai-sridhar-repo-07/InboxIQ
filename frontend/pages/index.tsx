@@ -35,6 +35,7 @@ function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
             <a href="#features" className="text-sm text-slate-300 hover:text-white transition-colors">Features</a>
             <a href="#how-it-works" className="text-sm text-slate-300 hover:text-white transition-colors">How It Works</a>
             <a href="#pricing" className="text-sm text-slate-300 hover:text-white transition-colors">Pricing</a>
+            <Link href="/shop" className="text-sm text-slate-300 hover:text-white transition-colors">Shop</Link>
             {isLoggedIn ? (
               <Link href="/dashboard" className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors shadow-lg shadow-blue-600/25">Go to Dashboard</Link>
             ) : (
@@ -57,6 +58,7 @@ function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
           <a href="#features" className="block text-sm text-slate-300" onClick={() => setMobileOpen(false)}>Features</a>
           <a href="#how-it-works" className="block text-sm text-slate-300" onClick={() => setMobileOpen(false)}>How It Works</a>
           <a href="#pricing" className="block text-sm text-slate-300" onClick={() => setMobileOpen(false)}>Pricing</a>
+          <Link href="/shop" className="block text-sm text-slate-300" onClick={() => setMobileOpen(false)}>Shop</Link>
           {isLoggedIn ? (
             <Link href="/dashboard" className="block text-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Go to Dashboard</Link>
           ) : (
