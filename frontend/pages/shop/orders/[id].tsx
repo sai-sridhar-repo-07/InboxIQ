@@ -37,10 +37,21 @@ export default function OrderConfirmationPage() {
 
   if (error || !order) return (
     <ShopLayout title="Order Not Found">
-      <div className="text-center py-24">
-        <Package className="h-12 w-12 text-slate-700 mx-auto mb-3" />
-        <p className="text-slate-400 mb-4">Order not found. Check your email for details.</p>
-        <Link href="/shop" className="text-blue-400 hover:underline text-sm">Back to Shop</Link>
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 border border-white/10 mb-4">
+          <Package className="h-7 w-7 text-slate-500" />
+        </div>
+        <p className="text-white font-semibold text-lg mb-1">Order not found</p>
+        <p className="text-slate-500 text-sm mb-2">We couldn't find this order. A confirmation email was sent — check your inbox.</p>
+        <p className="text-slate-600 text-xs mb-6">If you just paid, it may take a few seconds. Try refreshing.</p>
+        <div className="flex gap-3">
+          <button onClick={() => router.reload()} className="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-5 py-2.5 text-sm transition-colors">
+            Refresh
+          </button>
+          <Link href="/shop" className="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-xl px-5 py-2.5 text-sm transition-colors">
+            Back to Shop
+          </Link>
+        </div>
       </div>
     </ShopLayout>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { ShoppingCart, Loader2, ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import Link from 'next/link';
+import { ShoppingCart, Loader2, ChevronLeft, ChevronRight, Package, ArrowLeft, WifiOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ShopLayout from '@/components/ShopLayout';
 import { shopApi } from '@/lib/api';
@@ -13,6 +14,8 @@ export default function ProductPage() {
   const { addItem } = useCart();
   const [product, setProduct] = useState<ShopProduct | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [customText, setCustomText] = useState('');
   const [qty, setQty] = useState(1);
@@ -20,16 +23,23 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!id) return;
+    setLoading(true);
+    setNotFound(false);
+    setFetchError(false);
     shopApi.getProduct(id as string)
       .then(p => { setProduct(p); if (p.variants?.length) setSelectedVariant(p.variants[0].name); })
-      .catch(() => router.replace('/shop'))
+      .catch((err) => {
+        const status = err?.response?.status;
+        if (status === 404) setNotFound(true);
+        else setFetchError(true);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
   const handleAdd = () => {
     if (!product) return;
-    if (product.variants?.length && !selectedVariant) return toast.error('Pick a variant');
-    if (product.allows_custom && !customText.trim()) return toast.error(`Enter ${product.custom_label}`);
+    if (product.variants?.length && !selectedVariant) return toast.error('Please select a variant');
+    if (product.allows_custom && !customText.trim()) return toast.error(`Please enter ${product.custom_label}`);
     addItem({
       product_id: product.id,
       product_name: product.name,
@@ -39,12 +49,48 @@ export default function ProductPage() {
       customization: product.allows_custom ? customText.trim() : null,
       quantity: qty,
     });
-    toast.success('Added to cart!');
+    toast.success(`${product.name} added to cart!`);
   };
 
   if (loading) return (
     <ShopLayout>
       <div className="flex items-center justify-center py-32"><Loader2 className="h-6 w-6 text-slate-500 animate-spin" /></div>
+    </ShopLayout>
+  );
+
+  if (notFound) return (
+    <ShopLayout title="Product Not Found">
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 border border-white/10 mb-4">
+          <Package className="h-7 w-7 text-slate-500" />
+        </div>
+        <p className="text-white font-semibold text-lg mb-1">Product not found</p>
+        <p className="text-slate-500 text-sm mb-6">This item may have been removed or is no longer available.</p>
+        <Link href="/shop" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-6 py-3 transition-colors text-sm">
+          <ArrowLeft className="h-4 w-4" /> Browse Shop
+        </Link>
+      </div>
+    </ShopLayout>
+  );
+
+  if (fetchError) return (
+    <ShopLayout title="Error">
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 mb-4">
+          <WifiOff className="h-7 w-7 text-red-400" />
+        </div>
+        <p className="text-white font-semibold text-lg mb-1">Something went wrong</p>
+        <p className="text-slate-500 text-sm mb-6">Couldn't load this product. Check your connection.</p>
+        <div className="flex gap-3">
+          <button onClick={() => { setFetchError(false); setLoading(true); shopApi.getProduct(id as string).then(p => { setProduct(p); if (p.variants?.length) setSelectedVariant(p.variants[0].name); }).catch((err) => { if (err?.response?.status === 404) setNotFound(true); else setFetchError(true); }).finally(() => setLoading(false)); }}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-5 py-2.5 text-sm transition-colors">
+            Try Again
+          </button>
+          <Link href="/shop" className="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-xl px-5 py-2.5 text-sm transition-colors">
+            Back to Shop
+          </Link>
+        </div>
+      </div>
     </ShopLayout>
   );
 

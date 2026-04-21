@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { Loader2, Lock } from 'lucide-react';
+import Link from 'next/link';
+import { Loader2, Lock, ShoppingBag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ShopLayout from '@/components/ShopLayout';
 import { useCart } from '@/lib/cart';
@@ -23,6 +24,20 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const inputCls = "w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors";
 
+const FIELD_LABELS: Record<string, string> = {
+  name: 'Full Name', email: 'Email', phone: 'Phone',
+  line1: 'Address Line 1', city: 'City', state: 'State', pincode: 'Pincode',
+};
+
+function apiErrorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const res = (err as { response?: { data?: { detail?: string } } }).response;
+    if (res?.data?.detail) return res.data.detail;
+  }
+  if (err instanceof Error) return err.message;
+  return 'Something went wrong. Please try again.';
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, totalPaise, clearCart } = useCart();
@@ -39,17 +54,20 @@ export default function CheckoutPage() {
   const validate = () => {
     const required = ['name', 'email', 'phone', 'line1', 'city', 'state', 'pincode'] as const;
     for (const f of required) {
-      if (!form[f].trim()) { toast.error(`${f} is required`); return false; }
+      if (!form[f].trim()) {
+        toast.error(`${FIELD_LABELS[f]} is required`);
+        return false;
+      }
     }
-    if (!/\S+@\S+\.\S+/.test(form.email)) { toast.error('Invalid email'); return false; }
-    if (!/^\d{10}$/.test(form.phone)) { toast.error('Phone must be 10 digits'); return false; }
+    if (!/\S+@\S+\.\S+/.test(form.email)) { toast.error('Please enter a valid email address'); return false; }
+    if (!/^\d{10}$/.test(form.phone)) { toast.error('Phone number must be 10 digits'); return false; }
     if (!/^\d{6}$/.test(form.pincode)) { toast.error('Pincode must be 6 digits'); return false; }
     return true;
   };
 
   const handleCheckout = async () => {
     if (!validate()) return;
-    if (items.length === 0) { toast.error('Cart is empty'); return; }
+    if (items.length === 0) { toast.error('Your cart is empty'); return; }
     setLoading(true);
     try {
       const orderRes = await shopApi.createOrder({
@@ -58,13 +76,12 @@ export default function CheckoutPage() {
         notes: form.notes || undefined,
       });
 
-      // Load Razorpay script if needed
       if (!window.Razorpay) {
         await new Promise<void>((resolve, reject) => {
           const s = document.createElement('script');
           s.src = 'https://checkout.razorpay.com/v1/checkout.js';
           s.onload = () => resolve();
-          s.onerror = () => reject(new Error('Razorpay load failed'));
+          s.onerror = () => reject(new Error('Could not load payment gateway. Check your connection and try again.'));
           document.head.appendChild(s);
         });
       }
@@ -88,16 +105,20 @@ export default function CheckoutPage() {
             });
             clearCart();
             router.push(`/shop/orders/${orderRes.order_id}?email=${encodeURIComponent(form.email)}`);
-          } catch {
-            toast.error('Payment verification failed. Contact support.');
+          } catch (err) {
+            toast.error(
+              'Payment was received but confirmation failed. Please email support@mailair.company with your order ID: ' +
+              orderRes.order_id?.slice(0, 8).toUpperCase(),
+              { duration: 8000 }
+            );
+            console.error('Payment verification error:', err);
           }
         },
         modal: { ondismiss: () => setLoading(false) },
       });
       rz.open();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Checkout failed';
-      toast.error(msg);
+      toast.error(apiErrorMessage(err));
       setLoading(false);
     }
   };
@@ -105,8 +126,15 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <ShopLayout title="Checkout">
-        <div className="text-center py-24 text-slate-400">
-          Cart is empty. <a href="/shop" className="text-blue-400 hover:underline">Shop now</a>
+        <div className="flex flex-col items-center justify-center py-32 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 border border-white/10 mb-4">
+            <ShoppingBag className="h-7 w-7 text-slate-500" />
+          </div>
+          <p className="text-white font-semibold text-lg mb-1">Your cart is empty</p>
+          <p className="text-slate-500 text-sm mb-6">Add some Mailair goodies before checking out.</p>
+          <Link href="/shop" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-6 py-3 transition-colors text-sm">
+            Browse Shop
+          </Link>
         </div>
       </ShopLayout>
     );

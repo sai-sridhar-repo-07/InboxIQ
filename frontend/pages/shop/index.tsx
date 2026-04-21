@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { ShoppingBag, Loader2 } from 'lucide-react';
+import { ShoppingBag, Loader2, WifiOff, RefreshCw } from 'lucide-react';
 import ShopLayout from '@/components/ShopLayout';
 import { shopApi } from '@/lib/api';
 import type { ShopProduct } from '@/lib/types';
@@ -38,15 +38,19 @@ export default function ShopPage() {
   const router = useRouter();
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const category = (router.query.category as string) || 'all';
 
-  useEffect(() => {
+  const load = () => {
     setLoading(true);
+    setFetchError(false);
     shopApi.listProducts(category === 'all' ? undefined : category)
       .then(d => setProducts(d.products || []))
-      .catch(() => setProducts([]))
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
-  }, [category]);
+  };
+
+  useEffect(load, [category]);
 
   return (
     <ShopLayout title="Shop">
@@ -75,6 +79,19 @@ export default function ShopPage() {
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <Loader2 className="h-6 w-6 text-slate-500 animate-spin" />
+          </div>
+        ) : fetchError ? (
+          <div className="text-center py-24 space-y-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20">
+              <WifiOff className="h-6 w-6 text-red-400" />
+            </div>
+            <div>
+              <p className="text-white font-semibold mb-1">Couldn't load products</p>
+              <p className="text-slate-500 text-sm">Check your connection and try again.</p>
+            </div>
+            <button onClick={load} className="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white font-medium rounded-xl px-5 py-2.5 transition-colors">
+              <RefreshCw className="h-4 w-4" /> Retry
+            </button>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-24">
