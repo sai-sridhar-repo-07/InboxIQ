@@ -18,12 +18,18 @@ import {
   BarChart2,
   AlarmClock,
   Users,
+  AlertTriangle,
+  MessageSquare,
+  RefreshCw,
+  Newspaper,
+  Clock,
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import ThemeToggle from './ThemeToggle';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import { useEmailStats } from '@/lib/hooks';
 
 interface NavItem {
   label: string;
@@ -134,32 +140,77 @@ export default function Layout({ children, title }: LayoutProps) {
   const userEmail    = user?.email ?? '';
   const displayName  = user?.user_metadata?.full_name ?? userEmail.split('@')[0];
 
+  const { data: emailStats } = useEmailStats();
+  const catBreakdown = (emailStats as any)?.category_breakdown ?? {};
+
+  const SMART_FOLDERS = [
+    { label: 'Urgent',      href: '/email?category=urgent',         icon: AlertTriangle,  color: 'text-red-500',    dot: 'bg-red-500',    key: 'urgent' },
+    { label: 'Needs Reply', href: '/email?category=needs_response', icon: MessageSquare,  color: 'text-amber-500',  dot: 'bg-amber-400',  key: 'needs_response' },
+    { label: 'Follow Up',   href: '/email?category=follow_up',      icon: RefreshCw,      color: 'text-blue-500',   dot: 'bg-blue-400',   key: 'follow_up' },
+    { label: 'Waiting',     href: '/email?labels=__followup__',     icon: Clock,          color: 'text-violet-500', dot: 'bg-violet-400', key: '__followup__' },
+    { label: 'Newsletters', href: '/email/newsletters',             icon: Newspaper,      color: 'text-emerald-500',dot: 'bg-emerald-400',key: 'newsletter' },
+  ];
+
   const NavLinks = () => (
     <nav className="flex-1 space-y-0.5 px-3 py-2">
       {navItems.map((item, i) => {
-        const isActive = router.pathname.startsWith(item.href);
+        const isActive = router.pathname === item.href || (item.href !== '/email' && router.pathname.startsWith(item.href));
+        const isInboxActive = item.href === '/email' && router.pathname.startsWith('/email');
+        const active = isActive || isInboxActive;
         const { icon: Icon } = item;
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={clsx(
-              'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-              `animate-slide-in-left stagger-${i + 1}`,
-              isActive
-                ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 hover:translate-x-0.5'
-            )}
-          >
-            <Icon
+          <div key={item.href}>
+            <Link
+              href={item.href}
               className={clsx(
-                'h-5 w-5 flex-shrink-0 transition-colors duration-150',
-                isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'
+                'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                `animate-slide-in-left stagger-${i + 1}`,
+                active
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 hover:translate-x-0.5'
               )}
-            />
-            {item.label}
-            {isActive && <ChevronRight className="ml-auto h-4 w-4 text-primary-400" />}
-          </Link>
+            >
+              <Icon
+                className={clsx(
+                  'h-5 w-5 flex-shrink-0 transition-colors duration-150',
+                  active ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'
+                )}
+              />
+              {item.label}
+              {active && <ChevronRight className="ml-auto h-4 w-4 text-primary-400" />}
+            </Link>
+
+            {/* Smart folders — shown nested under Inbox */}
+            {item.href === '/email' && (
+              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-gray-100 dark:border-gray-700 pl-3">
+                {SMART_FOLDERS.map((sf) => {
+                  const sfActive = router.asPath === sf.href;
+                  const count: number = catBreakdown[sf.key] ?? 0;
+                  const SfIcon = sf.icon;
+                  return (
+                    <Link
+                      key={sf.href}
+                      href={sf.href}
+                      className={clsx(
+                        'group flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-all duration-150',
+                        sfActive
+                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200'
+                      )}
+                    >
+                      <SfIcon className={clsx('h-3.5 w-3.5 flex-shrink-0', sf.color)} />
+                      <span className="flex-1 truncate">{sf.label}</span>
+                      {count > 0 && (
+                        <span className={clsx('rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white', sf.dot)}>
+                          {count > 99 ? '99+' : count}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         );
       })}
     </nav>

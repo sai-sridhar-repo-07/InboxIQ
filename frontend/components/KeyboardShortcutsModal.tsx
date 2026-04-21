@@ -9,8 +9,10 @@ const shortcuts = [
   { key: 'j / ↓', action: 'Select next email' },
   { key: 'k / ↑', action: 'Select previous email' },
   { key: 'o / Enter', action: 'Open selected email' },
+  { key: 'e', action: 'Archive (remove) focused email' },
   { key: 'd', action: 'Dismiss selected email' },
   { key: 's', action: 'Star / unstar selected email' },
+  { key: '/', action: 'Focus search bar' },
   { key: '?', action: 'Open this shortcuts panel' },
   { key: 'Esc', action: 'Close modals / deselect' },
 ];

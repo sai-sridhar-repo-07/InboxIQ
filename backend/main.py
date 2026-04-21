@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 
 from config import settings
 from limiter import limiter
-from routes import auth, emails, actions, replies, integrations, settings as settings_routes, billing, contacts, outlook, calendar, teams, webhooks as webhooks_routes, autoassign, crm_integrations, admin as admin_routes, waitlist as waitlist_routes
+from routes import auth, emails, actions, replies, integrations, settings as settings_routes, billing, contacts, outlook, calendar, teams, webhooks as webhooks_routes, autoassign, crm_integrations, admin as admin_routes, waitlist as waitlist_routes, push as push_routes, scheduled as scheduled_routes
 from workers.email_listener import start_email_listener, stop_email_listener
 
 # ---------------------------------------------------------------------------
@@ -36,7 +36,9 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown hooks."""
     logger.info("Mailair backend starting up (env=%s).", settings.ENVIRONMENT)
     start_email_listener()
+
     yield
+
     logger.info("Mailair backend shutting down.")
     stop_email_listener()
 
@@ -166,6 +168,8 @@ app.include_router(autoassign.router, prefix="/api")
 app.include_router(crm_integrations.router, prefix="/api")
 app.include_router(admin_routes.router, prefix="/api")
 app.include_router(waitlist_routes.router)
+app.include_router(push_routes.router, prefix="/api")
+app.include_router(scheduled_routes.router, prefix="/api")
 
 
 # ---------------------------------------------------------------------------

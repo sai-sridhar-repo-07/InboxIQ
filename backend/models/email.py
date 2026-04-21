@@ -14,6 +14,7 @@ class EmailCreate(EmailBase):
     user_id: str
     gmail_message_id: Optional[str] = None
     thread_id: Optional[str] = None
+    labels: List[str] = []
 
 
 class EmailResponse(EmailBase):

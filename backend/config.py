@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     # AI Thresholds
     URGENCY_THRESHOLD: int = 7
 
+    # VAPID keys for Web Push (generate with: python -c "from py_vapid import Vapid; v=Vapid(); v.generate_keys(); print(v.private_key); print(v.public_key)")
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_EMAIL: str = "mailto:admin@mailair.company"
+
     # Environment
     ENVIRONMENT: str = "development"
 

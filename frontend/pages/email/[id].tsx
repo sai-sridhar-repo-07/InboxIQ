@@ -35,6 +35,11 @@ import {
   X,
   Layers,
   CalendarPlus,
+  Pin,
+  PinOff,
+  BellOff,
+  Lightbulb,
+  Wand2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
@@ -48,6 +53,7 @@ import AttachmentViewer from '@/components/AttachmentViewer';
 import SnoozeModal from '@/components/SnoozeModal';
 import { useEmail, useEmailActions, useReplyDraft } from '@/lib/hooks';
 import { emailsApi, teamsApi } from '@/lib/api';
+import { loadTags, getEmailTags, setEmailTags, createTag, saveTags, getNextColor } from '@/lib/tags';
 import { supabase } from '@/lib/supabase';
 import type { Action, QuoteData, MeetingInfo, InternalNote, OrgMember } from '@/lib/types';
 
@@ -134,10 +140,19 @@ export default function EmailDetailPage() {
   const [isStarring, setIsStarring]           = useState(false);
   const [isStarred, setIsStarred]             = useState<boolean | null>(null);
   const [snoozeOpen, setSnoozeOpen]           = useState(false);
+  const [isTogglingFollowUp, setIsTogglingFollowUp] = useState(false);
+  const [isForwardingSlack, setIsForwardingSlack] = useState(false);
+  const [askAIOpen, setAskAIOpen] = useState(false);
+  const [askAIQuestion, setAskAIQuestion] = useState('');
+  const [askAIAnswer, setAskAIAnswer] = useState('');
+  const [askAILoading, setAskAILoading] = useState(false);
   const [actions, setActions]                 = useState<Action[]>([]);
   const [attachments, setAttachments]         = useState<Attachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [viewingAttachment, setViewingAttachment] = useState<Attachment | null>(null);
+  const [attachmentSummaries, setAttachmentSummaries] = useState<Record<string, string>>({});
+  const [summarizingId, setSummarizingId] = useState<string | null>(null);
+  const [isUnsubscribing, setIsUnsubscribing] = useState(false);
 
   // Quote generator state
   const [quoteModalOpen, setQuoteModalOpen]       = useState(false);
@@ -163,6 +178,47 @@ export default function EmailDetailPage() {
     next_action: string | null; sentiment: string; status: string;
   } | null>(null);
   const [loadingThreadSummary, setLoadingThreadSummary] = useState(false);
+
+  // Pin / Mute / Smart replies
+  const [isPinning, setIsPinning] = useState(false);
+  const [isMuting, setIsMuting] = useState(false);
+  const [smartReplies, setSmartReplies] = useState<string[]>([]);
+  const [loadingSmartReplies, setLoadingSmartReplies] = useState(false);
+  const [suggestedReply, setSuggestedReply] = useState<string | null>(null);
+
+  // Custom tags
+  const [allTags, setAllTags] = useState(() => loadTags());
+  const [emailTagIds, setEmailTagIds] = useState<string[]>(() => emailId ? getEmailTags(emailId) : []);
+  const [newTagName, setNewTagName] = useState('');
+  const [tagsOpen, setTagsOpen] = useState(false);
+
+  const handleAddTag = () => {
+    if (!newTagName.trim() || !emailId) return;
+    const existing = allTags.find((t) => t.name.toLowerCase() === newTagName.trim().toLowerCase());
+    let tagId: string;
+    if (existing) {
+      tagId = existing.id;
+    } else {
+      const tag = createTag(newTagName.trim(), getNextColor(allTags));
+      const updated = [...allTags, tag];
+      setAllTags(updated);
+      saveTags(updated);
+      tagId = tag.id;
+    }
+    if (!emailTagIds.includes(tagId)) {
+      const next = [...emailTagIds, tagId];
+      setEmailTagIds(next);
+      setEmailTags(emailId, next);
+    }
+    setNewTagName('');
+  };
+
+  const handleRemoveEmailTag = (tagId: string) => {
+    if (!emailId) return;
+    const next = emailTagIds.filter((id) => id !== tagId);
+    setEmailTagIds(next);
+    setEmailTags(emailId, next);
+  };
 
   const { data: email, error: emailError, isLoading: emailLoading, mutate: mutateEmail } = useEmail(emailId);
   const { data: rawActions, isLoading: actionsLoading } = useEmailActions(emailId);
@@ -281,6 +337,49 @@ export default function EmailDetailPage() {
     }
   };
 
+  const handleToggleFollowUp = async () => {
+    if (!emailId || !email) return;
+    const isWaiting = (email.labels ?? []).includes('__followup__');
+    setIsTogglingFollowUp(true);
+    try {
+      await emailsApi.toggleFollowUp(emailId, !isWaiting);
+      await mutateEmail();
+      toast.success(!isWaiting ? 'Marked as waiting for reply' : 'Follow-up cleared');
+    } catch {
+      toast.error('Failed to update follow-up status');
+    } finally {
+      setIsTogglingFollowUp(false);
+    }
+  };
+
+  const handleForwardToSlack = async () => {
+    if (!emailId) return;
+    setIsForwardingSlack(true);
+    try {
+      await emailsApi.forwardToSlack(emailId);
+      toast.success('Forwarded to Slack!');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(msg || 'Failed to forward to Slack. Check your webhook in Settings.');
+    } finally {
+      setIsForwardingSlack(false);
+    }
+  };
+
+  const handleAskAI = async () => {
+    if (!emailId || !askAIQuestion.trim()) return;
+    setAskAILoading(true);
+    setAskAIAnswer('');
+    try {
+      const { answer } = await emailsApi.askAI(emailId, askAIQuestion.trim());
+      setAskAIAnswer(answer);
+    } catch {
+      toast.error('AI request failed');
+    } finally {
+      setAskAILoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!emailId) return;
     if (!confirm('Remove this email from Mailair? It will not be synced again.')) return;
@@ -292,6 +391,34 @@ export default function EmailDetailPage() {
     } catch {
       toast.error('Failed to delete email');
       setIsDeleting(false);
+    }
+  };
+
+  const handleSummarizeAttachment = async (att: Attachment) => {
+    setSummarizingId(att.attachment_id);
+    try {
+      const result = await emailsApi.summarizeAttachment(emailId as string, att.attachment_id, att.filename, att.mime_type);
+      setAttachmentSummaries(prev => ({ ...prev, [att.attachment_id]: result.summary }));
+    } catch {
+      toast.error('Failed to summarize attachment');
+    } finally {
+      setSummarizingId(null);
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    setIsUnsubscribing(true);
+    try {
+      const result = await emailsApi.unsubscribe(emailId as string);
+      if (result.success) {
+        toast.success('Unsubscribed successfully');
+      } else {
+        toast.error(result.error || 'Unsubscribe failed — try visiting the link manually');
+      }
+    } catch {
+      toast.error('Failed to unsubscribe');
+    } finally {
+      setIsUnsubscribing(false);
     }
   };
 
@@ -312,6 +439,49 @@ export default function EmailDetailPage() {
       URL.revokeObjectURL(a.href);
     } catch {
       toast.error('Failed to download attachment');
+    }
+  };
+
+  const isPinned = (email?.labels ?? []).includes('__pinned__');
+
+  const handlePin = async () => {
+    if (!emailId || !email) return;
+    setIsPinning(true);
+    try {
+      await emailsApi.pinEmail(emailId, !isPinned);
+      await mutateEmail();
+      toast.success(!isPinned ? 'Email pinned' : 'Email unpinned');
+    } catch {
+      toast.error('Failed to update pin');
+    } finally {
+      setIsPinning(false);
+    }
+  };
+
+  const handleMute = async () => {
+    if (!emailId || !email) return;
+    setIsMuting(true);
+    try {
+      await emailsApi.muteEmail(emailId, true);
+      toast.success(`Muted emails from ${email.from_name || email.from_email}`);
+      router.push('/email');
+    } catch {
+      toast.error('Failed to mute sender');
+    } finally {
+      setIsMuting(false);
+    }
+  };
+
+  const handleSmartReplies = async () => {
+    if (!emailId) return;
+    setLoadingSmartReplies(true);
+    try {
+      const replies = await emailsApi.getSmartReplies(emailId);
+      setSmartReplies(replies);
+    } catch {
+      toast.error('Failed to generate smart replies');
+    } finally {
+      setLoadingSmartReplies(false);
     }
   };
 
@@ -586,6 +756,46 @@ export default function EmailDetailPage() {
                 </span>
               </button>
 
+              {/* Pin */}
+              <button
+                onClick={handlePin}
+                disabled={isPinning}
+                className={clsx('btn-secondary text-sm', isPinned && 'bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300')}
+                title={isPinned ? 'Unpin email' : 'Pin email'}
+              >
+                {isPinning ? <Loader2 className="h-4 w-4 animate-spin" /> : isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                <span className="hidden sm:inline ml-1.5">{isPinned ? 'Unpin' : 'Pin'}</span>
+              </button>
+
+              {/* Mute sender */}
+              <button
+                onClick={handleMute}
+                disabled={isMuting}
+                className="btn-secondary text-sm"
+                title="Mute sender — stop syncing their emails"
+              >
+                {isMuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellOff className="h-4 w-4 text-gray-500" />}
+                <span className="hidden sm:inline ml-1.5">Mute</span>
+              </button>
+
+              {/* Follow-up / Waiting for reply */}
+              <button
+                onClick={handleToggleFollowUp}
+                disabled={isTogglingFollowUp}
+                className={clsx(
+                  'btn-secondary text-sm',
+                  (email.labels ?? []).includes('__followup__') && 'bg-violet-50 border-violet-300 text-violet-700 dark:bg-violet-900/20 dark:border-violet-700 dark:text-violet-300'
+                )}
+                title="Mark as waiting for reply"
+              >
+                {isTogglingFollowUp
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <StickyNote className="h-4 w-4" />}
+                <span className="hidden sm:inline ml-1.5">
+                  {(email.labels ?? []).includes('__followup__') ? 'Waiting' : 'Follow-up'}
+                </span>
+              </button>
+
               {/* Snooze button */}
               <button
                 onClick={() => setSnoozeOpen(true)}
@@ -606,8 +816,20 @@ export default function EmailDetailPage() {
                 {loadingThreadSummary
                   ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   : <Layers className="h-4 w-4 mr-1.5 text-blue-500" />}
-                <span className="hidden sm:inline">Thread</span>
+                <span className="hidden sm:inline">Summary</span>
               </button>
+
+              {/* View full thread */}
+              {email.gmail_thread_id && (
+                <button
+                  onClick={() => router.push(`/email/thread/${email.gmail_thread_id}`)}
+                  className="btn-secondary text-sm"
+                  title="View full thread"
+                >
+                  <Layers className="h-4 w-4 mr-1.5 text-violet-500" />
+                  <span className="hidden sm:inline">Thread</span>
+                </button>
+              )}
 
               {/* Generate Quote button — shown for quote_request emails */}
               {(String(analysis?.category ?? '').toLowerCase().includes('quote') || String(analysis?.category ?? '') === 'needs_response') && (
@@ -621,6 +843,27 @@ export default function EmailDetailPage() {
                 </button>
               )}
 
+              {/* Forward to Slack */}
+              <button
+                onClick={handleForwardToSlack}
+                disabled={isForwardingSlack}
+                className="btn-secondary text-sm"
+                title="Forward to Slack"
+              >
+                {isForwardingSlack ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4 text-green-500" />}
+                <span className="hidden sm:inline ml-1.5">Slack</span>
+              </button>
+
+              {/* Ask AI */}
+              <button
+                onClick={() => setAskAIOpen((v) => !v)}
+                className={clsx('btn-secondary text-sm', askAIOpen && 'bg-violet-50 border-violet-300 text-violet-700 dark:bg-violet-900/20 dark:border-violet-700 dark:text-violet-300')}
+                title="Ask AI about this email"
+              >
+                <Brain className="h-4 w-4 text-violet-500" />
+                <span className="hidden sm:inline ml-1.5">Ask AI</span>
+              </button>
+
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
@@ -631,6 +874,51 @@ export default function EmailDetailPage() {
               </button>
             </div>
           </div>
+
+          {/* Ask AI panel */}
+          {askAIOpen && (
+            <div className="card p-4 border border-violet-200 dark:border-violet-700 bg-violet-50/50 dark:bg-violet-900/10 animate-slide-up">
+              <div className="flex items-center gap-2 mb-3">
+                <Brain className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                <h3 className="text-sm font-semibold text-violet-900 dark:text-violet-100">Ask AI about this email</h3>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={askAIQuestion}
+                  onChange={(e) => setAskAIQuestion(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAskAI()}
+                  placeholder="e.g. Draft a polite decline, Summarize into 3 bullets, What action is needed?"
+                  className="input-field flex-1 text-sm"
+                />
+                <button
+                  onClick={handleAskAI}
+                  disabled={askAILoading || !askAIQuestion.trim()}
+                  className="btn-primary text-sm shrink-0"
+                >
+                  {askAILoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                  <span className="ml-1.5">Ask</span>
+                </button>
+              </div>
+              {askAIAnswer && (
+                <div className="mt-3 rounded-lg bg-white dark:bg-gray-800 border border-violet-200 dark:border-violet-700 p-3">
+                  <p className="text-xs font-medium text-violet-600 dark:text-violet-400 mb-1.5">AI Answer</p>
+                  <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{askAIAnswer}</p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(askAIAnswer); toast.success('Copied!'); }}
+                      className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1"
+                    >
+                      <ClipboardCopy className="h-3 w-3" />Copy
+                    </button>
+                    <button onClick={() => { setAskAIAnswer(''); setAskAIQuestion(''); }} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Email header card */}
           <div className="card p-4 sm:p-6 animate-slide-up">
@@ -740,6 +1028,33 @@ export default function EmailDetailPage() {
               </div>
             )}
 
+            {/* Invoice Banner */}
+            {analysis?.is_invoice && (
+              <div className="mt-4 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">💳 Invoice detected</span>
+                  {analysis.invoice_vendor && <span className="text-xs text-amber-700 dark:text-amber-400">From: {analysis.invoice_vendor}</span>}
+                  {analysis.invoice_amount && <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-xs font-bold text-amber-800 dark:text-amber-300">{analysis.invoice_amount}</span>}
+                  {analysis.invoice_due_date && <span className="text-xs text-amber-700 dark:text-amber-400">Due: {analysis.invoice_due_date}</span>}
+                </div>
+              </div>
+            )}
+
+            {/* Unsubscribe Banner */}
+            {(email?.labels ?? []).some((l: string) => l.startsWith('__unsub__:')) && (
+              <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 flex items-center justify-between gap-3">
+                <span className="text-xs text-gray-600 dark:text-gray-400">This email has an unsubscribe link.</span>
+                <button
+                  onClick={handleUnsubscribe}
+                  disabled={isUnsubscribing}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors disabled:opacity-50"
+                >
+                  {isUnsubscribing ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                  {isUnsubscribing ? 'Unsubscribing…' : 'Unsubscribe'}
+                </button>
+              </div>
+            )}
+
             {/* Phishing Warning Banner */}
             {analysis?.is_phishing && (
               <div className="mt-4 rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-4 py-3">
@@ -844,33 +1159,47 @@ export default function EmailDetailPage() {
                       const FileIcon = getFileIcon(att.mime_type);
                       const colorClass = getFileColor(att.mime_type);
                       return (
-                        <div
-                          key={att.attachment_id}
-                          className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 group hover:border-primary-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
-                        >
-                          <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${colorClass}`}>
-                            <FileIcon className="h-4 w-4" />
+                        <div key={att.attachment_id} className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 group hover:border-primary-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors">
+                            <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${colorClass}`}>
+                              <FileIcon className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{att.filename}</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500">{formatBytes(att.size)}</p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                onClick={() => handleSummarizeAttachment(att)}
+                                disabled={summarizingId === att.attachment_id}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
+                                title="AI Summarize"
+                              >
+                                {summarizingId === att.attachment_id
+                                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  : <Brain className="h-3.5 w-3.5" />}
+                              </button>
+                              <button
+                                onClick={() => setViewingAttachment(att)}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-100 transition-colors"
+                                title="View"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDownloadAttachment(att)}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-100 transition-colors"
+                                title="Download"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{att.filename}</p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500">{formatBytes(att.size)}</p>
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <button
-                              onClick={() => setViewingAttachment(att)}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-100 transition-colors"
-                              title="View"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDownloadAttachment(att)}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-100 transition-colors"
-                              title="Download"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                          {attachmentSummaries[att.attachment_id] && (
+                            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed whitespace-pre-line">
+                              {attachmentSummaries[att.attachment_id]}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -971,6 +1300,81 @@ export default function EmailDetailPage() {
             </div>
           </div>
 
+          {/* Custom Tags */}
+          <div className="card p-4 sm:p-5 animate-slide-up">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag className="h-4 w-4 text-primary-600" />
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Custom Tags</h2>
+              <button
+                onClick={() => setTagsOpen((v) => !v)}
+                className="ml-auto text-xs text-primary-600 dark:text-primary-400 hover:underline"
+              >
+                {tagsOpen ? 'Done' : 'Add tag'}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {emailTagIds.map((id) => {
+                const tag = allTags.find((t) => t.id === id);
+                if (!tag) return null;
+                return (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white"
+                    style={{ backgroundColor: tag.color }}
+                  >
+                    {tag.name}
+                    <button onClick={() => handleRemoveEmailTag(id)} className="ml-0.5 hover:opacity-70 transition-opacity">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                );
+              })}
+              {emailTagIds.length === 0 && !tagsOpen && (
+                <span className="text-xs text-gray-400 dark:text-gray-500">No tags yet — click "Add tag" to label this email</span>
+              )}
+            </div>
+            {tagsOpen && (
+              <div className="mt-3 space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                    placeholder="Tag name (e.g. VIP, Follow-up)"
+                    className="input-field flex-1 text-sm py-1.5"
+                  />
+                  <button
+                    onClick={handleAddTag}
+                    disabled={!newTagName.trim()}
+                    className="btn-primary text-xs px-3 py-1.5"
+                  >
+                    Add
+                  </button>
+                </div>
+                {allTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {allTags.filter((t) => !emailTagIds.includes(t.id)).map((tag) => (
+                      <button
+                        key={tag.id}
+                        onClick={() => {
+                          if (!emailId) return;
+                          const next = [...emailTagIds, tag.id];
+                          setEmailTagIds(next);
+                          setEmailTags(emailId, next);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white hover:opacity-80 transition-opacity"
+                        style={{ backgroundColor: tag.color }}
+                      >
+                        + {tag.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Team Collaboration Panel — shown only when org exists (members list is non-empty) */}
           {orgMembers.length > 0 && (
             <div className="card p-4 sm:p-5 animate-slide-up stagger-4 space-y-4">
@@ -1044,13 +1448,51 @@ export default function EmailDetailPage() {
             </div>
           )}
 
+          {/* Smart Replies */}
+          <div className="animate-slide-up stagger-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Smart Replies</h2>
+              <button
+                onClick={handleSmartReplies}
+                disabled={loadingSmartReplies}
+                className="ml-auto btn-secondary text-xs py-1"
+              >
+                {loadingSmartReplies
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  : <Wand2 className="h-3.5 w-3.5 mr-1" />}
+                {smartReplies.length > 0 ? 'Refresh' : 'Generate'}
+              </button>
+            </div>
+            {smartReplies.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {smartReplies.map((reply, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSuggestedReply(reply)}
+                    className="rounded-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-left max-w-xs truncate"
+                    title={reply}
+                  >
+                    {reply}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Reply Editor */}
           <div className="animate-slide-up stagger-4">
             <div className="flex items-center gap-2 mb-3">
               <MessageSquare className="h-4 w-4 text-blue-600" />
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">AI Reply Draft</h2>
             </div>
-            <ReplyEditor emailId={email.id} draft={replyDraft} onSent={() => mutateEmail()} />
+            <ReplyEditor
+              emailId={email.id}
+              draft={replyDraft}
+              suggestedReply={suggestedReply}
+              senderName={email.from_name || email.from_email}
+              onSent={() => { mutateEmail(); setSuggestedReply(null); }}
+            />
           </div>
 
         </div>

@@ -1,13 +1,19 @@
 import type { AppProps } from 'next/app';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { supabase } from '@/lib/supabase';
 import '@/styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
-  // Use the single shared client so there is only one GoTrueClient instance.
   const supabaseClient = supabase;
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
 
   return (
     <ErrorBoundary>

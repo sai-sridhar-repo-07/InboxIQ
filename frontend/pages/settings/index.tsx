@@ -28,7 +28,8 @@ import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import RulesManager from '@/components/RulesManager';
 import { useSettings, useGmailStatus } from '@/lib/hooks';
-import { settingsApi, integrationsApi, outlookApi, calendarApi, gdprApi, webhooksApi, crmApi, type Webhook } from '@/lib/api';
+import { settingsApi, integrationsApi, outlookApi, calendarApi, gdprApi, webhooksApi, crmApi, pushApi, type Webhook } from '@/lib/api';
+import { registerPushSubscription, unregisterPushSubscription } from '@/lib/push';
 import { loadTemplates, saveTemplates, createTemplate, type EmailTemplate } from '@/lib/templates';
 import type { UserSettings, TonePreference, NotificationFrequency } from '@/lib/types';
 import clsx from 'clsx';
@@ -575,6 +576,46 @@ function IntegrationsTab({
   const [isDisconnectingGmail, setIsDisconnectingGmail] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
+  // Sync filter state
+  const [showSyncFilters, setShowSyncFilters] = useState(false);
+  const [isSavingFilters, setIsSavingFilters] = useState(false);
+  const LABEL_OPTIONS = [
+    { value: 'INBOX', label: 'Inbox' },
+    { value: 'CATEGORY_PROMOTIONS', label: 'Promotions' },
+    { value: 'CATEGORY_SOCIAL', label: 'Social' },
+    { value: 'CATEGORY_UPDATES', label: 'Updates' },
+    { value: 'CATEGORY_FORUMS', label: 'Forums' },
+    { value: 'SENT', label: 'Sent' },
+  ];
+  const [syncLabels, setSyncLabels] = useState<string[]>(settings.sync_labels ?? ['INBOX']);
+  const [syncMaxEmails, setSyncMaxEmails] = useState<number>(settings.sync_max_emails ?? 50);
+  const [syncDaysBack, setSyncDaysBack] = useState<number>(settings.sync_days_back ?? 0);
+  const [syncAllowlist, setSyncAllowlist] = useState<string>(
+    (settings.sync_sender_allowlist ?? []).join(', ')
+  );
+  const [syncBlocklist, setSyncBlocklist] = useState<string>(
+    (settings.sync_sender_blocklist ?? []).join(', ')
+  );
+
+  const handleSaveSyncFilters = async () => {
+    setIsSavingFilters(true);
+    try {
+      const parseCsv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
+      await onSave({
+        sync_labels: syncLabels.length > 0 ? syncLabels : null,
+        sync_max_emails: syncMaxEmails,
+        sync_days_back: syncDaysBack > 0 ? syncDaysBack : null,
+        sync_sender_allowlist: parseCsv(syncAllowlist).length > 0 ? parseCsv(syncAllowlist) : null,
+        sync_sender_blocklist: parseCsv(syncBlocklist).length > 0 ? parseCsv(syncBlocklist) : null,
+      });
+      toast.success('Sync filters saved');
+    } catch {
+      toast.error('Failed to save sync filters');
+    } finally {
+      setIsSavingFilters(false);
+    }
+  };
+
   const handleConnectGmail = async () => {
     setIsConnectingGmail(true);
     try {
@@ -686,6 +727,119 @@ function IntegrationsTab({
                 )}
                 Disconnect Gmail
               </button>
+            </div>
+
+            {/* Sync Filters */}
+            <div className="mt-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+              <button
+                onClick={() => setShowSyncFilters((v) => !v)}
+                className="flex w-full items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+              >
+                <span className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-400" />
+                  Sync Filters
+                  <span className="rounded-full bg-primary-50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-700 px-2 py-0.5 text-xs font-medium text-primary-700 dark:text-primary-300">
+                    {syncLabels.length} label{syncLabels.length !== 1 ? 's' : ''} · {syncMaxEmails} emails
+                  </span>
+                </span>
+                <span className="text-gray-400">{showSyncFilters ? '▲' : '▼'}</span>
+              </button>
+
+              {showSyncFilters && (
+                <div className="mt-4 space-y-4">
+                  {/* Label selector */}
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Sync from these folders</p>
+                    <div className="flex flex-wrap gap-2">
+                      {LABEL_OPTIONS.map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={syncLabels.includes(opt.value)}
+                            onChange={(e) =>
+                              setSyncLabels((prev) =>
+                                e.target.checked
+                                  ? [...prev, opt.value]
+                                  : prev.filter((l) => l !== opt.value)
+                              )
+                            }
+                            className="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          <span className="text-xs text-gray-700 dark:text-gray-300">{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Max emails + days back */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Max emails per sync
+                      </label>
+                      <select
+                        value={syncMaxEmails}
+                        onChange={(e) => setSyncMaxEmails(Number(e.target.value))}
+                        className="input-field py-1.5 text-sm"
+                      >
+                        {[10, 25, 50, 100, 200].map((n) => (
+                          <option key={n} value={n}>{n} emails</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Only fetch emails newer than
+                      </label>
+                      <select
+                        value={syncDaysBack}
+                        onChange={(e) => setSyncDaysBack(Number(e.target.value))}
+                        className="input-field py-1.5 text-sm"
+                      >
+                        <option value={0}>All time</option>
+                        <option value={7}>7 days</option>
+                        <option value={30}>30 days</option>
+                        <option value={90}>90 days</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Sender allow/block lists */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      Only sync from (allowlist) — comma-separated emails/domains
+                    </label>
+                    <input
+                      type="text"
+                      value={syncAllowlist}
+                      onChange={(e) => setSyncAllowlist(e.target.value)}
+                      placeholder="e.g. client@company.com, @important.com"
+                      className="input-field text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      Never sync from (blocklist) — comma-separated emails/domains
+                    </label>
+                    <input
+                      type="text"
+                      value={syncBlocklist}
+                      onChange={(e) => setSyncBlocklist(e.target.value)}
+                      placeholder="e.g. noreply@, @newsletter.com"
+                      className="input-field text-sm"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleSaveSyncFilters}
+                    disabled={isSavingFilters}
+                    className="btn-primary text-sm gap-2"
+                  >
+                    {isSavingFilters ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Save Sync Filters
+                  </button>
+                </div>
+              )}
             </div>
 
             {showDisconnectModal && (
@@ -827,8 +981,44 @@ function NotificationsTab({
     notification_frequency: settings.notification_frequency ?? 'instant',
     auto_process_emails: settings.auto_process_emails,
     priority_threshold: settings.priority_threshold ?? 7,
+    digest_enabled: settings.digest_enabled ?? false,
+    digest_frequency: settings.digest_frequency ?? 'daily',
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    navigator.serviceWorker.ready.then((reg) =>
+      reg.pushManager.getSubscription().then((sub) => setPushEnabled(!!sub))
+    ).catch(() => {});
+  }, []);
+
+  const handleTogglePush = async (enabled: boolean) => {
+    setPushLoading(true);
+    try {
+      if (enabled) {
+        const sub = await registerPushSubscription();
+        if (sub) {
+          await pushApi.subscribe(sub);
+          setPushEnabled(true);
+          toast.success('Push notifications enabled');
+        } else {
+          toast.error('Push notifications not supported or permission denied');
+        }
+      } else {
+        await unregisterPushSubscription();
+        await pushApi.unsubscribe();
+        setPushEnabled(false);
+        toast.success('Push notifications disabled');
+      }
+    } catch {
+      toast.error('Failed to update push notifications');
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -856,7 +1046,7 @@ function NotificationsTab({
     label: string;
     description: string;
     checked: boolean;
-    onChange: (v: boolean) => void;
+    onChange?: (v: boolean) => void;
   }) => (
     <div className="flex items-start justify-between gap-4 py-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <div>
@@ -865,7 +1055,7 @@ function NotificationsTab({
       </div>
       <button
         type="button"
-        onClick={() => onChange(!checked)}
+        onClick={() => onChange?.(!checked)}
         className={clsx(
           'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
           checked ? 'bg-primary-600' : 'bg-gray-200'
@@ -901,6 +1091,46 @@ function NotificationsTab({
           checked={form.slack_notifications}
           onChange={(v) => setForm({ ...form, slack_notifications: v })}
         />
+        {/* Email digest */}
+        <div className="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <ToggleRow
+            label="Email Digest"
+            description="Receive a summary of your most important emails in your inbox"
+            checked={form.digest_enabled}
+            onChange={(v) => setForm({ ...form, digest_enabled: v })}
+          />
+          {form.digest_enabled && (
+            <div className="flex gap-3 pl-1">
+              {(['daily', 'weekly'] as const).map((freq) => (
+                <label key={freq} className={clsx(
+                  'flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors text-sm',
+                  form.digest_frequency === freq
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                )}>
+                  <input
+                    type="radio"
+                    name="digest_frequency"
+                    value={freq}
+                    checked={form.digest_frequency === freq}
+                    onChange={() => setForm({ ...form, digest_frequency: freq })}
+                    className="text-primary-600 focus:ring-primary-500"
+                  />
+                  {freq === 'daily' ? 'Daily (8am UTC)' : 'Weekly (Mon 8am)'}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Browser push */}
+        <ToggleRow
+          label="Browser Push Notifications"
+          description="Get notified instantly when an urgent email arrives (priority 8+)"
+          checked={pushEnabled}
+          onChange={pushLoading ? undefined : handleTogglePush}
+        />
+
         <ToggleRow
           label="Auto-process Emails"
           description="Automatically run AI analysis on new emails as they arrive"

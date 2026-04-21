@@ -1,8 +1,18 @@
 import { useState } from 'react';
-import { CheckCheck, Eye, Trash2, X, Loader2, FileText } from 'lucide-react';
+import { CheckCheck, Eye, Trash2, X, Loader2, FileText, Tag, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { emailsApi } from '@/lib/api';
+
+const CATEGORIES = [
+  { value: 'urgent', label: 'Urgent' },
+  { value: 'needs_response', label: 'Needs Response' },
+  { value: 'follow_up', label: 'Follow Up' },
+  { value: 'fyi', label: 'FYI' },
+  { value: 'newsletter', label: 'Newsletter' },
+  { value: 'spam', label: 'Spam' },
+  { value: 'other', label: 'Other' },
+];
 
 interface BatchActionBarProps {
   selectedIds: Set<string>;
@@ -13,6 +23,7 @@ interface BatchActionBarProps {
 
 export default function BatchActionBar({ selectedIds, onCancel, onComplete, onSummarize }: BatchActionBarProps) {
   const [loading, setLoading] = useState<string | null>(null);
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const ids = Array.from(selectedIds);
   const count = ids.length;
 
@@ -65,12 +76,25 @@ export default function BatchActionBar({ selectedIds, onCancel, onComplete, onSu
   const handleBulkProcess = async () => {
     setLoading('process');
     try {
-      // Use existing bulk process (processes all unprocessed)
       const { count: processed } = await emailsApi.bulkProcess();
       toast.success(processed > 0 ? `Processing ${processed} emails with AI…` : 'All emails already processed!');
       onComplete();
     } catch {
       toast.error('Failed to start processing');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleCategorize = async (category: string) => {
+    setCategoryOpen(false);
+    setLoading('categorize');
+    try {
+      const { updated } = await emailsApi.bulkCategorize(ids, category);
+      toast.success(`Recategorized ${updated} email${updated !== 1 ? 's' : ''}`);
+      onComplete();
+    } catch {
+      toast.error('Failed to recategorize');
     } finally {
       setLoading(null);
     }
@@ -93,6 +117,32 @@ export default function BatchActionBar({ selectedIds, onCancel, onComplete, onSu
           {loading === 'read' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
           Mark read
         </button>
+
+        {/* Bulk categorize dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setCategoryOpen((v) => !v)}
+            disabled={!!loading}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 hover:bg-white/25 px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+          >
+            {loading === 'categorize' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Tag className="h-3.5 w-3.5" />}
+            Set Category
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {categoryOpen && (
+            <div className="absolute bottom-full mb-1 left-0 z-30 w-44 rounded-xl border border-white/20 bg-primary-700 shadow-xl overflow-hidden">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.value}
+                  onClick={() => handleCategorize(cat.value)}
+                  className="w-full text-left px-3 py-2 text-xs text-white hover:bg-white/10 transition-colors border-b border-white/10 last:border-0"
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {count <= 10 && (
           <button

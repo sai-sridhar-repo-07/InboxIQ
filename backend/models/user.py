@@ -28,6 +28,15 @@ class UserUpdate(BaseModel):
     vacation_mode: Optional[bool] = None
     vacation_message: Optional[str] = None
     email_signature: Optional[str] = None
+    # Email digest preferences
+    digest_enabled: Optional[bool] = None
+    digest_frequency: Optional[str] = None  # 'daily' | 'weekly'
+    # Selective Gmail sync filters
+    sync_labels: Optional[list] = None          # e.g. ["INBOX", "CATEGORY_PROMOTIONS"]
+    sync_max_emails: Optional[int] = None        # 10 / 25 / 50 / 100
+    sync_days_back: Optional[int] = None         # only fetch emails newer than N days
+    sync_sender_allowlist: Optional[list] = None # only from these domains/emails
+    sync_sender_blocklist: Optional[list] = None # never from these domains/emails
 
 
 class ReplyDraftResponse(BaseModel):

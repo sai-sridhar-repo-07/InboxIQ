@@ -174,6 +174,24 @@ class SnoozeBody(BaseModel):
     snooze_until: datetime | None = None
 
 
+class FollowUpBody(BaseModel):
+    waiting: bool
+
+
+class PinBody(BaseModel):
+    pinned: bool
+
+
+class MuteBody(BaseModel):
+    muted: bool
+
+
+class ComposeBody(BaseModel):
+    to: str
+    subject: str
+    body: str
+
+
 class BulkEmailIds(BaseModel):
     email_ids: list[str]
 
@@ -215,6 +233,139 @@ async def snooze_email(
         snooze_until=body.snooze_until,
     )
     return None
+
+
+@router.patch("/{email_id}/follow-up", status_code=status.HTTP_204_NO_CONTENT)
+async def toggle_follow_up(
+    email_id: str,
+    body: FollowUpBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Set or clear the __followup__ label on an email."""
+    supabase = get_supabase()
+    user_id = _current_user_id(current_user)
+    row = (
+        supabase.table("emails")
+        .select("labels")
+        .eq("id", email_id)
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
+    if not row.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found.")
+    labels: list = list(row.data.get("labels") or [])
+    if body.waiting:
+        if "__followup__" not in labels:
+            labels.append("__followup__")
+    else:
+        labels = [l for l in labels if l != "__followup__"]
+    supabase.table("emails").update({"labels": labels}).eq("id", email_id).eq("user_id", user_id).execute()
+    return None
+
+
+@router.patch("/{email_id}/pin", status_code=status.HTTP_204_NO_CONTENT)
+async def pin_email(
+    email_id: str,
+    body: PinBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Toggle the __pinned__ label on an email."""
+    supabase = get_supabase()
+    user_id = _current_user_id(current_user)
+    row = supabase.table("emails").select("labels").eq("id", email_id).eq("user_id", user_id).single().execute()
+    if not row.data:
+        raise HTTPException(status_code=404, detail="Email not found.")
+    labels: list = list(row.data.get("labels") or [])
+    if body.pinned:
+        if "__pinned__" not in labels:
+            labels.append("__pinned__")
+    else:
+        labels = [l for l in labels if l != "__pinned__"]
+    supabase.table("emails").update({"labels": labels}).eq("id", email_id).eq("user_id", user_id).execute()
+    return None
+
+
+@router.patch("/{email_id}/mute", status_code=status.HTTP_204_NO_CONTENT)
+async def mute_sender(
+    email_id: str,
+    body: MuteBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Add/remove the email's sender from the user's sync_sender_blocklist."""
+    supabase = get_supabase()
+    user_id = _current_user_id(current_user)
+    email_row = supabase.table("emails").select("sender").eq("id", email_id).eq("user_id", user_id).single().execute()
+    if not email_row.data:
+        raise HTTPException(status_code=404, detail="Email not found.")
+    sender = email_row.data.get("sender", "")
+    profile = supabase.table("user_profiles").select("sync_sender_blocklist").eq("id", user_id).single().execute()
+    blocklist: list = list((profile.data or {}).get("sync_sender_blocklist") or [])
+    if body.muted:
+        if sender not in blocklist:
+            blocklist.append(sender)
+    else:
+        blocklist = [s for s in blocklist if s != sender]
+    supabase.table("user_profiles").update({"sync_sender_blocklist": blocklist}).eq("id", user_id).execute()
+    return None
+
+
+@router.post("/{email_id}/smart-replies", response_model=dict)
+async def get_smart_replies(
+    email_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Generate 3 short one-click reply suggestions for an email."""
+    import anthropic as _anthropic
+    from config import settings as _settings
+    user_id = _current_user_id(current_user)
+    supabase = get_supabase()
+    row = supabase.table("emails").select("subject, sender, body, ai_summary").eq("id", email_id).eq("user_id", user_id).single().execute()
+    if not row.data:
+        raise HTTPException(status_code=404, detail="Email not found.")
+    e = row.data
+    prompt = (
+        f"Email from {e.get('sender','')}: Subject: {e.get('subject','')}\n"
+        f"Body: {(e.get('body') or e.get('ai_summary',''))[:800]}\n\n"
+        "Generate exactly 3 short reply suggestions (each under 20 words). "
+        "Return JSON array of strings only, no explanation. "
+        'Example: ["Thanks, I\'ll review and get back to you.", "Can we schedule a call to discuss?", "Got it, will do!"]'
+    )
+    try:
+        client = _anthropic.AsyncAnthropic(api_key=_settings.ANTHROPIC_API_KEY)
+        resp = await client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=200,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        import json, re
+        text = resp.content[0].text if resp.content else "[]"
+        match = re.search(r'\[.*\]', text, re.DOTALL)
+        suggestions = json.loads(match.group()) if match else []
+        return {"suggestions": suggestions[:3]}
+    except Exception as exc:
+        logger.error("smart_replies error: %s", exc)
+        return {"suggestions": ["Thanks for reaching out!", "I'll get back to you soon.", "Sounds good, let's connect."]}
+
+
+@router.post("/compose", response_model=dict)
+async def compose_email(
+    body: ComposeBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Send a new email via Gmail (not a reply)."""
+    user_id = _current_user_id(current_user)
+    from services.gmail_service import send_gmail_reply as _send
+    success = await _send(
+        user_id=user_id,
+        thread_id="",
+        to=body.to,
+        subject=body.subject,
+        body=body.body,
+    )
+    if not success:
+        raise HTTPException(status_code=502, detail="Failed to send email. Check Gmail connection.")
+    return {"success": True}
 
 
 @router.post("/inbox-zero", response_model=dict)
@@ -266,6 +417,25 @@ async def bulk_mark_read(
     return {"updated": count}
 
 
+@router.get("/thread/{thread_id}", response_model=list)
+async def get_thread(
+    thread_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Return all emails in a Gmail thread, oldest first."""
+    supabase = get_supabase()
+    user_id = _current_user_id(current_user)
+    result = (
+        supabase.table("emails")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("gmail_thread_id", thread_id)
+        .order("received_at", desc=False)
+        .execute()
+    )
+    return result.data or []
+
+
 @router.get("/export")
 async def export_emails_csv(current_user: Annotated[dict, Depends(get_current_user)]):
     """Export all non-dismissed emails as a CSV file."""
@@ -289,6 +459,69 @@ async def export_emails_csv(current_user: Annotated[dict, Depends(get_current_us
 async def sender_insights(current_user: Annotated[dict, Depends(get_current_user)]):
     """Return top 10 senders by email count with category breakdown."""
     return await email_service.get_sender_insights(user_id=_current_user_id(current_user))
+
+
+@router.get("/recurring-senders")
+async def recurring_senders(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Return senders with 3+ emails in the last 30 days mapped to their count."""
+    from datetime import timedelta, timezone
+    from collections import Counter
+    supabase = get_supabase()
+    user_id = _current_user_id(current_user)
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    result = (
+        supabase.table("emails")
+        .select("sender")
+        .eq("user_id", user_id)
+        .gte("received_at", cutoff)
+        .execute()
+    )
+    counts = Counter(r.get("sender", "") for r in (result.data or []) if r.get("sender"))
+    return {sender: count for sender, count in counts.items() if count >= 3}
+
+
+class BulkCategorizeBody(BaseModel):
+    email_ids: list[str]
+    category: str
+
+
+@router.post("/bulk-categorize")
+async def bulk_categorize(
+    body: BulkCategorizeBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Override the category field on multiple emails."""
+    supabase = get_supabase()
+    user_id = _current_user_id(current_user)
+    updated = 0
+    for email_id in body.email_ids:
+        result = (
+            supabase.table("emails")
+            .update({"category": body.category})
+            .eq("id", email_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        if result.data:
+            updated += len(result.data)
+    return {"updated": updated}
+
+
+@router.post("/mark-all-read")
+async def mark_all_read(
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Mark all unread emails for this user as read."""
+    supabase = get_supabase()
+    user_id = _current_user_id(current_user)
+    result = (
+        supabase.table("emails")
+        .update({"is_read": True})
+        .eq("user_id", user_id)
+        .eq("is_read", False)
+        .execute()
+    )
+    return {"updated": len(result.data or [])}
 
 
 @router.get("/follow-ups")
@@ -490,6 +723,92 @@ Return ONLY a JSON object with these fields:
         raise HTTPException(status_code=500, detail="Failed to detect meeting info.")
 
 
+@router.post("/{email_id}/forward-to-slack", response_model=dict)
+async def forward_to_slack(
+    email_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Forward an email's AI summary + key details to the user's Slack webhook."""
+    from services.slack_service import send_slack_notification
+    user_id = _current_user_id(current_user)
+    supabase = get_supabase()
+
+    # Get email
+    email_row = supabase.table("emails").select(
+        "subject, sender, ai_summary, category, priority, received_at"
+    ).eq("id", email_id).eq("user_id", user_id).single().execute()
+    if not email_row.data:
+        raise HTTPException(status_code=404, detail="Email not found.")
+    e = email_row.data
+
+    # Get user's Slack webhook
+    profile = supabase.table("user_profiles").select("slack_webhook_url").eq("id", user_id).single().execute()
+    webhook_url = (profile.data or {}).get("slack_webhook_url", "").strip()
+    if not webhook_url:
+        raise HTTPException(status_code=400, detail="No Slack webhook configured. Add one in Settings → Integrations.")
+
+    priority = e.get("priority") or 0
+    priority_emoji = "🔴" if priority >= 8 else "🟠" if priority >= 5 else "🟢"
+    message = (
+        f"{priority_emoji} *Forwarded from Mailair*\n"
+        f"*Subject:* {e.get('subject', '(No Subject)')}\n"
+        f"*From:* {e.get('sender', '')}\n"
+        f"*Category:* {e.get('category', 'Unknown')} | *Priority:* {priority}/10\n"
+    )
+    if e.get("ai_summary"):
+        message += f"*AI Summary:* {e['ai_summary']}\n"
+
+    ok = await send_slack_notification(webhook_url, message)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to send Slack message.")
+    return {"ok": True}
+
+
+class AskAIBody(BaseModel):
+    question: str
+
+
+@router.post("/{email_id}/ask", response_model=dict)
+async def ask_ai(
+    email_id: str,
+    body: AskAIBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Ask the AI a freeform question about this email."""
+    import anthropic as _anthropic
+    from config import settings as _settings
+    user_id = _current_user_id(current_user)
+    supabase = get_supabase()
+
+    email_row = supabase.table("emails").select(
+        "subject, sender, body, ai_summary"
+    ).eq("id", email_id).eq("user_id", user_id).single().execute()
+    if not email_row.data:
+        raise HTTPException(status_code=404, detail="Email not found.")
+    e = email_row.data
+
+    prompt = (
+        f"Email context:\nSubject: {e.get('subject','')}\n"
+        f"From: {e.get('sender','')}\n"
+        f"AI Summary: {e.get('ai_summary','(not processed yet)')}\n"
+        f"Body: {(e.get('body',''))[:2000]}\n\n"
+        f"User question: {body.question}\n\n"
+        f"Answer concisely and helpfully."
+    )
+    try:
+        client = _anthropic.AsyncAnthropic(api_key=_settings.ANTHROPIC_API_KEY)
+        resp = await client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        answer = resp.content[0].text if resp.content else "No answer generated."
+        return {"answer": answer}
+    except Exception as exc:
+        logger.error("ask_ai error: %s", exc)
+        raise HTTPException(status_code=500, detail="AI request failed.")
+
+
 @router.get("/{email_id}/thread-summary", response_model=dict)
 async def get_thread_summary(
     email_id: str,
@@ -574,6 +893,88 @@ Return ONLY a JSON object with:
     except Exception as exc:
         logger.error("thread_summary error: %s", exc)
         raise HTTPException(status_code=500, detail="Failed to generate thread summary.")
+
+
+# ---------------------------------------------------------------------------
+# Health Score (must be before /{email_id} to avoid path conflict)
+# ---------------------------------------------------------------------------
+
+@router.get("/health-score", response_model=dict)
+async def get_inbox_health_score(
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Compute an inbox health score (0-100) from inbox metrics."""
+    from datetime import timezone, timedelta
+    user_id = _current_user_id(current_user)
+    supabase = get_supabase()
+
+    try:
+        now = datetime.now(timezone.utc)
+        week_ago = (now - timedelta(days=7)).isoformat()
+
+        recent = supabase.table("emails").select(
+            "id, is_read, processed, priority, category"
+        ).eq("user_id", user_id).gte("received_at", week_ago).execute()
+        emails = recent.data or []
+
+        total = len(emails)
+        if total == 0:
+            return {"score": 100, "grade": "A", "breakdown": {}, "tips": ["Inbox is empty — great start!"]}
+
+        unread = sum(1 for e in emails if not e.get("is_read"))
+        processed = sum(1 for e in emails if e.get("processed"))
+        urgent_unread = sum(1 for e in emails if not e.get("is_read") and (e.get("priority") or 0) >= 8)
+        spam_count = sum(1 for e in emails if e.get("category") in ("spam", "newsletter"))
+
+        overdue_result = supabase.table("actions").select("id").eq(
+            "status", "pending"
+        ).lt("deadline", now.isoformat()).execute()
+        overdue_count = len(overdue_result.data or [])
+
+        read_score = max(0, 100 - int((unread / total) * 100))
+        processed_score = int((processed / total) * 100) if total > 0 else 100
+        urgent_penalty = min(50, urgent_unread * 10)
+        action_penalty = min(30, overdue_count * 10)
+        noise_ratio = spam_count / total if total > 0 else 0
+        noise_score = max(0, 100 - int(noise_ratio * 60))
+
+        score = max(0, min(100, int(
+            read_score * 0.30 + processed_score * 0.25 + noise_score * 0.20 +
+            (100 - urgent_penalty) * 0.15 + (100 - action_penalty) * 0.10
+        )))
+        grade = "A" if score >= 90 else "B" if score >= 75 else "C" if score >= 60 else "D" if score >= 45 else "F"
+
+        tips = []
+        if unread > 5:
+            tips.append(f"You have {unread} unread emails this week — try reading or archiving them.")
+        if processed < total * 0.5:
+            tips.append("Less than half your emails are AI-processed. Run processing to get summaries.")
+        if urgent_unread > 0:
+            tips.append(f"{urgent_unread} urgent email(s) are unread — address these first.")
+        if overdue_count > 0:
+            tips.append(f"{overdue_count} overdue action item(s) need attention.")
+        if noise_ratio > 0.4:
+            tips.append("Many newsletters/spam in inbox — consider unsubscribing or setting rules.")
+        if not tips:
+            tips.append("Inbox is well-managed. Keep it up!")
+
+        return {
+            "score": score,
+            "grade": grade,
+            "breakdown": {
+                "read_score": read_score,
+                "processed_score": processed_score,
+                "noise_score": noise_score,
+                "urgent_unread": urgent_unread,
+                "overdue_actions": overdue_count,
+                "total_emails_week": total,
+                "unread_count": unread,
+            },
+            "tips": tips,
+        }
+    except Exception as exc:
+        logger.error("health_score error: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to compute health score.")
 
 
 @router.get("/{email_id}")
@@ -794,6 +1195,90 @@ async def download_attachment(
     )
 
 
+@router.post("/{email_id}/unsubscribe")
+async def unsubscribe_email(
+    email_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Follow the List-Unsubscribe URL encoded in email labels."""
+    import httpx
+    user_id = _current_user_id(current_user)
+    email = await email_service.get_email(email_id=email_id, user_id=user_id)
+    if not email:
+        raise HTTPException(status_code=404, detail="Email not found.")
+    unsub_url = next(
+        (l.split(":", 1)[1] for l in (email.get("labels") or []) if l.startswith("__unsub__:")),
+        None,
+    )
+    if not unsub_url:
+        raise HTTPException(status_code=400, detail="No unsubscribe link found for this email.")
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            resp = await client.get(unsub_url, headers={"User-Agent": "Mailair/1.0"})
+        return {"success": resp.status_code < 400, "status_code": resp.status_code, "url": unsub_url}
+    except Exception as exc:
+        logger.warning("Unsubscribe request failed for email %s: %s", email_id, exc)
+        return {"success": False, "error": str(exc), "url": unsub_url}
+
+
+@router.post("/{email_id}/attachments/{attachment_id}/summarize")
+async def summarize_attachment(
+    email_id: str,
+    attachment_id: str,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    filename: str = Query("attachment"),
+    mime_type: str = Query("application/octet-stream"),
+):
+    """Use AI to summarize a text-based attachment (PDF, DOCX, TXT, CSV)."""
+    import base64
+    user_id = _current_user_id(current_user)
+    email = await email_service.get_email(email_id=email_id, user_id=user_id)
+    if not email:
+        raise HTTPException(status_code=404, detail="Email not found.")
+    gmail_message_id = email.get("gmail_message_id")
+    if not gmail_message_id:
+        raise HTTPException(status_code=400, detail="No Gmail message ID.")
+
+    data = await get_attachment_data(
+        user_id=user_id, gmail_message_id=gmail_message_id, attachment_id=attachment_id
+    )
+    if data is None:
+        raise HTTPException(status_code=404, detail="Attachment not found.")
+
+    # Attempt to decode text content
+    text_content = None
+    if mime_type in ("text/plain", "text/csv", "application/csv"):
+        try:
+            text_content = data.decode("utf-8", errors="replace")[:6000]
+        except Exception:
+            pass
+    elif mime_type in ("application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"):
+        # Send as base64 to Claude vision for PDF/DOCX
+        text_content = f"[Binary file: {filename}. Base64 excerpt follows]\n" + base64.b64encode(data[:4000]).decode()
+
+    if not text_content:
+        return {"summary": f"Cannot summarize {mime_type} files automatically.", "filename": filename}
+
+    try:
+        import anthropic as _anthropic
+        from config import settings as _settings
+        _client = _anthropic.AsyncAnthropic(api_key=_settings.ANTHROPIC_API_KEY)
+        resp = await _client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=300,
+            messages=[{"role": "user", "content": (
+                f"Summarize this attachment in 3-5 bullet points. Be concise.\n\n"
+                f"Filename: {filename}\n\n{text_content}"
+            )}],
+        )
+        summary = resp.content[0].text.strip()
+    except Exception as exc:
+        logger.error("Attachment summarize failed: %s", exc)
+        summary = "Summary unavailable."
+
+    return {"summary": summary, "filename": filename, "mime_type": mime_type}
+
+
 @router.post("/{email_id}/generate-reply")
 async def generate_reply_with_instructions(
     email_id: str,
@@ -849,3 +1334,193 @@ async def generate_reply_with_instructions(
         "tone": tone,
         "is_sent": False,
     }
+
+
+
+# ---------------------------------------------------------------------------
+# AI Natural Language Search
+# ---------------------------------------------------------------------------
+
+class AISearchBody(BaseModel):
+    query: str
+    page: int = 1
+    page_size: int = 20
+
+
+@router.post("/ai-search", response_model=dict)
+async def ai_natural_language_search(
+    body: AISearchBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Parse a natural language search query with AI, then search emails."""
+    import json as _json
+    import anthropic as _anthropic
+    from config import settings as _settings
+
+    user_id = _current_user_id(current_user)
+
+    parse_prompt = f"""Convert this natural language email search query into structured filters.
+
+Query: "{body.query}"
+
+Return ONLY a JSON object with these optional fields (omit fields not relevant):
+- category: one of ["urgent_client_request","quote_request","support_issue","internal_communication","follow_up_required","informational","spam","newsletter"]
+- is_read: boolean
+- search: string (keyword to search in subject/sender/body)
+- priority_min: integer 1-10 (minimum priority score)
+- sender_contains: string (part of sender email or name)
+- days_back: integer (how many days back to look, e.g. 7 for "last week")
+- sort_by: "received_at" or "priority_score"
+- sort_order: "asc" or "desc"
+
+Examples:
+- "unread urgent emails from last week" → {{"is_read": false, "priority_min": 8, "days_back": 7}}
+- "newsletters I haven't read" → {{"category": "newsletter", "is_read": false}}
+- "emails from john about invoices" → {{"search": "invoice", "sender_contains": "john"}}"""
+
+    try:
+        _client = _anthropic.AsyncAnthropic(api_key=_settings.ANTHROPIC_API_KEY)
+        resp = await _client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=256,
+            messages=[{"role": "user", "content": parse_prompt}],
+        )
+        raw = resp.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        parsed = _json.loads(raw.strip())
+    except Exception as exc:
+        logger.warning("AI search parse failed, falling back to keyword: %s", exc)
+        parsed = {"search": body.query}
+
+    # Build filters from parsed result
+    from datetime import timezone, timedelta
+    supabase = get_supabase()
+    offset = (body.page - 1) * body.page_size
+
+    q = supabase.table("emails").select(
+        "id, subject, sender, from_email, from_name, received_at, is_read, category, priority, ai_summary, snippet, processed"
+    ).eq("user_id", user_id)
+
+    if parsed.get("category"):
+        q = q.eq("category", parsed["category"])
+    if parsed.get("is_read") is not None:
+        q = q.eq("is_read", parsed["is_read"])
+    if parsed.get("priority_min"):
+        q = q.gte("priority", parsed["priority_min"])
+    if parsed.get("days_back"):
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=parsed["days_back"])).isoformat()
+        q = q.gte("received_at", cutoff)
+    if parsed.get("sender_contains"):
+        q = q.ilike("sender", f"%{parsed['sender_contains']}%")
+    if parsed.get("search"):
+        term = parsed["search"]
+        q = q.or_(f"subject.ilike.%{term}%,sender.ilike.%{term}%,body.ilike.%{term}%")
+
+    sort_col = parsed.get("sort_by", "received_at")
+    sort_desc = parsed.get("sort_order", "desc") == "desc"
+    q = q.order(sort_col, desc=sort_desc).range(offset, offset + body.page_size - 1)
+
+    result = q.execute()
+    items = result.data or []
+
+    return {
+        "items": items,
+        "total": len(items),
+        "page": body.page,
+        "page_size": body.page_size,
+        "parsed_query": parsed,
+        "original_query": body.query,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Compose (send new email)
+# ---------------------------------------------------------------------------
+
+class ComposeEmailBody(BaseModel):
+    to: str
+    subject: str
+    body: str
+
+
+@router.post("/compose", response_model=dict)
+async def compose_email(
+    body: ComposeEmailBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Send a new email via Gmail (not a reply)."""
+    from services.gmail_service import send_gmail_compose
+    user_id = _current_user_id(current_user)
+    success = await send_gmail_compose(
+        user_id=user_id,
+        to=body.to,
+        subject=body.subject,
+        body=body.body,
+    )
+    if not success:
+        raise HTTPException(status_code=502, detail="Failed to send email via Gmail.")
+    return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# AI Draft for Compose
+# ---------------------------------------------------------------------------
+
+class AIDraftBody(BaseModel):
+    to: str
+    subject: str
+    context: str = ""
+
+
+@router.post("/ai-draft", response_model=dict)
+async def generate_compose_draft(
+    body: AIDraftBody,
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    """Generate an AI-written email draft for the compose screen."""
+    import anthropic as _anthropic
+    from config import settings as _settings
+
+    user_id = _current_user_id(current_user)
+    supabase = get_supabase()
+
+    company_description = "a professional service business"
+    tone = "professional and friendly"
+    email_signature = ""
+    try:
+        profile = supabase.table("user_profiles").select(
+            "company_description, tone_preference, email_signature"
+        ).eq("id", user_id).single().execute()
+        if profile.data:
+            company_description = profile.data.get("company_description") or company_description
+            tone = profile.data.get("tone_preference") or tone
+            email_signature = profile.data.get("email_signature") or ""
+    except Exception:
+        pass
+
+    prompt = f"""You are writing a professional email on behalf of {company_description}.
+
+To: {body.to}
+Subject: {body.subject}
+{f"Additional context / instructions: {body.context}" if body.context else ""}
+Tone: {tone}
+
+Write a complete, ready-to-send email body. Do NOT include a subject line, greeting like "Dear", or any meta-commentary. Just the email body starting with the opening sentence."""
+
+    try:
+        _client = _anthropic.AsyncAnthropic(api_key=_settings.ANTHROPIC_API_KEY)
+        resp = await _client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        draft = resp.content[0].text.strip()
+        if email_signature:
+            draft = draft.rstrip() + "\n\n" + email_signature.strip()
+        return {"draft": draft}
+    except Exception as exc:
+        logger.error("ai_draft error: %s", exc)
+        raise HTTPException(status_code=500, detail="AI draft generation failed.")

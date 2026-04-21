@@ -240,6 +240,18 @@ def parse_gmail_message(message: dict) -> dict:
 
     body = _extract_body(message.get("payload", {}))
 
+    # Extract Gmail system labels (INBOX, UNREAD, SENT, etc.)
+    gmail_labels: list[str] = message.get("labelIds", [])
+
+    # Extract unsubscribe URL from List-Unsubscribe header and encode in labels
+    unsubscribe_raw = headers.get("list-unsubscribe", "")
+    if unsubscribe_raw:
+        import re as _re
+        url_match = _re.search(r"<(https?://[^>]+)>", unsubscribe_raw)
+        if url_match:
+            gmail_labels = [l for l in gmail_labels if not l.startswith("__unsub__:")]
+            gmail_labels.append(f"__unsub__:{url_match.group(1)}")
+
     return {
         "gmail_message_id": message.get("id"),
         "thread_id": message.get("threadId"),
@@ -247,6 +259,7 @@ def parse_gmail_message(message: dict) -> dict:
         "sender": sender,
         "body": body,
         "received_at": received_at.isoformat(),
+        "labels": gmail_labels,
     }
 
 
@@ -313,12 +326,62 @@ def _extract_body(payload: dict) -> str:
     return plain_text or html_text or ""
 
 
+def _build_gmail_query(filters: dict) -> tuple[str, int]:
+    """Build Gmail search query and maxResults from user sync_filters."""
+    parts = ["is:unread"]
+
+    # Label/folder filter — default to inbox
+    labels = filters.get("sync_labels") or []
+    if labels:
+        label_queries = []
+        for label in labels:
+            if label == "INBOX":
+                label_queries.append("in:inbox")
+            elif label == "CATEGORY_PROMOTIONS":
+                label_queries.append("category:promotions")
+            elif label == "CATEGORY_SOCIAL":
+                label_queries.append("category:social")
+            elif label == "CATEGORY_UPDATES":
+                label_queries.append("category:updates")
+            elif label == "SENT":
+                label_queries.append("in:sent")
+            else:
+                label_queries.append(f"label:{label.lower()}")
+        if label_queries:
+            parts.append(f"({' OR '.join(label_queries)})")
+    else:
+        parts.append("in:inbox")
+
+    # Date range
+    days_back = filters.get("sync_days_back")
+    if days_back and isinstance(days_back, int) and days_back > 0:
+        from datetime import timedelta, timezone as _tz
+        cutoff = (datetime.now(_tz.utc) - timedelta(days=days_back)).strftime("%Y/%m/%d")
+        parts.append(f"after:{cutoff}")
+
+    # Sender allowlist (from:a OR from:b)
+    allowlist = filters.get("sync_sender_allowlist") or []
+    if allowlist:
+        sender_q = " OR ".join(f"from:{s}" for s in allowlist)
+        parts.append(f"({sender_q})")
+
+    # Sender blocklist (-from:a -from:b)
+    blocklist = filters.get("sync_sender_blocklist") or []
+    for sender in blocklist:
+        parts.append(f"-from:{sender}")
+
+    max_results = int(filters.get("sync_max_emails") or 50)
+    max_results = max(1, min(max_results, 200))
+
+    return " ".join(parts), max_results
+
+
 async def fetch_new_emails(user_id: str) -> list[dict]:
     """
     Fetch unread emails from the user's Gmail inbox.
 
-    Returns a list of parsed email dicts ready to be inserted via
-    email_service.create_email.
+    Respects per-user sync_filters (labels, date range, sender allow/block lists).
+    Returns a list of parsed email dicts ready to be inserted via email_service.create_email.
     """
     try:
         tokens = await get_gmail_tokens(user_id)
@@ -336,13 +399,25 @@ async def fetch_new_emails(user_id: str) -> list[dict]:
             tokens["expiry"] = creds.expiry.isoformat() if creds.expiry else None
             await store_gmail_tokens(user_id, tokens)
 
+        # Load per-user sync filters from DB
+        try:
+            _supa = get_supabase()
+            _profile = _supa.table("user_profiles").select(
+                "sync_labels, sync_max_emails, sync_days_back, sync_sender_allowlist, sync_sender_blocklist"
+            ).eq("id", user_id).single().execute()
+            user_filters = _profile.data or {}
+        except Exception:
+            user_filters = {}
+
+        gmail_query, max_results = _build_gmail_query(user_filters)
+        logger.info("Gmail query for user_id=%s: %r (max=%d)", user_id, gmail_query, max_results)
+
         service = build("gmail", "v1", credentials=creds, cache_discovery=False)
 
-        # List unread message ids (max 50 per poll)
         list_result = (
             service.users()
             .messages()
-            .list(userId="me", q="is:unread in:inbox", maxResults=50)
+            .list(userId="me", q=gmail_query, maxResults=max_results)
             .execute()
         )
         message_refs = list_result.get("messages", [])
@@ -395,6 +470,22 @@ async def send_gmail_reply(
 
     except Exception as exc:
         logger.error("send_gmail_reply error (user_id=%s): %s", user_id, exc)
+        return False
+
+
+async def send_gmail_compose(user_id: str, to: str, subject: str, body: str) -> bool:
+    """Send a new (non-reply) email via the Gmail API."""
+    try:
+        tokens = await get_gmail_tokens(user_id)
+        if not tokens:
+            return False
+        creds = _credentials_from_tokens(tokens)
+        service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+        raw_message = _build_raw_message(to=to, subject=subject, body=body)
+        service.users().messages().send(userId="me", body={"raw": raw_message}).execute()
+        return True
+    except Exception as exc:
+        logger.error("send_gmail_compose error (user_id=%s): %s", user_id, exc)
         return False
 
 

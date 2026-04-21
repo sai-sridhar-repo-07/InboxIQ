@@ -137,6 +137,16 @@ export const emailsApi = {
     return data;
   },
 
+  summarizeAttachment: async (id: string, attachmentId: string, filename: string, mimeType: string): Promise<{ summary: string; filename: string }> => {
+    const { data } = await api.post(`/api/emails/${id}/attachments/${attachmentId}/summarize?filename=${encodeURIComponent(filename)}&mime_type=${encodeURIComponent(mimeType)}`);
+    return data;
+  },
+
+  unsubscribe: async (id: string): Promise<{ success: boolean; url: string; error?: string }> => {
+    const { data } = await api.post(`/api/emails/${id}/unsubscribe`);
+    return data;
+  },
+
   getAttachmentDownloadUrl: (id: string, attachmentId: string, filename: string, mimeType: string): string => {
     const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     return `${base}/api/emails/${id}/attachments/${attachmentId}/download?filename=${encodeURIComponent(filename)}&mime_type=${encodeURIComponent(mimeType)}`;
@@ -150,8 +160,26 @@ export const emailsApi = {
     await api.patch(`/api/emails/${id}/snooze`, { snooze_until: snoozeUntil });
   },
 
+  toggleFollowUp: async (id: string, waiting: boolean): Promise<void> => {
+    await api.patch(`/api/emails/${id}/follow-up`, { waiting });
+  },
+
   getSnoozed: async (): Promise<Email[]> => {
     const { data } = await api.get('/api/emails/snoozed');
+    return data;
+  },
+
+  getThread: async (threadId: string): Promise<Email[]> => {
+    const { data } = await api.get(`/api/emails/thread/${threadId}`);
+    return data;
+  },
+
+  forwardToSlack: async (id: string): Promise<void> => {
+    await api.post(`/api/emails/${id}/forward-to-slack`);
+  },
+
+  askAI: async (id: string, question: string): Promise<{ answer: string }> => {
+    const { data } = await api.post(`/api/emails/${id}/ask`, { question });
     return data;
   },
 
@@ -233,6 +261,16 @@ export const emailsApi = {
     return data;
   },
 
+  getRecurringSenders: async (): Promise<Record<string, number>> => {
+    const { data } = await api.get('/api/emails/recurring-senders');
+    return data;
+  },
+
+  bulkCategorize: async (ids: string[], category: string): Promise<{ updated: number }> => {
+    const { data } = await api.post('/api/emails/bulk-categorize', { email_ids: ids, category });
+    return data;
+  },
+
   getThreadSummary: async (id: string): Promise<{
     thread_length: number;
     summary: string | null;
@@ -243,6 +281,52 @@ export const emailsApi = {
   }> => {
     const { data } = await api.get(`/api/emails/${id}/thread-summary`);
     return data;
+  },
+
+  pinEmail: async (id: string, pinned: boolean): Promise<void> => {
+    await api.patch(`/api/emails/${id}/pin`, { pinned });
+  },
+
+  muteEmail: async (id: string, muted: boolean): Promise<void> => {
+    await api.patch(`/api/emails/${id}/mute`, { muted });
+  },
+
+  getSmartReplies: async (id: string): Promise<string[]> => {
+    const { data } = await api.post(`/api/emails/${id}/smart-replies`);
+    return data.suggestions || [];
+  },
+
+  composeEmail: async (to: string, subject: string, body: string): Promise<void> => {
+    await api.post('/api/emails/compose', { to, subject, body });
+  },
+
+  aiDraft: async (to: string, subject: string, context: string): Promise<{ draft: string }> => {
+    const { data } = await api.post('/api/emails/ai-draft', { to, subject, context });
+    return data;
+  },
+
+  aiSearch: async (query: string, page = 1, pageSize = 20): Promise<{ items: Email[]; total: number; parsed_query: Record<string, unknown>; original_query: string }> => {
+    const { data } = await api.post('/api/emails/ai-search', { query, page, page_size: pageSize });
+    return data;
+  },
+
+  healthScore: async (): Promise<{ score: number; grade: string; breakdown: Record<string, number>; tips: string[] }> => {
+    const { data } = await api.get('/api/emails/health-score');
+    return data;
+  },
+
+  scheduleSend: async (to: string, subject: string, body: string, sendAt: string): Promise<{ id: string }> => {
+    const { data } = await api.post('/api/scheduled-sends', { to, subject, body, send_at: sendAt });
+    return data;
+  },
+
+  listScheduled: async (): Promise<{ items: Array<{ id: string; to_email: string; subject: string; send_at: string; status: string }> }> => {
+    const { data } = await api.get('/api/scheduled-sends');
+    return data;
+  },
+
+  cancelScheduled: async (id: string): Promise<void> => {
+    await api.delete(`/api/scheduled-sends/${id}`);
   },
 };
 
@@ -600,6 +684,25 @@ export const webhooksApi = {
   test: async (id: string): Promise<{ success: boolean; status_code?: number; error?: string }> => {
     const { data } = await api.post(`/api/webhooks/${id}/test`);
     return data;
+  },
+};
+
+// ─── Push Notification Endpoints ─────────────────────────────────────────────
+
+export const pushApi = {
+  getVapidKey: async (): Promise<string> => {
+    const { data } = await api.get('/api/push/vapid-key');
+    return data.public_key || '';
+  },
+  subscribe: async (sub: PushSubscription): Promise<void> => {
+    const json = sub.toJSON();
+    await api.post('/api/push/subscribe', {
+      endpoint: sub.endpoint,
+      keys: { p256dh: json.keys?.p256dh || '', auth: json.keys?.auth || '' },
+    });
+  },
+  unsubscribe: async (): Promise<void> => {
+    await api.delete('/api/push/subscribe');
   },
 };
 

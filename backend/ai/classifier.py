@@ -18,6 +18,10 @@ Analyze the following email and return a JSON object with exactly these fields:
 - language: ISO 639-1 language code of the email (e.g. 'en', 'es', 'fr', 'de', 'pt', 'hi', 'zh', 'ja')
 - is_phishing: boolean — true if the email shows signs of phishing or social engineering
 - phishing_indicators: array of strings listing specific suspicious elements found (empty array if none)
+- is_invoice: boolean — true if the email is an invoice, bill, receipt, or payment request
+- invoice_amount: string or null — total amount due (e.g. "$1,200.00"), null if not an invoice
+- invoice_due_date: string or null — payment due date as ISO date string, null if not found
+- invoice_vendor: string or null — name of the company sending the invoice, null if not an invoice
 
 Email Subject: {subject}
 From: {sender}
@@ -80,6 +84,10 @@ async def classify_email(subject: str, sender: str, body: str, attachments: list
         result["language"] = result.get("language", "en")
         result["is_phishing"] = bool(result.get("is_phishing", False))
         result["phishing_indicators"] = result.get("phishing_indicators", [])
+        result["is_invoice"] = bool(result.get("is_invoice", False))
+        result["invoice_amount"] = result.get("invoice_amount") or None
+        result["invoice_due_date"] = result.get("invoice_due_date") or None
+        result["invoice_vendor"] = result.get("invoice_vendor") or None
 
         return result
 

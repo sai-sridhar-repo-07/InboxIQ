@@ -23,6 +23,10 @@ export interface AIAnalysis {
   processed_at: string;
   is_phishing?: boolean;
   phishing_indicators?: string[];
+  is_invoice?: boolean;
+  invoice_amount?: string | null;
+  invoice_due_date?: string | null;
+  invoice_vendor?: string | null;
 }
 
 export interface Email {
@@ -130,11 +134,19 @@ export interface UserSettings {
   slack_notifications: boolean;
   notification_frequency: NotificationFrequency;
   auto_process_emails: boolean;
-  priority_threshold: number; // 1-10, emails above this are "urgent"
+  priority_threshold: number;
+  digest_enabled?: boolean;
+  digest_frequency?: 'daily' | 'weekly';
   slack_webhook_url?: string;
   vacation_mode?: boolean;
   vacation_message?: string;
   email_signature?: string;
+  // Gmail selective sync filters
+  sync_labels?: string[] | null;
+  sync_max_emails?: number | null;
+  sync_days_back?: number | null;
+  sync_sender_allowlist?: string[] | null;
+  sync_sender_blocklist?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -346,4 +358,47 @@ export interface MeetingInfo {
   duration_hint: string | null;
   agenda: string | null;
   suggested_reply_snippet: string | null;
+}
+
+// ─── Health Score Types ───────────────────────────────────────────────────────
+
+export interface InboxHealthScore {
+  score: number; // 0-100
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  breakdown: {
+    read_score: number;
+    processed_score: number;
+    noise_score: number;
+    urgent_unread: number;
+    overdue_actions: number;
+    total_emails_week: number;
+    unread_count: number;
+  };
+  tips: string[];
+}
+
+// ─── Scheduled Send Types ─────────────────────────────────────────────────────
+
+export interface ScheduledSend {
+  id: string;
+  user_id: string;
+  to_email: string;
+  subject: string;
+  body: string;
+  send_at: string;
+  status: 'pending' | 'sent' | 'failed';
+  sent_at?: string | null;
+  error?: string | null;
+  created_at: string;
+}
+
+// ─── AI Search Types ──────────────────────────────────────────────────────────
+
+export interface AISearchResult {
+  items: Email[];
+  total: number;
+  page: number;
+  page_size: number;
+  parsed_query: Record<string, unknown>;
+  original_query: string;
 }

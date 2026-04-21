@@ -74,15 +74,23 @@ async def process_email(email: dict) -> dict | None:
     # ------------------------------------------------------------------
     try:
         supabase = get_supabase()
-        supabase.table("emails").update(
-            {
-                "category": analysis["category"],
-                "priority": analysis["priority_score"],
-                "ai_summary": analysis["summary"],
-                "confidence_score": analysis["confidence_score"],
-                "processed": True,
+        update_data: dict = {
+            "category": analysis["category"],
+            "priority": analysis["priority_score"],
+            "ai_summary": analysis["summary"],
+            "confidence_score": analysis["confidence_score"],
+            "processed": True,
+        }
+        if analysis.get("is_invoice"):
+            update_data["ai_analysis"] = {
+                "is_invoice": True,
+                "invoice_amount": analysis.get("invoice_amount"),
+                "invoice_due_date": analysis.get("invoice_due_date"),
+                "invoice_vendor": analysis.get("invoice_vendor"),
+                "is_phishing": analysis.get("is_phishing", False),
+                "phishing_indicators": analysis.get("phishing_indicators", []),
             }
-        ).eq("id", email_id).execute()
+        supabase.table("emails").update(update_data).eq("id", email_id).execute()
     except Exception as exc:
         logger.error(
             "Failed to update email record for email_id=%s: %s", email_id, exc
@@ -228,6 +236,19 @@ async def process_email(email: dict) -> dict | None:
             logger.warning(
                 "send_urgent_alert failed for email_id=%s: %s", email_id, exc
             )
+
+    # Step 7b – Browser push notification for urgent emails
+    if priority >= settings.URGENCY_THRESHOLD:
+        try:
+            from routes.push import send_push_to_user
+            await send_push_to_user(
+                user_id=user_id,
+                title=f"🔴 Urgent: {subject[:60]}",
+                body=analysis.get("summary", sender) or sender,
+                url=f"/email/{email_id}",
+            )
+        except Exception as exc:
+            logger.debug("push notification failed for email_id=%s: %s", email_id, exc)
 
     # ------------------------------------------------------------------
     # Step 8 – CRM sync (HubSpot / Salesforce)

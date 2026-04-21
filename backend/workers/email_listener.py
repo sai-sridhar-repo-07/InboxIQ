@@ -7,6 +7,7 @@ Intended to be started alongside the FastAPI application via APScheduler.
 
 import asyncio
 import logging
+from datetime import datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -73,6 +74,7 @@ async def _sync_user_emails(user_id: str) -> None:
                 received_at=raw.get("received_at"),
                 gmail_message_id=gmail_message_id,
                 thread_id=raw.get("thread_id"),
+                labels=raw.get("labels", []),
             )
 
             await create_email(email_create)
@@ -119,6 +121,7 @@ async def _process_user_emails(user_id: str) -> None:
                 received_at=raw.get("received_at"),
                 gmail_message_id=gmail_message_id,
                 thread_id=raw.get("thread_id"),
+                labels=raw.get("labels", []),
             )
 
             stored = await create_email(email_create)
@@ -154,8 +157,9 @@ async def poll_all_users() -> None:
 
 
 async def send_deadline_reminders() -> None:
-    """Daily job: alert users about overdue or due-in-24h action items via Slack."""
+    """Daily job: alert users about overdue or due-in-24h action items via Slack and web push."""
     from services.slack_service import send_slack_notification
+    from routes.push import send_push_to_user
     try:
         supabase = get_supabase()
         from datetime import datetime, timezone, timedelta
@@ -185,26 +189,40 @@ async def send_deadline_reminders() -> None:
 
         for user_id, items in user_actions.items():
             try:
+                overdue = [a for a in items if a["overdue"]]
+                upcoming = [a for a in items if not a["overdue"]]
+
+                # Web push notification
+                if overdue:
+                    push_title = f"⏰ {len(overdue)} overdue task{'s' if len(overdue) > 1 else ''}"
+                    push_body = overdue[0]["task"]
+                    if len(overdue) > 1:
+                        push_body += f" (+{len(overdue) - 1} more)"
+                elif upcoming:
+                    push_title = f"📋 {len(upcoming)} task{'s' if len(upcoming) > 1 else ''} due soon"
+                    push_body = upcoming[0]["task"] + f" — due {upcoming[0]['deadline_str']}"
+                else:
+                    continue
+
+                await send_push_to_user(user_id, push_title, push_body, "/actions")
+
+                # Slack notification (if webhook configured)
                 profile = supabase.table("user_profiles").select(
                     "slack_webhook_url"
                 ).eq("id", user_id).single().execute()
                 webhook_url = (profile.data or {}).get("slack_webhook_url", "").strip()
-                if not webhook_url:
-                    continue
+                if webhook_url:
+                    lines = ["*⏰ Mailair Task Reminder*\n"]
+                    if overdue:
+                        lines.append(f"*🔴 Overdue ({len(overdue)}):*")
+                        for a in overdue[:5]:
+                            lines.append(f"  • {a['task']} — was due {a['deadline_str']}")
+                    if upcoming:
+                        lines.append(f"*🟡 Due in 24h ({len(upcoming)}):*")
+                        for a in upcoming[:5]:
+                            lines.append(f"  • {a['task']} — due {a['deadline_str']}")
+                    await send_slack_notification(webhook_url, "\n".join(lines))
 
-                overdue = [a for a in items if a["overdue"]]
-                upcoming = [a for a in items if not a["overdue"]]
-                lines = ["*⏰ Mailair Task Reminder*\n"]
-                if overdue:
-                    lines.append(f"*🔴 Overdue ({len(overdue)}):*")
-                    for a in overdue[:5]:
-                        lines.append(f"  • {a['task']} — was due {a['deadline_str']}")
-                if upcoming:
-                    lines.append(f"*🟡 Due in 24h ({len(upcoming)}):*")
-                    for a in upcoming[:5]:
-                        lines.append(f"  • {a['task']} — due {a['deadline_str']}")
-
-                await send_slack_notification(webhook_url, "\n".join(lines))
                 logger.info("Deadline reminder sent to user %s (%d items)", user_id, len(items))
             except Exception as exc:
                 logger.error("Reminder failed for user %s: %s", user_id, exc)
@@ -212,12 +230,52 @@ async def send_deadline_reminders() -> None:
         logger.error("send_deadline_reminders error: %s", exc)
 
 
+async def flush_scheduled_sends() -> None:
+    """Every 5 min: send any scheduled emails whose send_at has passed."""
+    from datetime import timezone
+    from services.gmail_service import send_gmail_compose
+    try:
+        supabase = get_supabase()
+        now = datetime.now(timezone.utc).isoformat()
+        pending = supabase.table("scheduled_sends").select("*").eq(
+            "status", "pending"
+        ).lte("send_at", now).execute()
+        rows = pending.data or []
+        if not rows:
+            return
+        logger.info("flush_scheduled_sends: sending %d scheduled email(s)", len(rows))
+        for row in rows:
+            try:
+                ok = await send_gmail_compose(
+                    user_id=row["user_id"],
+                    to=row["to_email"],
+                    subject=row["subject"],
+                    body=row["body"],
+                )
+                status = "sent" if ok else "failed"
+                supabase.table("scheduled_sends").update({
+                    "status": status,
+                    "sent_at": datetime.now(timezone.utc).isoformat() if ok else None,
+                    "error": None if ok else "Gmail send failed",
+                }).eq("id", row["id"]).execute()
+            except Exception as exc:
+                logger.error("flush_scheduled_sends row %s failed: %s", row["id"], exc)
+                try:
+                    supabase.table("scheduled_sends").update({
+                        "status": "failed", "error": str(exc)
+                    }).eq("id", row["id"]).execute()
+                except Exception:
+                    pass
+    except Exception as exc:
+        logger.error("flush_scheduled_sends error: %s", exc)
+
+
 def start_email_listener() -> AsyncIOScheduler:
     """
     Register the polling job and start the APScheduler instance.
     Called once during application startup.
     """
-    from workers.digest_worker import send_daily_digest
+    from workers.digest_worker import send_daily_digest, send_weekly_digest
 
     scheduler.add_job(
         poll_all_users,
@@ -239,6 +297,17 @@ def start_email_listener() -> AsyncIOScheduler:
         misfire_grace_time=300,
     )
     scheduler.add_job(
+        send_weekly_digest,
+        trigger="cron",
+        hour=8,
+        minute=0,
+        day_of_week="mon",
+        id="weekly_digest",
+        name="Weekly Email Digest",
+        replace_existing=True,
+        misfire_grace_time=300,
+    )
+    scheduler.add_job(
         send_deadline_reminders,
         trigger="cron",
         hour=9,
@@ -247,6 +316,15 @@ def start_email_listener() -> AsyncIOScheduler:
         name="Daily Deadline Reminders",
         replace_existing=True,
         misfire_grace_time=300,
+    )
+    scheduler.add_job(
+        flush_scheduled_sends,
+        trigger="interval",
+        minutes=5,
+        id="scheduled_sends",
+        name="Flush Scheduled Email Sends",
+        replace_existing=True,
+        misfire_grace_time=60,
     )
     scheduler.start()
     logger.info("Email listener scheduler started (every 5 minutes).")

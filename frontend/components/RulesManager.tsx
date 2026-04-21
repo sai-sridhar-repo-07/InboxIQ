@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import {
   loadRules, saveRules,
-  type AutoRule, type RuleConditionField, type RuleConditionOp, type RuleActionType,
+  type AutoRule, type RuleConditionField, type RuleConditionOp, type RuleActionType, type RuleConditionLogic,
 } from '@/lib/rules';
 
 const FIELD_OPTIONS: { value: RuleConditionField; label: string }[] = [
@@ -18,6 +18,7 @@ const OP_OPTIONS: { value: RuleConditionOp; label: string }[] = [
   { value: 'starts_with', label: 'starts with' },
   { value: 'ends_with',   label: 'ends with' },
   { value: 'equals',      label: 'equals' },
+  { value: 'regex',       label: 'matches regex' },
 ];
 
 const CATEGORY_OPTIONS = [
@@ -31,6 +32,7 @@ function newRule(): AutoRule {
     id: `rule_${Date.now()}`,
     name: 'New Rule',
     enabled: true,
+    condition_logic: 'AND',
     conditions: [{ field: 'sender', op: 'contains', value: '' }],
     actions: [{ type: 'set_category', value: 'urgent' }],
     created_at: new Date().toISOString(),
@@ -135,9 +137,30 @@ export default function RulesManager() {
               <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-4 space-y-4">
                 {/* Conditions */}
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                    IF (all match)
-                  </p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      IF
+                    </p>
+                    <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden text-xs">
+                      {(['AND', 'OR'] as RuleConditionLogic[]).map((logic) => (
+                        <button
+                          key={logic}
+                          onClick={() => updateRule(rule.id, { condition_logic: logic })}
+                          className={clsx(
+                            'px-3 py-1 font-medium transition-colors',
+                            (rule.condition_logic ?? 'AND') === logic
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                          )}
+                        >
+                          {logic}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {(rule.condition_logic ?? 'AND') === 'AND' ? 'all conditions match' : 'any condition matches'}
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     {rule.conditions.map((cond, ci) => (
                       <div key={ci} className="flex items-center gap-2 flex-wrap">
@@ -212,28 +235,50 @@ export default function RulesManager() {
                           onChange={(e) => {
                             const acts = [...rule.actions];
                             const newType = e.target.value as RuleActionType;
-                            acts[ai] = { type: newType, value: newType === 'set_category' ? 'urgent' : 'high' };
+                            const defaultVal = newType === 'set_category' ? 'urgent' : newType === 'set_priority_score' ? '7' : 'high';
+                            acts[ai] = { type: newType, value: defaultVal };
                             updateRule(rule.id, { actions: acts });
                           }}
                           className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                         >
                           <option value="set_category">Set Category</option>
                           <option value="set_priority">Set Priority</option>
+                          <option value="set_priority_score">Set Priority Score (1–10)</option>
                         </select>
 
-                        <select
-                          value={action.value}
-                          onChange={(e) => {
-                            const acts = [...rule.actions];
-                            acts[ai] = { ...acts[ai], value: e.target.value };
-                            updateRule(rule.id, { actions: acts });
-                          }}
-                          className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 capitalize"
-                        >
-                          {(action.type === 'set_category' ? CATEGORY_OPTIONS : PRIORITY_OPTIONS).map((v) => (
-                            <option key={v} value={v} className="capitalize">{v.replace('_', ' ')}</option>
-                          ))}
-                        </select>
+                        {action.type === 'set_priority_score' ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min={1}
+                              max={10}
+                              value={action.value}
+                              onChange={(e) => {
+                                const acts = [...rule.actions];
+                                acts[ai] = { ...acts[ai], value: e.target.value };
+                                updateRule(rule.id, { actions: acts });
+                              }}
+                              className="w-16 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                            <span className="text-xs text-gray-400">
+                              {(() => { const s = parseInt(action.value, 10) || 5; return s >= 8 ? '→ high' : s >= 5 ? '→ medium' : '→ low'; })()}
+                            </span>
+                          </div>
+                        ) : (
+                          <select
+                            value={action.value}
+                            onChange={(e) => {
+                              const acts = [...rule.actions];
+                              acts[ai] = { ...acts[ai], value: e.target.value };
+                              updateRule(rule.id, { actions: acts });
+                            }}
+                            className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 capitalize"
+                          >
+                            {(action.type === 'set_category' ? CATEGORY_OPTIONS : PRIORITY_OPTIONS).map((v) => (
+                              <option key={v} value={v} className="capitalize">{v.replace('_', ' ')}</option>
+                            ))}
+                          </select>
+                        )}
                       </div>
                     ))}
                   </div>

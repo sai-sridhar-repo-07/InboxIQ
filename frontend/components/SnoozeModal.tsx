@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { format, addHours, setHours, setMinutes, nextSaturday, nextMonday } from 'date-fns';
-import { AlarmClock, X, BellOff } from 'lucide-react';
+import { format, addHours, addMinutes, setHours, setMinutes, nextSaturday, nextMonday, nextFriday } from 'date-fns';
+import { AlarmClock, X, BellOff, Wand2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { emailsApi } from '@/lib/api';
 
@@ -30,9 +30,45 @@ function getSnoozeOptions() {
   ];
 }
 
+function parseNLDate(input: string): Date | null {
+  const lower = input.toLowerCase().trim();
+  const now = new Date();
+
+  const hourMatch = lower.match(/in\s+(\d+)\s*h/);
+  if (hourMatch) return addHours(now, parseInt(hourMatch[1]));
+  const minMatch = lower.match(/in\s+(\d+)\s*m/);
+  if (minMatch) return addMinutes(now, parseInt(minMatch[1]));
+
+  if (lower.includes('tonight') || lower.includes('this evening')) {
+    const d = setMinutes(setHours(new Date(now), 20), 0);
+    return d > now ? d : null;
+  }
+  if (lower.includes('tomorrow')) {
+    const d = setMinutes(setHours(new Date(now), 9), 0);
+    d.setDate(d.getDate() + 1);
+    return d;
+  }
+  if (lower.includes('monday')) return setMinutes(setHours(nextMonday(now), 9), 0);
+  if (lower.includes('friday')) return setMinutes(setHours(nextFriday(now), 9), 0);
+  if (lower.includes('weekend') || lower.includes('saturday')) return setMinutes(setHours(nextSaturday(now), 9), 0);
+  if (lower.includes('next week')) return setMinutes(setHours(nextMonday(now), 9), 0);
+
+  const timeMatch = lower.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/);
+  if (timeMatch) {
+    let h = parseInt(timeMatch[1]);
+    const m = parseInt(timeMatch[2] || '0');
+    if (timeMatch[3] === 'pm' && h < 12) h += 12;
+    if (timeMatch[3] === 'am' && h === 12) h = 0;
+    const d = setMinutes(setHours(new Date(now), h), m);
+    return d > now ? d : (d.setDate(d.getDate() + 1), d);
+  }
+  return null;
+}
+
 export default function SnoozeModal({ emailId, currentSnooze, onSnoozed, onClose }: SnoozeModalProps) {
   const [loading, setLoading] = useState(false);
   const [customDateTime, setCustomDateTime] = useState('');
+  const [nlInput, setNlInput] = useState('');
   const options = getSnoozeOptions();
 
   const handleSnooze = async (isoString: string) => {
@@ -103,6 +139,41 @@ export default function SnoozeModal({ emailId, currentSnooze, onSnoozed, onClose
               <span className="text-xs text-gray-400">{opt.sublabel}</span>
             </button>
           ))}
+
+          {/* Natural language snooze */}
+          <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+            <p className="px-1 pb-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+              <Wand2 className="inline h-3 w-3 mr-1" />
+              Natural language (e.g. "tomorrow", "Monday", "in 3 hours")
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={nlInput}
+                onChange={(e) => setNlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const d = parseNLDate(nlInput);
+                    if (d) handleSnooze(d.toISOString());
+                    else toast.error("Couldn't parse — try 'tomorrow', 'Monday', 'in 2 hours'");
+                  }
+                }}
+                placeholder="e.g. tomorrow morning, next Monday..."
+                className="input-field text-sm"
+              />
+              <button
+                onClick={() => {
+                  const d = parseNLDate(nlInput);
+                  if (d) handleSnooze(d.toISOString());
+                  else toast.error("Couldn't parse — try 'tomorrow', 'Monday', 'in 2 hours'");
+                }}
+                disabled={!nlInput || loading}
+                className="btn-primary text-sm px-3 py-2 shrink-0"
+              >
+                Set
+              </button>
+            </div>
+          </div>
 
           {/* Custom datetime */}
           <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
