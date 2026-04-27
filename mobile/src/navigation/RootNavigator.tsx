@@ -11,6 +11,8 @@ import SequencesScreen from '../screens/SequencesScreen';
 import BriefsScreen from '../screens/BriefsScreen';
 import KnowledgeScreen from '../screens/KnowledgeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import BillingScreen from '../screens/BillingScreen';
+import SLAScreen from '../screens/SLAScreen';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -37,6 +39,8 @@ export default function RootNavigator() {
       <Stack.Screen name="Briefs" component={BriefsScreen} options={{ title: 'Briefs' }} />
       <Stack.Screen name="Knowledge" component={KnowledgeScreen} options={{ title: 'Knowledge' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="Billing" component={BillingScreen} options={{ title: 'Billing & Plan' }} />
+      <Stack.Screen name="SLA" component={SLAScreen} options={{ title: 'SLA Tracker' }} />
     </Stack.Navigator>
   );
 }

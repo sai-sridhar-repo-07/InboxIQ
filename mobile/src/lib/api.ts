@@ -137,6 +137,10 @@ export const briefsApi = {
     const { data } = await api.get('/api/briefs');
     return data;
   },
+  generateFromEmail: async (emailId: string) => {
+    const { data } = await api.post('/api/briefs', { email_id: emailId });
+    return data;
+  },
 };
 
 export const quotesApi = {
@@ -153,6 +157,21 @@ export const quotesApi = {
 export const slaApi = {
   getSummary: async () => {
     const { data } = await api.get('/api/sla/summary');
+    return data;
+  },
+  getStatus: async () => {
+    const { data } = await api.get('/api/sla/status');
+    return data;
+  },
+  getConfigs: async () => {
+    const { data } = await api.get('/api/sla/configs');
+    return data;
+  },
+};
+
+export const billingApi = {
+  getStatus: async () => {
+    const { data } = await api.get('/api/billing/status');
     return data;
   },
 };

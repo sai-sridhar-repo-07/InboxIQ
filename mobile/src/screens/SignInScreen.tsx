@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { makeRedirectUri } from 'expo-auth-session';
@@ -76,12 +77,11 @@ export default function SignInScreen() {
       });
       if (error) { Alert.alert('Google sign in failed', error.message); return; }
       if (!data.url) return;
-
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
       if (result.type === 'success' && result.url) {
         await createSessionFromUrl(result.url);
       }
-    } catch (err) {
+    } catch {
       Alert.alert('Error', 'Google sign in failed. Try again.');
     } finally {
       setGoogleLoading(false);
@@ -89,68 +89,72 @@ export default function SignInScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.inner}>
-        <Text style={styles.logo}>Mail<Text style={styles.logoBlue}>air</Text></Text>
-        <Text style={styles.subtitle}>AI-powered email management</Text>
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
+          <Text style={styles.logo}>Mail<Text style={styles.logoBlue}>air</Text></Text>
+          <Text style={styles.subtitle}>AI-powered email management</Text>
 
-        {/* Google Sign In */}
-        <TouchableOpacity style={styles.googleBtn} onPress={handleGoogle} disabled={googleLoading}>
-          {googleLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <>
-              <Text style={styles.googleIcon}>G</Text>
-              <Text style={styles.googleText}>Continue with Google</Text>
-            </>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.googleBtn} onPress={handleGoogle} disabled={googleLoading}>
+            {googleLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Text style={styles.googleIcon}>G</Text>
+                <Text style={styles.googleText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
 
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#64748b"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          autoCorrect={false}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#64748b"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#64748b"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoCorrect={false}
+            returnKeyType="next"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#64748b"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            returnKeyType="done"
+            onSubmitEditing={handleAuth}
+          />
 
-        <TouchableOpacity style={styles.btn} onPress={handleAuth} disabled={loading}>
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.btnText}>{mode === 'signin' ? 'Sign In' : 'Sign Up'}</Text>
-          }
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.btn} onPress={handleAuth} disabled={loading}>
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.btnText}>{mode === 'signin' ? 'Sign In' : 'Sign Up'}</Text>
+            }
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
-          <Text style={styles.toggle}>
-            {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          <TouchableOpacity onPress={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
+            <Text style={styles.toggle}>
+              {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f172a' },
-  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
+  safe: { flex: 1, backgroundColor: '#0f172a' },
+  inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 40 },
   logo: { fontSize: 36, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 6 },
   logoBlue: { color: '#60a5fa' },
   subtitle: { color: '#64748b', textAlign: 'center', marginBottom: 32, fontSize: 15 },

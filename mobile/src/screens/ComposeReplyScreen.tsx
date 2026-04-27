@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
@@ -18,6 +18,7 @@ export default function ComposeReplyScreen({ route, navigation }: Props) {
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
   const [loadingDraft, setLoadingDraft] = useState(true);
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     repliesApi.getDraft(emailId)
@@ -34,6 +35,7 @@ export default function ComposeReplyScreen({ route, navigation }: Props) {
       const data = await emailsApi.generateReply(emailId);
       const text = data.reply || data.draft || '';
       setBody(text);
+      setTimeout(() => inputRef.current?.focus(), 100);
     } catch (err) {
       Toast.show({ type: 'error', text1: apiErrorMessage(err, 'Failed to generate reply') });
     } finally {
@@ -43,16 +45,14 @@ export default function ComposeReplyScreen({ route, navigation }: Props) {
 
   const handleSend = async () => {
     if (!body.trim()) { Alert.alert('Empty', 'Reply body cannot be empty'); return; }
+    if (!draftId) {
+      Toast.show({ type: 'error', text1: 'Generate a draft first, then send.' });
+      return;
+    }
     setSending(true);
     try {
-      if (draftId) {
-        await repliesApi.updateDraft(draftId, body);
-        await repliesApi.sendDraft(draftId);
-      } else {
-        Toast.show({ type: 'error', text1: 'No draft found. Generate a reply first.' });
-        setSending(false);
-        return;
-      }
+      await repliesApi.updateDraft(draftId, body);
+      await repliesApi.sendDraft(draftId);
       Toast.show({ type: 'success', text1: 'Reply sent!' });
       navigation.goBack();
     } catch (err) {
@@ -67,48 +67,52 @@ export default function ComposeReplyScreen({ route, navigation }: Props) {
   );
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.container}>
-        <View style={styles.metaBox}>
-          <Text style={styles.metaLabel}>Re:</Text>
-          <Text style={styles.metaValue} numberOfLines={2}>{subject}</Text>
-        </View>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+    >
+      <View style={styles.metaBox}>
+        <Text style={styles.metaLabel}>Re:</Text>
+        <Text style={styles.metaValue} numberOfLines={2}>{subject}</Text>
+      </View>
 
-        <ScrollView style={styles.bodyScroll} contentContainerStyle={{ padding: 16 }}>
-          <TextInput
-            style={styles.bodyInput}
-            multiline
-            value={body}
-            onChangeText={setBody}
-            placeholder="Write your reply..."
-            placeholderTextColor="#475569"
-            textAlignVertical="top"
-          />
-        </ScrollView>
+      <ScrollView style={styles.bodyScroll} contentContainerStyle={styles.bodyContent} keyboardShouldPersistTaps="handled">
+        <TextInput
+          ref={inputRef}
+          style={styles.bodyInput}
+          multiline
+          value={body}
+          onChangeText={setBody}
+          placeholder="Write your reply here, or tap AI Draft to generate one..."
+          placeholderTextColor="#334155"
+          textAlignVertical="top"
+          autoFocus={false}
+        />
+      </ScrollView>
 
-        <View style={styles.toolbar}>
-          <TouchableOpacity
-            style={[styles.aiBtn, generating && styles.btnDisabled]}
-            onPress={handleGenerate}
-            disabled={generating}
-          >
-            {generating
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <><Ionicons name="sparkles" size={16} color="#fff" /><Text style={styles.aiBtnText}>AI Draft</Text></>
-            }
-          </TouchableOpacity>
+      <View style={styles.toolbar}>
+        <TouchableOpacity
+          style={[styles.aiBtn, generating && styles.btnDisabled]}
+          onPress={handleGenerate}
+          disabled={generating}
+        >
+          {generating
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <><Ionicons name="sparkles" size={16} color="#fff" /><Text style={styles.aiBtnText}>AI Draft</Text></>
+          }
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.sendBtn, sending && styles.btnDisabled]}
-            onPress={handleSend}
-            disabled={sending}
-          >
-            {sending
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <><Ionicons name="send" size={16} color="#fff" /><Text style={styles.sendBtnText}>Send</Text></>
-            }
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={[styles.sendBtn, (!body.trim() || sending) && styles.btnDisabled]}
+          onPress={handleSend}
+          disabled={!body.trim() || sending}
+        >
+          {sending
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <><Ionicons name="send" size={16} color="#fff" /><Text style={styles.sendBtnText}>Send</Text></>
+          }
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -125,9 +129,10 @@ const styles = StyleSheet.create({
   metaLabel: { color: '#475569', fontSize: 13, fontWeight: '600', marginTop: 1 },
   metaValue: { flex: 1, color: '#94a3b8', fontSize: 13, lineHeight: 18 },
   bodyScroll: { flex: 1 },
+  bodyContent: { flexGrow: 1, padding: 16 },
   bodyInput: {
-    color: '#e2e8f0', fontSize: 15, lineHeight: 24,
-    minHeight: 200,
+    flex: 1, color: '#e2e8f0', fontSize: 15, lineHeight: 24,
+    minHeight: 180,
   },
   toolbar: {
     flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12,
@@ -143,5 +148,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 12,
   },
   sendBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  btnDisabled: { opacity: 0.6 },
+  btnDisabled: { opacity: 0.5 },
 });

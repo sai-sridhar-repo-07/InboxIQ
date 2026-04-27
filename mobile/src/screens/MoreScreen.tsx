@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
+type ScreenName = keyof RootStackParamList;
 
 interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -30,30 +31,43 @@ function MenuItem({ icon, color, label, sub, onPress }: MenuItemProps) {
   );
 }
 
+interface Section {
+  title: string;
+  items: {
+    icon: keyof typeof Ionicons.glyphMap;
+    color: string;
+    label: string;
+    sub: string;
+    screen: ScreenName;
+  }[];
+}
+
 export default function MoreScreen() {
   const navigation = useNavigation<NavProp>();
 
-  const sections = [
+  const sections: Section[] = [
     {
       title: 'Business Intelligence',
       items: [
-        { icon: 'trending-up-outline' as const, color: '#10b981', label: 'Revenue', sub: 'Track payments & pipeline', screen: 'Revenue' as const },
-        { icon: 'people-outline' as const, color: '#60a5fa', label: 'Relationships', sub: 'Contact scores & sentiment', screen: 'Relationships' as const },
-        { icon: 'document-text-outline' as const, color: '#a78bfa', label: 'Quotes', sub: 'Proposals & pricing', screen: 'Quotes' as const },
+        { icon: 'trending-up-outline', color: '#10b981', label: 'Revenue',       sub: 'Track payments & pipeline',    screen: 'Revenue' },
+        { icon: 'people-outline',       color: '#60a5fa', label: 'Relationships', sub: 'Contact scores & sentiment',   screen: 'Relationships' },
+        { icon: 'document-text-outline',color: '#a78bfa', label: 'Quotes',        sub: 'Proposals & pricing',          screen: 'Quotes' },
+        { icon: 'timer-outline',        color: '#f97316', label: 'SLA Tracker',   sub: 'Response compliance & breaches',screen: 'SLA' },
       ],
     },
     {
       title: 'Productivity',
       items: [
-        { icon: 'git-branch-outline' as const, color: '#f97316', label: 'Sequences', sub: 'Email automation flows', screen: 'Sequences' as const },
-        { icon: 'newspaper-outline' as const, color: '#e879f9', label: 'Briefs', sub: 'Meeting prep summaries', screen: 'Briefs' as const },
-        { icon: 'library-outline' as const, color: '#f59e0b', label: 'Knowledge', sub: 'Extracted email insights', screen: 'Knowledge' as const },
+        { icon: 'git-branch-outline',   color: '#f97316', label: 'Sequences',  sub: 'Email automation flows',       screen: 'Sequences' },
+        { icon: 'newspaper-outline',    color: '#e879f9', label: 'Briefs',     sub: 'Meeting prep summaries',       screen: 'Briefs' },
+        { icon: 'library-outline',      color: '#f59e0b', label: 'Knowledge',  sub: 'Extracted email insights',     screen: 'Knowledge' },
       ],
     },
     {
       title: 'Account',
       items: [
-        { icon: 'person-circle-outline' as const, color: '#94a3b8', label: 'Settings', sub: 'Profile & preferences', screen: 'Settings' as const },
+        { icon: 'card-outline',         color: '#10b981', label: 'Billing',    sub: 'Plan, usage & invoices',       screen: 'Billing' },
+        { icon: 'person-circle-outline',color: '#94a3b8', label: 'Settings',   sub: 'Profile & sign out',           screen: 'Settings' },
       ],
     },
   ];

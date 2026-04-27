@@ -10,6 +10,8 @@ export type RootStackParamList = {
   Briefs: undefined;
   Knowledge: undefined;
   Settings: undefined;
+  Billing: undefined;
+  SLA: undefined;
 };
 
 export type TabParamList = {
