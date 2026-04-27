@@ -27,11 +27,6 @@
             "CFBundleURLSchemes": ["mailair"]
           }
         ]
-      },
-      "config": {
-        "googleSignIn": {
-          "reservedClientId": ""
-        }
       }
     },
     "android": {
@@ -47,11 +42,7 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "data": [
-            {
-              "scheme": "mailair"
-            }
-          ],
+          "data": [{ "scheme": "mailair" }],
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
@@ -76,8 +67,15 @@
       "privacyPolicyUrl": "https://mailair.in/privacy",
       "termsUrl": "https://mailair.in/terms",
       "eas": {
-        "projectId": ""
+        "projectId": "c681bdd8-bea6-4cde-b2b0-f4909574c1b5"
       }
+    },
+    "owner": "sai_sridhar_tarra",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c681bdd8-bea6-4cde-b2b0-f4909574c1b5"
     }
   }
 }
