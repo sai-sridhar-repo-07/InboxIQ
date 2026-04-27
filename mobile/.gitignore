@@ -33,6 +33,12 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Store credentials (never commit these)
+google-service-account.json
+*.p12
+google-services.json
+GoogleService-Info.plist
+
 # typescript
 *.tsbuildinfo
 

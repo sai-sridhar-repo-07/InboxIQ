@@ -6,17 +6,39 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { billingApi, apiErrorMessage } from '../lib/api';
 
-const PLAN_STYLES: Record<string, { border: string; badge: string; badgeText: string; icon: string }> = {
-  free:   { border: '#334155', badge: '#1e293b',  badgeText: '#94a3b8',  icon: '🆓' },
-  pro:    { border: '#2563eb', badge: '#1e3a8a',  badgeText: '#93c5fd',  icon: '⚡' },
-  agency: { border: '#7c3aed', badge: '#2e1065',  badgeText: '#c4b5fd',  icon: '🏢' },
+const PLAN_CONFIG: Record<string, {
+  border: string; icon: string; color: string;
+  title: string; features: string[]; price: string;
+}> = {
+  free: {
+    border: '#334155', icon: '📧', color: '#94a3b8', title: 'Free',
+    price: '₹0/month',
+    features: ['100 emails/month', 'AI summaries', '3 actions/day', 'Basic inbox'],
+  },
+  pro: {
+    border: '#2563eb', icon: '⚡', color: '#60a5fa', title: 'Pro',
+    price: '₹999/month',
+    features: ['2,000 emails/month', 'AI reply generation', 'Unlimited actions',
+      'Revenue tracking', 'Relationships', 'Knowledge base', 'Sequences'],
+  },
+  agency: {
+    border: '#7c3aed', icon: '🏢', color: '#c4b5fd', title: 'Agency',
+    price: '₹2,999/month',
+    features: ['Unlimited emails', 'Team management', 'Custom sequences',
+      'Priority support', 'API access', 'All Pro features'],
+  },
 };
 
-const PLAN_FEATURES: Record<string, string[]> = {
-  free:   ['100 emails/month', 'AI summaries', '3 actions/day', 'Basic inbox'],
-  pro:    ['2,000 emails/month', 'AI reply generation', 'Unlimited actions', 'Revenue tracking', 'Relationships', 'Knowledge base'],
-  agency: ['Unlimited emails', 'Team management', 'Custom sequences', 'Priority support', 'API access', 'All Pro features'],
-};
+const UPGRADE_PLANS: Array<{ key: string; name: string; price: string; color: string; features: string[] }> = [
+  {
+    key: 'pro', name: 'Pro', price: '₹999/month', color: '#2563eb',
+    features: ['2,000 emails/month', 'AI reply generation', 'Revenue tracking', 'Knowledge base'],
+  },
+  {
+    key: 'agency', name: 'Agency', price: '₹2,999/month', color: '#7c3aed',
+    features: ['Unlimited emails', 'Team management', 'Priority support', 'All Pro features'],
+  },
+];
 
 export default function BillingScreen() {
   const [billing, setBilling] = useState<any>(null);
@@ -40,8 +62,7 @@ export default function BillingScreen() {
   useEffect(() => { load(); }, []);
 
   const plan = billing?.plan || 'free';
-  const ps = PLAN_STYLES[plan] || PLAN_STYLES.free;
-  const features = PLAN_FEATURES[plan] || PLAN_FEATURES.free;
+  const cfg = PLAN_CONFIG[plan] || PLAN_CONFIG.free;
 
   if (loading) return <View style={styles.centered}><ActivityIndicator color="#60a5fa" size="large" /></View>;
 
@@ -59,18 +80,16 @@ export default function BillingScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor="#60a5fa" />}
     >
-      {/* Current Plan Card */}
-      <View style={[styles.planCard, { borderColor: ps.border }]}>
+      {/* Current plan */}
+      <View style={[styles.planCard, { borderColor: cfg.border }]}>
         <View style={styles.planHeader}>
-          <Text style={styles.planIcon}>{ps.icon}</Text>
+          <Text style={styles.planIcon}>{cfg.icon}</Text>
           <View style={styles.planInfo}>
-            <Text style={styles.planTitle}>{plan.charAt(0).toUpperCase() + plan.slice(1)} Plan</Text>
-            {billing?.subscription_status && (
-              <Text style={styles.planStatus}>{billing.subscription_status}</Text>
-            )}
+            <Text style={styles.planTitle}>{cfg.title} Plan</Text>
+            <Text style={styles.planPrice}>{cfg.price}</Text>
           </View>
-          <View style={[styles.planBadge, { backgroundColor: ps.badge }]}>
-            <Text style={[styles.planBadgeText, { color: ps.badgeText }]}>Current</Text>
+          <View style={[styles.activeBadge, { backgroundColor: cfg.border + '40', borderColor: cfg.border }]}>
+            <Text style={[styles.activeBadgeText, { color: cfg.color }]}>Active</Text>
           </View>
         </View>
 
@@ -81,7 +100,7 @@ export default function BillingScreen() {
         )}
 
         <View style={styles.featureList}>
-          {features.map(f => (
+          {cfg.features.map(f => (
             <View key={f} style={styles.featureRow}>
               <Ionicons name="checkmark-circle" size={16} color="#10b981" />
               <Text style={styles.featureText}>{f}</Text>
@@ -91,7 +110,7 @@ export default function BillingScreen() {
       </View>
 
       {/* Usage */}
-      {billing?.usage && (
+      {billing?.usage && Object.keys(billing.usage).length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Usage This Month</Text>
           {Object.entries(billing.usage as Record<string, unknown>).map(([key, val]) => (
@@ -103,38 +122,41 @@ export default function BillingScreen() {
         </View>
       )}
 
-      {/* Upgrade CTA */}
-      {plan === 'free' && (
-        <View style={styles.upgradeBox}>
-          <Ionicons name="rocket-outline" size={24} color="#a78bfa" style={{ marginBottom: 8 }} />
-          <Text style={styles.upgradeTitle}>Upgrade to Pro</Text>
-          <Text style={styles.upgradeSub}>Get AI replies, revenue tracking, and 20x more emails</Text>
-          <TouchableOpacity
-            style={styles.upgradeBtn}
-            onPress={() => Linking.openURL('https://mailair.in/billing')}
-          >
-            <Text style={styles.upgradeBtnText}>View Plans — mailair.in</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Upgrade plans */}
+      {plan !== 'agency' && (
+        <>
+          <Text style={styles.upgradeHeading}>Upgrade Your Plan</Text>
+          {UPGRADE_PLANS.filter(p => p.key !== plan).map(p => (
+            <View key={p.key} style={[styles.upgradeCard, { borderColor: p.color + '60' }]}>
+              <View style={styles.upgradeHeader}>
+                <Text style={[styles.upgradeName, { color: p.color }]}>{p.name}</Text>
+                <Text style={styles.upgradePrice}>{p.price}</Text>
+              </View>
+              {p.features.map(f => (
+                <View key={f} style={styles.featureRow}>
+                  <Ionicons name="checkmark-circle-outline" size={15} color={p.color} />
+                  <Text style={styles.upgradeFeatureText}>{f}</Text>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={[styles.upgradeBtn, { backgroundColor: p.color }]}
+                onPress={() => Linking.openURL('https://mailair.in/billing')}
+              >
+                <Text style={styles.upgradeBtnText}>Upgrade to {p.name} — mailair.in</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </>
       )}
 
-      {plan === 'pro' && (
-        <View style={styles.upgradeBox}>
-          <Ionicons name="business-outline" size={24} color="#a78bfa" style={{ marginBottom: 8 }} />
-          <Text style={styles.upgradeTitle}>Upgrade to Agency</Text>
-          <Text style={styles.upgradeSub}>Team features, unlimited emails, custom sequences</Text>
-          <TouchableOpacity
-            style={styles.upgradeBtn}
-            onPress={() => Linking.openURL('https://mailair.in/billing')}
-          >
-            <Text style={styles.upgradeBtnText}>Upgrade — mailair.in</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <Text style={styles.manageNote}>
-        Manage subscription, invoices, and payment methods at mailair.in/billing
-      </Text>
+      {/* Manage link */}
+      <TouchableOpacity
+        style={styles.manageBtn}
+        onPress={() => Linking.openURL('https://mailair.in/billing')}
+      >
+        <Ionicons name="open-outline" size={16} color="#64748b" />
+        <Text style={styles.manageText}>Manage subscription, invoices & payments — mailair.in</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -146,27 +168,31 @@ const styles = StyleSheet.create({
   errorText: { color: '#ef4444', marginTop: 12, marginBottom: 16, textAlign: 'center' },
   retryBtn: { backgroundColor: '#1e293b', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
   retryText: { color: '#60a5fa', fontWeight: '600' },
-  planCard: { backgroundColor: '#1e293b', borderRadius: 18, padding: 18, borderWidth: 2, marginBottom: 16 },
-  planHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  planCard: { backgroundColor: '#1e293b', borderRadius: 18, padding: 18, borderWidth: 2, marginBottom: 20 },
+  planHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   planIcon: { fontSize: 28 },
   planInfo: { flex: 1 },
   planTitle: { color: '#f1f5f9', fontSize: 18, fontWeight: '800' },
-  planStatus: { color: '#64748b', fontSize: 12, marginTop: 2, textTransform: 'capitalize' },
-  planBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  planBadgeText: { fontSize: 11, fontWeight: '700' },
-  renewDate: { color: '#64748b', fontSize: 12, marginBottom: 14 },
-  featureList: { gap: 8 },
+  planPrice: { color: '#64748b', fontSize: 13, marginTop: 2 },
+  activeBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1 },
+  activeBadgeText: { fontSize: 11, fontWeight: '700' },
+  renewDate: { color: '#475569', fontSize: 12, marginBottom: 14 },
+  featureList: { gap: 8, marginTop: 4 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   featureText: { color: '#cbd5e1', fontSize: 14 },
-  section: { backgroundColor: '#1e293b', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#334155', marginBottom: 16 },
-  sectionTitle: { color: '#94a3b8', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
-  usageRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#0f172a' },
-  usageLabel: { color: '#cbd5e1', fontSize: 14, textTransform: 'capitalize' },
+  section: { backgroundColor: '#1e293b', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#334155', marginBottom: 20 },
+  sectionTitle: { color: '#64748b', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  usageRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#0f172a' },
+  usageLabel: { color: '#94a3b8', fontSize: 14, textTransform: 'capitalize' },
   usageVal: { color: '#f1f5f9', fontSize: 14, fontWeight: '700' },
-  upgradeBox: { backgroundColor: '#1e1b4b', borderRadius: 16, padding: 18, borderWidth: 1, borderColor: '#312e81', alignItems: 'center', marginBottom: 16 },
-  upgradeTitle: { color: '#e0e7ff', fontSize: 18, fontWeight: '700', marginBottom: 6 },
-  upgradeSub: { color: '#818cf8', fontSize: 13, textAlign: 'center', lineHeight: 18, marginBottom: 16 },
-  upgradeBtn: { backgroundColor: '#4f46e5', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
+  upgradeHeading: { color: '#94a3b8', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  upgradeCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 14, gap: 8 },
+  upgradeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  upgradeName: { fontSize: 18, fontWeight: '800' },
+  upgradePrice: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
+  upgradeFeatureText: { color: '#94a3b8', fontSize: 13 },
+  upgradeBtn: { borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 8 },
   upgradeBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  manageNote: { color: '#334155', fontSize: 12, textAlign: 'center' },
+  manageBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 12 },
+  manageText: { color: '#475569', fontSize: 12, textAlign: 'center', flex: 1 },
 });
