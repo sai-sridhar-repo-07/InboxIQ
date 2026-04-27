@@ -63,4 +63,120 @@ export const actionsApi = {
   },
 };
 
+export const repliesApi = {
+  getDraft: async (emailId: string) => {
+    const { data } = await api.get(`/api/replies/email/${emailId}`);
+    return data;
+  },
+  updateDraft: async (draftId: string, body: string) => {
+    const { data } = await api.put(`/api/replies/${draftId}`, { body });
+    return data;
+  },
+  sendDraft: async (draftId: string) => {
+    const { data } = await api.post(`/api/replies/${draftId}/send`);
+    return data;
+  },
+};
+
+export const relationshipsApi = {
+  getAll: async () => {
+    const { data } = await api.get('/api/relationships');
+    return data;
+  },
+  getSentiment: async (email: string) => {
+    const { data } = await api.get(`/api/relationships/${encodeURIComponent(email)}/sentiment`);
+    return data;
+  },
+};
+
+export const revenueApi = {
+  getSummary: async () => {
+    const { data } = await api.get('/api/revenue/summary');
+    return data;
+  },
+  scan: async () => {
+    const { data } = await api.post('/api/revenue/scan');
+    return data;
+  },
+};
+
+export const knowledgeApi = {
+  getAll: async (params?: { search?: string; category?: string }) => {
+    const { data } = await api.get('/api/knowledge', { params });
+    return data;
+  },
+  deleteEntry: async (id: string) => {
+    await api.delete(`/api/knowledge/${id}`);
+  },
+  extractFromEmail: async (emailId: string) => {
+    const { data } = await api.post(`/api/knowledge/extract/${emailId}`);
+    return data;
+  },
+};
+
+export const sequencesApi = {
+  getAll: async () => {
+    const { data } = await api.get('/api/sequences');
+    return data;
+  },
+  create: async (payload: { name: string; steps: unknown[] }) => {
+    const { data } = await api.post('/api/sequences', payload);
+    return data;
+  },
+  delete: async (id: string) => {
+    await api.delete(`/api/sequences/${id}`);
+  },
+  getEnrollments: async () => {
+    const { data } = await api.get('/api/sequences/enrollments');
+    return data;
+  },
+};
+
+export const briefsApi = {
+  getAll: async () => {
+    const { data } = await api.get('/api/briefs');
+    return data;
+  },
+};
+
+export const quotesApi = {
+  getAll: async () => {
+    const { data } = await api.get('/api/quotes');
+    return data;
+  },
+  updateStatus: async (id: string, status: string) => {
+    const { data } = await api.patch(`/api/quotes/${id}/status`, { status });
+    return data;
+  },
+};
+
+export const slaApi = {
+  getSummary: async () => {
+    const { data } = await api.get('/api/sla/summary');
+    return data;
+  },
+};
+
+export const settingsApi = {
+  getProfile: async () => {
+    const { data } = await api.get('/api/settings/profile');
+    return data;
+  },
+  updateProfile: async (payload: Record<string, unknown>) => {
+    const { data } = await api.put('/api/settings/profile', payload);
+    return data;
+  },
+};
+
+export const contactsApi = {
+  getAll: async () => {
+    const { data } = await api.get('/api/contacts');
+    return data;
+  },
+  getContact: async (email: string) => {
+    const { data } = await api.get(`/api/contacts/${encodeURIComponent(email)}`);
+    return data;
+  },
+};
+
 export default api;

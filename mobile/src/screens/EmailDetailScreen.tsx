@@ -138,8 +138,11 @@ export default function EmailDetailScreen({ route, navigation }: Props) {
         <TouchableOpacity style={[styles.replyBtn, generatingReply && styles.replyBtnDisabled]} onPress={handleGenerateReply} disabled={generatingReply}>
           {generatingReply
             ? <ActivityIndicator color="#fff" size="small" />
-            : <><Ionicons name="sparkles" size={16} color="#fff" /><Text style={styles.replyBtnText}>AI Reply</Text></>
+            : <><Ionicons name="sparkles" size={16} color="#fff" /><Text style={styles.replyBtnText}>AI Draft</Text></>
           }
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sendBtn} onPress={() => navigation.navigate('ComposeReply', { emailId, subject: email.subject })}>
+          <Ionicons name="send" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
@@ -181,4 +184,5 @@ const styles = StyleSheet.create({
   },
   replyBtnDisabled: { opacity: 0.6 },
   replyBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  sendBtn: { backgroundColor: '#0f766e', borderRadius: 12, padding: 13, borderWidth: 1, borderColor: '#134e4a' },
 });
