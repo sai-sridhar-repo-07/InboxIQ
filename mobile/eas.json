@@ -14,9 +14,6 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "ios": {
-        "simulator": false
-      },
       "android": {
         "buildType": "apk"
       }
@@ -24,9 +21,6 @@
     "production": {
       "channel": "production",
       "autoIncrement": true,
-      "ios": {
-        "image": "latest"
-      },
       "android": {
         "buildType": "app-bundle",
         "image": "latest"
@@ -35,11 +29,6 @@
   },
   "submit": {
     "production": {
-      "ios": {
-        "appleId": "",
-        "ascAppId": "",
-        "appleTeamId": ""
-      },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
         "track": "production"
