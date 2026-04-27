@@ -3,12 +3,19 @@
   "short_name": "Mailair",
   "description": "AI-powered email management for service businesses",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f9fafb",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
   "theme_color": "#2563eb",
+  "categories": ["productivity", "business"],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable any" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ],
+  "shortcuts": [
+    { "name": "Inbox", "url": "/email", "description": "Open your AI inbox" },
+    { "name": "Actions", "url": "/actions", "description": "View pending actions" }
   ]
 }
