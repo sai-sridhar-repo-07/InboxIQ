@@ -24,7 +24,9 @@
         "NSPhotoLibraryUsageDescription": "Not used.",
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["mailair"]
+            "CFBundleURLSchemes": [
+              "mailair"
+            ]
           }
         ]
       }
@@ -42,8 +44,15 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "data": [{ "scheme": "mailair" }],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "data": [
+            {
+              "scheme": "mailair"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "permissions": [
@@ -61,7 +70,8 @@
         {
           "faceIDPermission": "Allow Mailair to use Face ID for secure sign-in."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "privacyPolicyUrl": "https://mailair.in/privacy",
