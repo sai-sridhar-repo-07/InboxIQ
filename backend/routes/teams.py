@@ -117,20 +117,23 @@ async def create_org(body: CreateOrgBody, current_user: Annotated[dict, Depends(
 async def get_org(current_user: Annotated[dict, Depends(get_current_user)]):
     """Get current user's organization details."""
     uid = _uid(current_user)
-    user_data = _get_user_org(uid)
-    org_id = _require_org(user_data)
-
-    supabase = get_supabase()
-    org = supabase.table("organizations").select("*").eq("id", org_id).single().execute()
-    members = supabase.table("org_members").select(
-        "id, role, status, invited_email, invite_token, created_at, user_profiles(id, name, email)"
-    ).eq("org_id", org_id).execute()
-
-    return {
-        "org": org.data,
-        "members": members.data or [],
-        "your_role": user_data.get("org_role", "member"),
-    }
+    try:
+        user_data = _get_user_org(uid)
+        org_id = _require_org(user_data)
+        supabase = get_supabase()
+        org = supabase.table("organizations").select("*").eq("id", org_id).single().execute()
+        members = supabase.table("org_members").select(
+            "id, role, status, invited_email, invite_token, created_at, user_profiles(id, name, email)"
+        ).eq("org_id", org_id).execute()
+        return {
+            "org": org.data,
+            "members": members.data or [],
+            "your_role": user_data.get("org_role", "member"),
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        return {"org": None, "members": [], "your_role": "owner"}
 
 
 @router.post("/org/invite")
@@ -207,11 +210,14 @@ async def remove_member(member_user_id: str, current_user: Annotated[dict, Depen
 @router.get("/assignments/{email_id}")
 async def get_assignment(email_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """Get assignment for a specific email."""
-    supabase = get_supabase()
-    result = supabase.table("email_assignments").select(
-        "*, user_profiles!assigned_to(id, name, email)"
-    ).eq("email_id", email_id).execute()
-    return result.data[0] if result.data else None
+    try:
+        supabase = get_supabase()
+        result = supabase.table("email_assignments").select(
+            "*, user_profiles!assigned_to(id, name, email)"
+        ).eq("email_id", email_id).execute()
+        return result.data[0] if result.data else None
+    except Exception:
+        return None
 
 
 @router.post("/assignments/{email_id}")
@@ -251,16 +257,20 @@ def _verify_email_in_org(email_id: str, org_id: str) -> None:
 @router.get("/notes/{email_id}")
 async def get_notes(email_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """Get all internal notes for an email."""
-    uid = _uid(current_user)
-    user_data = _get_user_org(uid)
-    org_id = _require_org(user_data)
-    _verify_email_in_org(email_id, org_id)
-
-    supabase = get_supabase()
-    notes = supabase.table("internal_notes").select(
-        "*, user_profiles!user_id(id, name, email)"
-    ).eq("email_id", email_id).order("created_at", desc=False).execute()
-    return notes.data or []
+    try:
+        uid = _uid(current_user)
+        user_data = _get_user_org(uid)
+        org_id = _require_org(user_data)
+        _verify_email_in_org(email_id, org_id)
+        supabase = get_supabase()
+        notes = supabase.table("internal_notes").select(
+            "*, user_profiles!user_id(id, name, email)"
+        ).eq("email_id", email_id).order("created_at", desc=False).execute()
+        return notes.data or []
+    except HTTPException:
+        raise
+    except Exception:
+        return []
 
 
 @router.post("/notes/{email_id}", status_code=status.HTTP_201_CREATED)
