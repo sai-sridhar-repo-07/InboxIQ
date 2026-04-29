@@ -50,10 +50,13 @@ async def exchange_code(code: str) -> dict:
 
 async def _get_valid_token(user_id: str) -> str:
     supabase = get_supabase()
-    row = supabase.table("user_profiles").select(
-        "gcal_access_token, gcal_refresh_token, gcal_token_expires_at"
-    ).eq("id", user_id).single().execute()
-    data = row.data or {}
+    try:
+        row = supabase.table("user_profiles").select(
+            "gcal_access_token, gcal_refresh_token, gcal_token_expires_at"
+        ).eq("id", user_id).single().execute()
+        data = row.data or {}
+    except Exception:
+        raise ValueError("Google Calendar not connected")
 
     access_token = data.get("gcal_access_token")
     refresh_tok = data.get("gcal_refresh_token")
