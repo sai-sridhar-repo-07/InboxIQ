@@ -25,21 +25,29 @@ def _rz():
 
 @router.get("/products")
 async def list_products(category: Optional[str] = None):
-    supabase = get_supabase()
-    q = supabase.table("shop_products").select("*").eq("available", True).order("created_at", desc=True)
-    if category:
-        q = q.eq("category", category)
-    result = q.execute()
-    return {"products": result.data or []}
+    try:
+        supabase = get_supabase()
+        q = supabase.table("shop_products").select("*").eq("available", True).order("created_at", desc=True)
+        if category:
+            q = q.eq("category", category)
+        result = q.execute()
+        return {"products": result.data or []}
+    except Exception:
+        return {"products": []}
 
 
 @router.get("/products/{product_id}")
 async def get_product(product_id: str):
-    supabase = get_supabase()
-    result = supabase.table("shop_products").select("*").eq("id", product_id).single().execute()
-    if not result.data:
+    try:
+        supabase = get_supabase()
+        result = supabase.table("shop_products").select("*").eq("id", product_id).single().execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Product not found")
+        return result.data
+    except HTTPException:
+        raise
+    except Exception:
         raise HTTPException(status_code=404, detail="Product not found")
-    return result.data
 
 
 # ─── Orders ───────────────────────────────────────────────────────────────────
@@ -79,16 +87,26 @@ async def create_order(body: CreateOrderBody):
     if total_paise < 100:
         raise HTTPException(status_code=400, detail="Order total too low")
 
-    supabase = get_supabase()
+    try:
+        supabase = get_supabase()
+    except Exception as exc:
+        logger.error("DB connection failed: %s", exc)
+        raise HTTPException(status_code=503, detail="Service unavailable")
 
     # Validate all products exist
-    product_ids = [i.product_id for i in body.items]
-    products = supabase.table("shop_products").select("id, name, price, available").in_("id", product_ids).execute()
-    products_map = {p["id"]: p for p in (products.data or [])}
-    for item in body.items:
-        p = products_map.get(item.product_id)
-        if not p or not p.get("available"):
-            raise HTTPException(status_code=400, detail=f"Product {item.product_id} unavailable")
+    try:
+        product_ids = [i.product_id for i in body.items]
+        products = supabase.table("shop_products").select("id, name, price, available").in_("id", product_ids).execute()
+        products_map = {p["id"]: p for p in (products.data or [])}
+        for item in body.items:
+            p = products_map.get(item.product_id)
+            if not p or not p.get("available"):
+                raise HTTPException(status_code=400, detail=f"Product {item.product_id} unavailable")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Product validation failed: %s", exc)
+        raise HTTPException(status_code=503, detail="Shop unavailable")
 
     # Create Razorpay order
     try:
@@ -115,19 +133,22 @@ async def create_order(body: CreateOrderBody):
         for item in body.items
     ]
 
-    db_order = supabase.table("shop_orders").insert({
-        "customer_email": body.shipping.email,
-        "customer_name": body.shipping.name,
-        "customer_phone": body.shipping.phone,
-        "items": items_payload,
-        "total_paise": total_paise,
-        "shipping_address": body.shipping.model_dump(),
-        "notes": body.notes,
-        "razorpay_order_id": rz_order["id"],
-        "status": "pending",
-    }).execute()
-
-    order_id = db_order.data[0]["id"] if db_order.data else None
+    order_id = None
+    try:
+        db_order = supabase.table("shop_orders").insert({
+            "customer_email": body.shipping.email,
+            "customer_name": body.shipping.name,
+            "customer_phone": body.shipping.phone,
+            "items": items_payload,
+            "total_paise": total_paise,
+            "shipping_address": body.shipping.model_dump(),
+            "notes": body.notes,
+            "razorpay_order_id": rz_order["id"],
+            "status": "pending",
+        }).execute()
+        order_id = db_order.data[0]["id"] if db_order.data else None
+    except Exception as exc:
+        logger.error("Failed to save order to DB: %s", exc)
 
     return {
         "order_id": order_id,
@@ -160,15 +181,21 @@ async def verify_payment(body: VerifyPaymentBody):
     if not hmac.compare_digest(expected, body.razorpay_signature):
         raise HTTPException(status_code=400, detail="Invalid payment signature")
 
-    supabase = get_supabase()
-    result = supabase.table("shop_orders").update({
-        "status": "paid",
-        "razorpay_payment_id": body.razorpay_payment_id,
-        "razorpay_signature": body.razorpay_signature,
-    }).eq("id", body.order_id).execute()
+    try:
+        supabase = get_supabase()
+        result = supabase.table("shop_orders").update({
+            "status": "paid",
+            "razorpay_payment_id": body.razorpay_payment_id,
+            "razorpay_signature": body.razorpay_signature,
+        }).eq("id", body.order_id).execute()
 
-    if not result.data:
-        raise HTTPException(status_code=404, detail="Order not found")
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Order not found")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Failed to update order status: %s", exc)
+        raise HTTPException(status_code=503, detail="Failed to confirm payment")
 
     order = result.data[0]
 
@@ -214,18 +241,23 @@ async def _send_order_confirmation(order: dict):
 @router.get("/orders/{order_id}")
 async def get_order(order_id: str, email: str):
     """Fetch order by ID + email (no auth — for confirmation page)."""
-    supabase = get_supabase()
-    result = (
-        supabase.table("shop_orders")
-        .select("*")
-        .eq("id", order_id)
-        .eq("customer_email", email)
-        .single()
-        .execute()
-    )
-    if not result.data:
+    try:
+        supabase = get_supabase()
+        result = (
+            supabase.table("shop_orders")
+            .select("*")
+            .eq("id", order_id)
+            .eq("customer_email", email)
+            .single()
+            .execute()
+        )
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Order not found")
+        return result.data
+    except HTTPException:
+        raise
+    except Exception:
         raise HTTPException(status_code=404, detail="Order not found")
-    return result.data
 
 
 # ─── Admin ────────────────────────────────────────────────────────────────────
@@ -248,33 +280,48 @@ class ProductBody(BaseModel):
 async def admin_create_product(body: ProductBody, current_user: dict = Depends(get_current_user)):
     if current_user.get("email") not in (settings.ADMIN_EMAIL, "tarrasridhar1154@gmail.com"):
         raise HTTPException(status_code=403, detail="Admin only")
-    supabase = get_supabase()
-    result = supabase.table("shop_products").insert(body.model_dump()).execute()
-    return result.data[0] if result.data else {}
+    try:
+        supabase = get_supabase()
+        result = supabase.table("shop_products").insert(body.model_dump()).execute()
+        return result.data[0] if result.data else {}
+    except Exception as exc:
+        logger.error("admin_create_product failed: %s", exc)
+        raise HTTPException(status_code=503, detail="Database error")
 
 
 @router.patch("/admin/products/{product_id}")
 async def admin_update_product(product_id: str, body: dict, current_user: dict = Depends(get_current_user)):
     if current_user.get("email") not in (settings.ADMIN_EMAIL, "tarrasridhar1154@gmail.com"):
         raise HTTPException(status_code=403, detail="Admin only")
-    supabase = get_supabase()
-    result = supabase.table("shop_products").update(body).eq("id", product_id).execute()
-    return result.data[0] if result.data else {}
+    try:
+        supabase = get_supabase()
+        result = supabase.table("shop_products").update(body).eq("id", product_id).execute()
+        return result.data[0] if result.data else {}
+    except Exception as exc:
+        logger.error("admin_update_product failed: %s", exc)
+        raise HTTPException(status_code=503, detail="Database error")
 
 
 @router.get("/admin/orders")
 async def admin_list_orders(current_user: dict = Depends(get_current_user)):
     if current_user.get("email") not in (settings.ADMIN_EMAIL, "tarrasridhar1154@gmail.com"):
         raise HTTPException(status_code=403, detail="Admin only")
-    supabase = get_supabase()
-    result = supabase.table("shop_orders").select("*").order("created_at", desc=True).limit(100).execute()
-    return {"orders": result.data or []}
+    try:
+        supabase = get_supabase()
+        result = supabase.table("shop_orders").select("*").order("created_at", desc=True).limit(100).execute()
+        return {"orders": result.data or []}
+    except Exception:
+        return {"orders": []}
 
 
 @router.patch("/admin/orders/{order_id}/status")
 async def admin_update_order_status(order_id: str, body: dict, current_user: dict = Depends(get_current_user)):
     if current_user.get("email") not in (settings.ADMIN_EMAIL, "tarrasridhar1154@gmail.com"):
         raise HTTPException(status_code=403, detail="Admin only")
-    supabase = get_supabase()
-    result = supabase.table("shop_orders").update({"status": body.get("status")}).eq("id", order_id).execute()
-    return result.data[0] if result.data else {}
+    try:
+        supabase = get_supabase()
+        result = supabase.table("shop_orders").update({"status": body.get("status")}).eq("id", order_id).execute()
+        return result.data[0] if result.data else {}
+    except Exception as exc:
+        logger.error("admin_update_order_status failed: %s", exc)
+        raise HTTPException(status_code=503, detail="Database error")
