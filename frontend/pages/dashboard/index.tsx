@@ -219,8 +219,8 @@ export default function DashboardPage() {
                 className="btn-secondary text-sm"
               >
                 {isBulkProcessing
-                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                  : <Zap className="h-4 w-4 mr-1.5" />}
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Zap className="h-4 w-4" />}
                 <span className="hidden sm:inline">{isBulkProcessing ? 'Processing…' : 'Process All'}</span>
                 <span className="sm:hidden">AI</span>
               </button>

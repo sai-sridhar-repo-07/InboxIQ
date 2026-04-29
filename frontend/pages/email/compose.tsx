@@ -130,7 +130,7 @@ export default function ComposePage() {
         <div className="max-w-2xl mx-auto space-y-4 animate-fade-in">
           <div className="flex items-center gap-3">
             <button onClick={() => router.back()} className="btn-secondary text-sm">
-              <ArrowLeft className="h-4 w-4 mr-1.5" />Back
+              <ArrowLeft className="h-4 w-4" />Back
             </button>
             <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">New Email</h1>
           </div>

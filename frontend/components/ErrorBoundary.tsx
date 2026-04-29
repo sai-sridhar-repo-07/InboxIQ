@@ -69,7 +69,7 @@ export function ErrorCard({ message, onRetry }: { message?: string; onRetry?: ()
       <p className="text-xs text-gray-400 mb-4">Please try again or refresh the page.</p>
       {onRetry && (
         <button onClick={onRetry} className="btn-secondary text-sm">
-          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+          <RefreshCw className="h-3.5 w-3.5" />
           Try again
         </button>
       )}

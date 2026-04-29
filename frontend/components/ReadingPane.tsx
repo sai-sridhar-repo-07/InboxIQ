@@ -172,7 +172,7 @@ export default function ReadingPane({ emailId, onClose, onMutate }: ReadingPaneP
               onClick={() => router.push(`/email/${email.id}?reply=1`)}
               className="btn-primary text-sm"
             >
-              <Mail className="h-4 w-4 mr-1.5" />
+              <Mail className="h-4 w-4" />
               Reply
             </button>
           </div>

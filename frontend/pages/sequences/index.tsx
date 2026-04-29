@@ -113,7 +113,7 @@ export default function SequencesPage() {
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500 dark:text-gray-400">Automated multi-step follow-up campaigns</p>
             <button onClick={() => setShowCreate(!showCreate)} className="btn-primary text-sm">
-              <Plus className="h-4 w-4 mr-1.5" /> New Sequence
+              <Plus className="h-4 w-4" /> New Sequence
             </button>
           </div>
 
@@ -163,7 +163,7 @@ export default function SequencesPage() {
 
               <div className="flex gap-2">
                 <button onClick={handleCreate} disabled={saving} className="btn-primary text-sm">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {saving ? 'Creating…' : 'Create Sequence'}
                 </button>
                 <button onClick={() => setShowCreate(false)} className="btn-secondary text-sm">Cancel</button>

@@ -103,7 +103,7 @@ export default function BriefsPage() {
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500 dark:text-gray-400">AI-generated pre-meeting context from your email history</p>
             <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
-              <Plus className="h-4 w-4 mr-1.5" /> Generate Brief
+              <Plus className="h-4 w-4" /> Generate Brief
             </button>
           </div>
 
@@ -130,7 +130,7 @@ export default function BriefsPage() {
               </div>
               <div className="flex gap-2">
                 <button onClick={handleGenerate} disabled={generating} className="btn-primary text-sm">
-                  {generating ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />Generating…</> : 'Generate Brief'}
+                  {generating ? <><Loader2 className="h-4 w-4 animate-spin" />Generating…</> : 'Generate Brief'}
                 </button>
                 <button onClick={() => setShowForm(false)} className="btn-secondary text-sm">Cancel</button>
               </div>

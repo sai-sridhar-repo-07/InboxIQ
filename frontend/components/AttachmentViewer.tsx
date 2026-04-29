@@ -155,7 +155,7 @@ export default function AttachmentViewer({ attachment, emailId, onClose }: Attac
             <p className="text-sm font-medium text-white">Failed to load file</p>
             <p className="text-xs text-gray-400">Try downloading it instead.</p>
             <button onClick={handleDownload} className="mt-2 btn-primary text-sm">
-              <Download className="h-4 w-4 mr-1.5" />Download
+              <Download className="h-4 w-4" />Download
             </button>
           </div>
         ) : viewType === 'pdf' && objectUrl ? (
@@ -188,7 +188,7 @@ export default function AttachmentViewer({ attachment, emailId, onClose }: Attac
               <p className="text-sm text-gray-400 mt-1">This file type cannot be previewed in the browser.</p>
             </div>
             <button onClick={handleDownload} className="btn-primary text-sm">
-              <Download className="h-4 w-4 mr-1.5" />Download to view
+              <Download className="h-4 w-4" />Download to view
             </button>
           </div>
         )}

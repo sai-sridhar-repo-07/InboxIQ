@@ -101,7 +101,7 @@ export default function RevenuePage() {
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500 dark:text-gray-400">AI-detected quotes, invoices, and opportunities from your emails</p>
             <button onClick={handleScan} disabled={scanning} className="btn-primary text-sm">
-              {scanning ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Zap className="h-4 w-4 mr-1.5" />}
+              {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
               {scanning ? 'Scanning…' : 'Scan Emails'}
             </button>
           </div>

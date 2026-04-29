@@ -113,7 +113,7 @@ export default function KnowledgePage() {
             </select>
             <button type="submit" className="btn-secondary text-sm">Search</button>
             <button type="button" onClick={handleBulkExtract} disabled={extracting} className="btn-primary text-sm">
-              {extracting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Zap className="h-4 w-4 mr-1.5" />}
+              {extracting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
               {extracting ? 'Extracting…' : 'Extract from Emails'}
             </button>
           </form>

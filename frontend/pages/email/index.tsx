@@ -516,7 +516,7 @@ export default function EmailListPage() {
                 onClick={() => router.push('/email/compose')}
                 className="btn-primary text-sm"
               >
-                <PenSquare className="h-4 w-4 mr-1.5" />
+                <PenSquare className="h-4 w-4" />
                 Compose
               </button>
               {/* Density toggle */}
@@ -525,7 +525,7 @@ export default function EmailListPage() {
                 className="btn-secondary text-sm"
                 title={`Density: ${density}`}
               >
-                {density === 'compact' ? <AlignJustify className="h-4 w-4 mr-1.5" /> : density === 'spacious' ? <Maximize2 className="h-4 w-4 mr-1.5" /> : <LayoutList className="h-4 w-4 mr-1.5" />}
+                {density === 'compact' ? <AlignJustify className="h-4 w-4" /> : density === 'spacious' ? <Maximize2 className="h-4 w-4" /> : <LayoutList className="h-4 w-4" />}
                 {density === 'compact' ? 'Compact' : density === 'spacious' ? 'Spacious' : 'Comfortable'}
               </button>
 
@@ -535,13 +535,13 @@ export default function EmailListPage() {
                 className={clsx('btn-secondary text-sm', readingPane && 'bg-primary-50 border-primary-300 text-primary-700')}
                 title="Reading pane"
               >
-                {readingPane ? <PanelRightClose className="h-4 w-4 mr-1.5" /> : <PanelRightOpen className="h-4 w-4 mr-1.5" />}
+                {readingPane ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
                 Pane
               </button>
 
               {/* Mark all read */}
               <button onClick={handleMarkAllRead} className="btn-secondary text-sm" title="Mark all visible as read">
-                <MailCheck className="h-4 w-4 mr-1.5" />
+                <MailCheck className="h-4 w-4" />
                 Mark Read
               </button>
 
@@ -551,7 +551,7 @@ export default function EmailListPage() {
                 className={clsx('btn-secondary text-sm', threadView && 'bg-primary-50 border-primary-300 text-primary-700')}
                 title="Toggle thread view"
               >
-                {threadView ? <List className="h-4 w-4 mr-1.5" /> : <Layers className="h-4 w-4 mr-1.5" />}
+                {threadView ? <List className="h-4 w-4" /> : <Layers className="h-4 w-4" />}
                 {threadView ? 'All' : 'Threads'}
               </button>
 
@@ -562,22 +562,22 @@ export default function EmailListPage() {
                 }}
                 className={clsx('btn-secondary text-sm', selectionMode && 'bg-primary-50 border-primary-300 text-primary-700')}
               >
-                <CheckSquare className="h-4 w-4 mr-1.5" />
+                <CheckSquare className="h-4 w-4" />
                 {selectionMode ? 'Cancel' : 'Select'}
               </button>
 
               {/* Export CSV */}
               <button onClick={handleExportCSV} disabled={exportingCSV} className="btn-secondary text-sm">
                 {exportingCSV
-                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                  : <Download className="h-4 w-4 mr-1.5" />}
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Download className="h-4 w-4" />}
                 Export CSV
               </button>
 
               {/* Inbox Zero */}
               <button onClick={handleInboxZero} disabled={inboxZeroing} className="btn-secondary text-sm" title="Dismiss newsletters, spam, and low-priority emails">
                 {inboxZeroing
-                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
                   : <span className="mr-1.5 text-base leading-none">✦</span>}
                 Inbox Zero
               </button>
@@ -585,8 +585,8 @@ export default function EmailListPage() {
               {/* Process all */}
               <button onClick={handleBulkProcess} disabled={bulkProcessing} className="btn-secondary text-sm">
                 {bulkProcessing
-                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                  : <Zap className="h-4 w-4 mr-1.5" />}
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Zap className="h-4 w-4" />}
                 {bulkProcessing ? 'Processing…' : 'Process All with AI'}
               </button>
             </div>

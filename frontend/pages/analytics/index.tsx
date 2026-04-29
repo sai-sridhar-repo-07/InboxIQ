@@ -223,7 +223,7 @@ export default function AnalyticsPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Insights into your inbox patterns</p>
             </div>
             <button onClick={handleRefresh} disabled={refreshing} className="btn-secondary text-sm">
-              <RefreshCw className={`h-4 w-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
             </button>
           </div>

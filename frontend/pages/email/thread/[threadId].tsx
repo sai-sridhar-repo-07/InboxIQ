@@ -141,7 +141,7 @@ function ThreadEmail({ email, index, defaultOpen }: { email: Email; index: numbe
                 onClick={() => setReplyOpen(true)}
                 className="btn-primary text-sm"
               >
-                <Mail className="h-4 w-4 mr-1.5" />
+                <Mail className="h-4 w-4" />
                 Reply
               </button>
             )}

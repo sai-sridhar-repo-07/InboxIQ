@@ -90,19 +90,53 @@ function getFileColor(mimeType: string): string {
 // Renders HTML email inside a sandboxed iframe that auto-resizes — links open in new tab
 function EmailBodyFrame({ html }: { html: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [height, setHeight] = useState(300);
+  const [height, setHeight] = useState(400);
 
-  // Inject base target + minimal reset so email CSS doesn't bleed into the page
   const doc = `<!DOCTYPE html>
 <html>
 <head>
 <base target="_blank">
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  body { margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #202124; word-break: break-word; }
-  a { color: #1a73e8; }
-  img { max-width: 100%; height: auto; }
+  :root { color-scheme: light; }
+  html, body { margin: 0; padding: 0; background: #ffffff; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #1f2937;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    padding: 20px 24px 28px;
+  }
   * { box-sizing: border-box; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  img { max-width: 100% !important; height: auto !important; display: inline-block; }
+  table { max-width: 100% !important; border-collapse: collapse; }
+  td, th { word-break: break-word; }
+  p { margin: 0 0 0.75em; }
+  blockquote {
+    margin: 12px 0;
+    padding: 8px 16px;
+    border-left: 3px solid #d1d5db;
+    color: #6b7280;
+    background: #f9fafb;
+    border-radius: 0 6px 6px 0;
+  }
+  pre, code {
+    font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    font-size: 13px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    padding: 2px 5px;
+  }
+  pre { padding: 12px 16px; overflow-x: auto; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
+  /* Gmail quote collapse */
+  .gmail_quote, .gmail_extra { color: #6b7280; }
+  div[style*="color:#888"], div[style*="color: #888"] { color: #9ca3af !important; }
 </style>
 </head>
 <body>${html}</body>
@@ -113,7 +147,10 @@ function EmailBodyFrame({ html }: { html: string }) {
     if (!iframe) return;
     try {
       const body = iframe.contentDocument?.body;
-      if (body) setHeight(body.scrollHeight + 24);
+      if (body) {
+        const h = Math.max(body.scrollHeight, 200);
+        setHeight(h + 32);
+      }
     } catch {}
   };
 
@@ -123,7 +160,7 @@ function EmailBodyFrame({ html }: { html: string }) {
       srcDoc={doc}
       sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
       onLoad={handleLoad}
-      style={{ width: '100%', height, border: 'none', display: 'block' }}
+      style={{ width: '100%', height, border: 'none', display: 'block', borderRadius: '0 0 12px 12px' }}
       title="Email body"
     />
   );
@@ -555,7 +592,7 @@ export default function EmailDetailPage() {
       <Layout title="Email not found">
         <div className="max-w-2xl mx-auto">
           <button onClick={() => router.back()} className="btn-secondary text-sm mb-6">
-            <ArrowLeft className="h-4 w-4 mr-1.5" />Back
+            <ArrowLeft className="h-4 w-4" /><span className="hidden sm:inline">Back</span>
           </button>
           <div className="card p-12 text-center">
             <AlertTriangle className="mx-auto h-12 w-12 text-amber-400 mb-4" />
@@ -722,21 +759,20 @@ export default function EmailDetailPage() {
         <div className="max-w-4xl mx-auto space-y-4 animate-fade-in">
 
           {/* Top bar */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <button onClick={() => router.back()} className="btn-secondary text-sm">
-              <ArrowLeft className="h-4 w-4 mr-1.5" />Back
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.back()} className="btn-secondary shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back</span>
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide flex-1 min-w-0 pb-0.5">
               <button
                 onClick={handleReprocess}
                 disabled={isReprocessing}
-                className="btn-secondary text-sm"
+                className="btn-secondary shrink-0"
+                title="Re-process with AI"
               >
-                {isReprocessing
-                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                  : <RefreshCw className="h-4 w-4 mr-1.5" />}
-                <span className="hidden sm:inline">{isReprocessing ? 'Processing…' : 'Re-process with AI'}</span>
-                <span className="sm:hidden">{isReprocessing ? '…' : 'AI'}</span>
+                {isReprocessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 text-blue-500" />}
+                <span className="hidden sm:inline">{isReprocessing ? 'Processing…' : 'Reprocess'}</span>
               </button>
 
               {/* Star button */}
@@ -754,7 +790,7 @@ export default function EmailDetailPage() {
                       : 'text-gray-400'
                   )}
                 />
-                <span className="hidden sm:inline ml-1.5">
+                <span className="hidden sm:inline">
                   {(isStarred !== null ? isStarred : email.is_starred) ? 'Starred' : 'Star'}
                 </span>
               </button>
@@ -767,7 +803,7 @@ export default function EmailDetailPage() {
                 title={isPinned ? 'Unpin email' : 'Pin email'}
               >
                 {isPinning ? <Loader2 className="h-4 w-4 animate-spin" /> : isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-                <span className="hidden sm:inline ml-1.5">{isPinned ? 'Unpin' : 'Pin'}</span>
+                <span className="hidden sm:inline">{isPinned ? 'Unpin' : 'Pin'}</span>
               </button>
 
               {/* Mute sender */}
@@ -778,7 +814,7 @@ export default function EmailDetailPage() {
                 title="Mute sender — stop syncing their emails"
               >
                 {isMuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellOff className="h-4 w-4 text-gray-500" />}
-                <span className="hidden sm:inline ml-1.5">Mute</span>
+                <span className="hidden sm:inline">Mute</span>
               </button>
 
               {/* Follow-up / Waiting for reply */}
@@ -794,7 +830,7 @@ export default function EmailDetailPage() {
                 {isTogglingFollowUp
                   ? <Loader2 className="h-4 w-4 animate-spin" />
                   : <StickyNote className="h-4 w-4" />}
-                <span className="hidden sm:inline ml-1.5">
+                <span className="hidden sm:inline">
                   {(email.labels ?? []).includes('__followup__') ? 'Waiting' : 'Follow-up'}
                 </span>
               </button>
@@ -806,7 +842,7 @@ export default function EmailDetailPage() {
                 title="Snooze"
               >
                 <AlarmClock className="h-4 w-4 text-blue-500" />
-                <span className="hidden sm:inline ml-1.5">Snooze</span>
+                <span className="hidden sm:inline">Snooze</span>
               </button>
 
               {/* Summarize Thread button */}
@@ -817,8 +853,8 @@ export default function EmailDetailPage() {
                 title="Summarize Thread"
               >
                 {loadingThreadSummary
-                  ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                  : <Layers className="h-4 w-4 mr-1.5 text-blue-500" />}
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Layers className="h-4 w-4 text-blue-500" />}
                 <span className="hidden sm:inline">Summary</span>
               </button>
 
@@ -829,7 +865,7 @@ export default function EmailDetailPage() {
                   className="btn-secondary text-sm"
                   title="View full thread"
                 >
-                  <Layers className="h-4 w-4 mr-1.5 text-violet-500" />
+                  <Layers className="h-4 w-4 text-violet-500" />
                   <span className="hidden sm:inline">Thread</span>
                 </button>
               )}
@@ -842,7 +878,7 @@ export default function EmailDetailPage() {
                   title="Generate Quote"
                 >
                   <FileEdit className="h-4 w-4 text-emerald-500" />
-                  <span className="hidden sm:inline ml-1.5">Generate Quote</span>
+                  <span className="hidden sm:inline">Generate Quote</span>
                 </button>
               )}
 
@@ -854,7 +890,7 @@ export default function EmailDetailPage() {
                 title="Forward to Slack"
               >
                 {isForwardingSlack ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4 text-green-500" />}
-                <span className="hidden sm:inline ml-1.5">Slack</span>
+                <span className="hidden sm:inline">Slack</span>
               </button>
 
               {/* Ask AI */}
@@ -864,7 +900,7 @@ export default function EmailDetailPage() {
                 title="Ask AI about this email"
               >
                 <Brain className="h-4 w-4 text-violet-500" />
-                <span className="hidden sm:inline ml-1.5">Ask AI</span>
+                <span className="hidden sm:inline">Ask AI</span>
               </button>
 
               <button
@@ -900,7 +936,7 @@ export default function EmailDetailPage() {
                   className="btn-primary text-sm shrink-0"
                 >
                   {askAILoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                  <span className="ml-1.5">Ask</span>
+                  <span>Ask</span>
                 </button>
               </div>
               {askAIAnswer && (
