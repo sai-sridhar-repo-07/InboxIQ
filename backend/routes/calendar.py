@@ -47,12 +47,13 @@ async def calendar_callback(
     error: str | None = Query(None),
 ):
     """Handle Google Calendar OAuth callback."""
+    fe = settings.FRONTEND_URL
     if error:
-        return RedirectResponse(url="/settings?gcal_error=true")
+        return RedirectResponse(url=f"{fe}/settings?gcal_error=true")
 
     user_id = state
     if not user_id:
-        return RedirectResponse(url="/settings?gcal_error=true")
+        return RedirectResponse(url=f"{fe}/settings?gcal_error=true")
 
     try:
         tokens = await exchange_code(code)
@@ -66,10 +67,10 @@ async def calendar_callback(
             "gcal_token_expires_at": expires_at.isoformat(),
         }).eq("id", user_id).execute()
 
-        return RedirectResponse(url="/settings?gcal_connected=true")
+        return RedirectResponse(url=f"{fe}/settings?gcal_connected=true")
     except Exception as exc:
         logger.error("GCal callback error: %s", exc)
-        return RedirectResponse(url="/settings?gcal_error=true")
+        return RedirectResponse(url=f"{fe}/settings?gcal_error=true")
 
 
 @router.get("/status")
