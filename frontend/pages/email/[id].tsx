@@ -52,7 +52,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import SnoozeModal from '@/components/SnoozeModal';
 import { useEmail, useEmailActions, useReplyDraft } from '@/lib/hooks';
-import { emailsApi, teamsApi } from '@/lib/api';
+import { emailsApi, teamsApi, calendarApi } from '@/lib/api';
 import { loadTags, getEmailTags, setEmailTags, createTag, saveTags, getNextColor } from '@/lib/tags';
 import { supabase } from '@/lib/supabase';
 import type { Action, QuoteData, MeetingInfo, InternalNote, OrgMember } from '@/lib/types';
@@ -162,7 +162,9 @@ export default function EmailDetailPage() {
   const [generatedQuote, setGeneratedQuote]       = useState<QuoteData | null>(null);
 
   // Meeting detection state
-  const [meetingInfo, setMeetingInfo]   = useState<MeetingInfo | null>(null);
+  const [meetingInfo, setMeetingInfo]       = useState<MeetingInfo | null>(null);
+  const [gcalConnected, setGcalConnected]   = useState(false);
+  const [addingToCalendar, setAddingToCalendar] = useState(false);
 
   // Team collaboration state
   const [notes, setNotes] = useState<InternalNote[]>([]);
@@ -263,6 +265,7 @@ export default function EmailDetailPage() {
     emailsApi.getMeetingInfo(emailId)
       .then((info) => { if (info.is_meeting_request) setMeetingInfo(info); })
       .catch(() => {});
+    calendarApi.getStatus().then((s) => setGcalConnected(s.connected)).catch(() => {});
   }, [emailId, email?.id]);
 
   // Load team notes + org members when email is available
@@ -986,17 +989,34 @@ export default function EmailDetailPage() {
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
-                      onClick={() => {
-                        const title = encodeURIComponent(email.subject || 'Meeting');
-                        const details = encodeURIComponent(meetingInfo.agenda || '');
-                        const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}`;
-                        window.open(calUrl, '_blank', 'noopener');
+                      disabled={addingToCalendar}
+                      onClick={async () => {
+                        if (gcalConnected) {
+                          setAddingToCalendar(true);
+                          try {
+                            const result = await calendarApi.createEvent({
+                              title: email.subject || 'Meeting',
+                              description: `${meetingInfo.agenda || ''}\n\nFrom: ${email.from_name || email.from_email}\nProposed: ${(meetingInfo.proposed_times || []).join(', ')}`,
+                              duration_hours: meetingInfo.duration_hint?.includes('30') ? 0.5 : 1,
+                            });
+                            toast.success('Event added to Google Calendar!');
+                            if (result.html_link) window.open(result.html_link, '_blank', 'noopener');
+                          } catch {
+                            toast.error('Failed to create event. Try again.');
+                          } finally {
+                            setAddingToCalendar(false);
+                          }
+                        } else {
+                          const title = encodeURIComponent(email.subject || 'Meeting');
+                          const details = encodeURIComponent(meetingInfo.agenda || '');
+                          window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}`, '_blank', 'noopener');
+                        }
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 dark:border-amber-600 bg-amber-100 dark:bg-amber-800/30 px-2 py-1 text-xs font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-700/40 transition-colors"
-                      title="Add to Google Calendar"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 dark:border-amber-600 bg-amber-100 dark:bg-amber-800/30 px-2 py-1 text-xs font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-700/40 transition-colors disabled:opacity-50"
+                      title={gcalConnected ? 'Create event in Google Calendar' : 'Add to Google Calendar (connect in Settings for auto-create)'}
                     >
-                      <CalendarPlus className="h-3 w-3" />
-                      Add to Calendar
+                      {addingToCalendar ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarPlus className="h-3 w-3" />}
+                      {gcalConnected ? 'Create Event' : 'Add to Calendar'}
                     </button>
                     <button
                       onClick={() => setMeetingInfo(null)}
