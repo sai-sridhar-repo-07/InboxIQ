@@ -74,8 +74,8 @@
       "expo-font"
     ],
     "extra": {
-      "privacyPolicyUrl": "https://mailair.in/privacy",
-      "termsUrl": "https://mailair.in/terms",
+      "privacyPolicyUrl": "https://mailair.company/privacy",
+      "termsUrl": "https://mailair.company/terms",
       "eas": {
         "projectId": "c681bdd8-bea6-4cde-b2b0-f4909574c1b5"
       }

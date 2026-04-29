@@ -140,9 +140,9 @@ export default function BillingScreen() {
               ))}
               <TouchableOpacity
                 style={[styles.upgradeBtn, { backgroundColor: p.color }]}
-                onPress={() => Linking.openURL('https://mailair.in/billing')}
+                onPress={() => Linking.openURL('https://mailair.company/billing')}
               >
-                <Text style={styles.upgradeBtnText}>Upgrade to {p.name} — mailair.in</Text>
+                <Text style={styles.upgradeBtnText}>Upgrade to {p.name} — mailair.company</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -152,10 +152,10 @@ export default function BillingScreen() {
       {/* Manage link */}
       <TouchableOpacity
         style={styles.manageBtn}
-        onPress={() => Linking.openURL('https://mailair.in/billing')}
+        onPress={() => Linking.openURL('https://mailair.company/billing')}
       >
         <Ionicons name="open-outline" size={16} color="#64748b" />
-        <Text style={styles.manageText}>Manage subscription, invoices & payments — mailair.in</Text>
+        <Text style={styles.manageText}>Manage subscription, invoices & payments — mailair.company</Text>
       </TouchableOpacity>
     </ScrollView>
   );
