@@ -74,12 +74,15 @@ async def outlook_callback(
 @router.get("/status")
 async def outlook_status(current_user: Annotated[dict, Depends(get_current_user)]):
     """Return Outlook connection status."""
-    supabase = get_supabase()
-    row = supabase.table("user_profiles").select(
-        "ms_connected, ms_email"
-    ).eq("id", _uid(current_user)).single().execute()
-    data = row.data or {}
-    return {"connected": bool(data.get("ms_connected")), "email": data.get("ms_email")}
+    try:
+        supabase = get_supabase()
+        row = supabase.table("user_profiles").select(
+            "ms_connected, ms_email"
+        ).eq("id", _uid(current_user)).single().execute()
+        data = row.data or {}
+        return {"connected": bool(data.get("ms_connected")), "email": data.get("ms_email")}
+    except Exception:
+        return {"connected": False, "email": None}
 
 
 @router.post("/sync")

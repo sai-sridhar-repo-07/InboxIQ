@@ -34,13 +34,16 @@ class SalesforceSaveBody(BaseModel):
 @router.get("/hubspot/status")
 async def hubspot_status(current_user: Annotated[dict, Depends(get_current_user)]):
     uid = current_user["id"]
-    supabase = get_supabase()
-    row = supabase.table("user_profiles").select("hubspot_connected, hubspot_api_key").eq("id", uid).single().execute()
-    data = row.data or {}
-    return {
-        "connected": bool(data.get("hubspot_connected")),
-        "has_key": bool(data.get("hubspot_api_key")),
-    }
+    try:
+        supabase = get_supabase()
+        row = supabase.table("user_profiles").select("hubspot_connected, hubspot_api_key").eq("id", uid).single().execute()
+        data = row.data or {}
+        return {
+            "connected": bool(data.get("hubspot_connected")),
+            "has_key": bool(data.get("hubspot_api_key")),
+        }
+    except Exception:
+        return {"connected": False, "has_key": False}
 
 
 @router.post("/hubspot/connect")
@@ -94,9 +97,12 @@ async def hubspot_disconnect(current_user: Annotated[dict, Depends(get_current_u
 @router.get("/salesforce/status")
 async def salesforce_status(current_user: Annotated[dict, Depends(get_current_user)]):
     uid = current_user["id"]
-    supabase = get_supabase()
-    row = supabase.table("user_profiles").select("sf_connected, sf_username").eq("id", uid).single().execute()
-    data = row.data or {}
+    try:
+        supabase = get_supabase()
+        row = supabase.table("user_profiles").select("sf_connected, sf_username").eq("id", uid).single().execute()
+        data = row.data or {}
+    except Exception:
+        return {"connected": False, "username": None}
     return {
         "connected": bool(data.get("sf_connected")),
         "username": data.get("sf_username"),

@@ -75,12 +75,15 @@ async def calendar_callback(
 
 @router.get("/status")
 async def calendar_status(current_user: Annotated[dict, Depends(get_current_user)]):
-    supabase = get_supabase()
-    row = supabase.table("user_profiles").select(
-        "gcal_connected"
-    ).eq("id", _uid(current_user)).single().execute()
-    data = row.data or {}
-    return {"connected": bool(data.get("gcal_connected"))}
+    try:
+        supabase = get_supabase()
+        row = supabase.table("user_profiles").select(
+            "gcal_connected"
+        ).eq("id", _uid(current_user)).single().execute()
+        data = row.data or {}
+        return {"connected": bool(data.get("gcal_connected"))}
+    except Exception:
+        return {"connected": False}
 
 
 @router.get("/events")
