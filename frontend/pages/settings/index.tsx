@@ -255,10 +255,22 @@ function CalendarIntegration() {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     calendarApi.getStatus().then(setStatus).catch(() => setStatus({ connected: false })).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (router.query.gcal_connected === 'true') {
+      setStatus({ connected: true });
+      toast.success('Google Calendar connected!');
+      router.replace('/settings', undefined, { shallow: true });
+    } else if (router.query.gcal_error === 'true') {
+      toast.error('Failed to connect Google Calendar. Please try again.');
+      router.replace('/settings', undefined, { shallow: true });
+    }
+  }, [router.query]);
 
   const handleConnect = async () => {
     setConnecting(true);
