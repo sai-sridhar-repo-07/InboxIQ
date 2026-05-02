@@ -162,6 +162,25 @@ async def sync_emails(
     return {"message": "Gmail sync started."}
 
 
+@router.get("/sync/debug")
+async def sync_debug(current_user: Annotated[dict, Depends(get_current_user)]):
+    """Debug endpoint: runs sync synchronously and returns what was fetched."""
+    from services.gmail_service import fetch_new_emails, get_gmail_tokens
+    user_id = _current_user_id(current_user)
+    try:
+        tokens = await get_gmail_tokens(user_id)
+        if not tokens:
+            return {"error": "No Gmail tokens found", "user_id": user_id}
+        raw = await fetch_new_emails(user_id=user_id)
+        return {
+            "gmail_address": tokens.get("gmail_address"),
+            "emails_found": len(raw),
+            "subjects": [e.get("subject") for e in raw[:10]],
+        }
+    except Exception as exc:
+        return {"error": str(exc), "type": type(exc).__name__}
+
+
 # ---------------------------------------------------------------------------
 # New feature models
 # ---------------------------------------------------------------------------
