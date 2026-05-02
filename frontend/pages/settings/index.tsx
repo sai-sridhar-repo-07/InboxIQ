@@ -30,7 +30,7 @@ import PageError from '@/components/PageError';
 import RulesManager from '@/components/RulesManager';
 import { useSettings, useGmailStatus } from '@/lib/hooks';
 import { apiErrorMessage } from '@/lib/apiError';
-import { settingsApi, integrationsApi, outlookApi, calendarApi, gdprApi, webhooksApi, crmApi, pushApi, newsletterApi, type Webhook } from '@/lib/api';
+import { settingsApi, integrationsApi, outlookApi, calendarApi, gdprApi, webhooksApi, crmApi, pushApi, newsletterApi, emailsApi, type Webhook } from '@/lib/api';
 import { registerPushSubscription, unregisterPushSubscription } from '@/lib/push';
 import { loadTemplates, saveTemplates, createTemplate, type EmailTemplate } from '@/lib/templates';
 import type { UserSettings, TonePreference, NotificationFrequency } from '@/lib/types';
@@ -582,6 +582,7 @@ function IntegrationsTab({
   settings: UserSettings;
   onSave: (data: Partial<UserSettings>) => Promise<void>;
 }) {
+  const router = useRouter();
   const { data: gmailStatus, mutate: mutateGmail } = useGmailStatus();
   const [slackWebhook, setSlackWebhook] = useState(settings.slack_webhook_url ?? '');
   const [isSavingSlack, setIsSavingSlack] = useState(false);
@@ -589,6 +590,14 @@ function IntegrationsTab({
   const [isConnectingGmail, setIsConnectingGmail] = useState(false);
   const [isDisconnectingGmail, setIsDisconnectingGmail] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+
+  useEffect(() => {
+    if (router.query.gmail === 'connected') {
+      toast.success('Gmail connected! Syncing your inbox...');
+      emailsApi.syncEmails().then(() => mutateGmail()).catch(() => {});
+      router.replace('/settings', undefined, { shallow: true });
+    }
+  }, [router.query]);
 
   // Sync filter state
   const [showSyncFilters, setShowSyncFilters] = useState(false);
