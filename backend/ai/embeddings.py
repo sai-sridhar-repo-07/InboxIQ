@@ -33,7 +33,7 @@ async def find_similar_replies(
             supabase.table("reply_drafts")
             .select("draft_text, emails(subject, sender)")
             .eq("user_id", user_id)
-            .eq("is_sent", True)
+            .eq("sent", True)
             .order("created_at", desc=True)
             .limit(10)
             .execute()

@@ -50,7 +50,6 @@ async def classify_email(subject: str, sender: str, body: str, attachments: list
         response = await client.messages.create(
             model="claude-opus-4-6",
             max_tokens=512,
-            thinking={"type": "adaptive"},
             messages=[{"role": "user", "content": prompt}],
         )
 
