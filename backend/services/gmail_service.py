@@ -414,12 +414,26 @@ async def fetch_new_emails(user_id: str) -> list[dict]:
 
         service = build("gmail", "v1", credentials=creds, cache_discovery=False)
 
-        list_result = (
-            service.users()
-            .messages()
-            .list(userId="me", q=gmail_query, maxResults=max_results)
-            .execute()
-        )
+        try:
+            list_result = (
+                service.users()
+                .messages()
+                .list(userId="me", q=gmail_query, maxResults=max_results)
+                .execute()
+            )
+        except HttpError as exc:
+            if exc.resp.status == 403 and "Metadata scope" in str(exc):
+                # gmail.metadata scope doesn't support q — fall back to labelIds
+                logger.warning("Falling back to labelIds for user_id=%s (metadata scope only)", user_id)
+                list_result = (
+                    service.users()
+                    .messages()
+                    .list(userId="me", labelIds=["INBOX"], maxResults=max_results)
+                    .execute()
+                )
+            else:
+                raise
+
         message_refs = list_result.get("messages", [])
 
         if not message_refs:
