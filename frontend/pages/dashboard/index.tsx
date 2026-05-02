@@ -93,7 +93,12 @@ export default function DashboardPage() {
     const loadingToast = toast.loading('Syncing emails…');
     try {
       await emailsApi.syncEmails();
-      await Promise.all([mutateInbox(), mutateStats()]);
+      // Background task takes time — poll until new emails appear or timeout
+      const delays = [3000, 5000, 7000, 10000];
+      for (const delay of delays) {
+        await new Promise(r => setTimeout(r, delay));
+        await Promise.all([mutateInbox(), mutateStats()]);
+      }
       toast.success('Emails synced!', { id: loadingToast });
     } catch {
       toast.error('Failed to sync emails. Check your Gmail connection.', { id: loadingToast });
