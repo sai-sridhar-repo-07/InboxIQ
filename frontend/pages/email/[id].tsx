@@ -1035,8 +1035,11 @@ export default function EmailDetailPage() {
                               description: `${meetingInfo.agenda || ''}\n\nFrom: ${email.from_name || email.from_email}\nProposed: ${(meetingInfo.proposed_times || []).join(', ')}`,
                               duration_hours: meetingInfo.duration_hint?.includes('30') ? 0.5 : 1,
                             });
-                            toast.success('Event added to Google Calendar!');
-                            if (result.html_link) window.open(result.html_link, '_blank', 'noopener');
+                            toast.success(
+                              result.html_link
+                                ? <span>Event created! <a href={result.html_link} target="_blank" rel="noopener noreferrer" className="underline font-semibold">View in Calendar →</a></span>
+                                : 'Event added to Google Calendar!'
+                            );
                           } catch {
                             toast.error('Failed to create event. Try again.');
                           } finally {
