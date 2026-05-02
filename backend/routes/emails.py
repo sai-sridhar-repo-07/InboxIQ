@@ -15,7 +15,7 @@ from services import email_service
 from services.ai_processor import process_email
 from services.gmail_service import send_gmail_reply, get_email_attachments, get_attachment_data
 from services.razorpay_service import PLAN_LIMITS
-from workers.email_listener import _sync_user_emails
+from workers.email_listener import _process_user_emails
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/emails", tags=["emails"])
@@ -158,7 +158,7 @@ async def sync_emails(
     current_user: Annotated[dict, Depends(get_current_user)],
 ):
     """Manually trigger a Gmail sync for the current user."""
-    background_tasks.add_task(_sync_user_emails, _current_user_id(current_user))
+    background_tasks.add_task(_process_user_emails, _current_user_id(current_user))
     return {"message": "Gmail sync started."}
 
 

@@ -329,7 +329,7 @@ def _extract_body(payload: dict) -> str:
 
 def _build_gmail_query(filters: dict) -> tuple[str, int]:
     """Build Gmail search query and maxResults from user sync_filters."""
-    parts = ["is:unread"]
+    parts = []
 
     # Label/folder filter — default to inbox
     labels = filters.get("sync_labels") or []
@@ -353,12 +353,11 @@ def _build_gmail_query(filters: dict) -> tuple[str, int]:
     else:
         parts.append("in:inbox")
 
-    # Date range
-    days_back = filters.get("sync_days_back")
-    if days_back and isinstance(days_back, int) and days_back > 0:
-        from datetime import timedelta, timezone as _tz
-        cutoff = (datetime.now(_tz.utc) - timedelta(days=days_back)).strftime("%Y/%m/%d")
-        parts.append(f"after:{cutoff}")
+    # Date range — default 7 days if not configured
+    days_back = filters.get("sync_days_back") or 7
+    from datetime import timedelta, timezone as _tz
+    cutoff = (datetime.now(_tz.utc) - timedelta(days=int(days_back))).strftime("%Y/%m/%d")
+    parts.append(f"after:{cutoff}")
 
     # Sender allowlist (from:a OR from:b)
     allowlist = filters.get("sync_sender_allowlist") or []
