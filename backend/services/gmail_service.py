@@ -442,12 +442,24 @@ async def fetch_new_emails(user_id: str) -> list[dict]:
         parsed_emails = []
         for ref in message_refs:
             try:
-                raw_msg = (
-                    service.users()
-                    .messages()
-                    .get(userId="me", id=ref["id"], format="full")
-                    .execute()
-                )
+                try:
+                    raw_msg = (
+                        service.users()
+                        .messages()
+                        .get(userId="me", id=ref["id"], format="full")
+                        .execute()
+                    )
+                except HttpError as exc:
+                    if exc.resp.status == 403 and "Metadata scope" in str(exc):
+                        # Fall back to metadata format (headers only, no body)
+                        raw_msg = (
+                            service.users()
+                            .messages()
+                            .get(userId="me", id=ref["id"], format="metadata")
+                            .execute()
+                        )
+                    else:
+                        raise
                 parsed = parse_gmail_message(raw_msg)
                 parsed["user_id"] = user_id
                 parsed_emails.append(parsed)
