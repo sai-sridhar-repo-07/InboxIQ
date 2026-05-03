@@ -51,20 +51,22 @@ async def _sync_user_emails(user_id: str) -> None:
 
         supabase = get_supabase()
 
+        incoming_ids = [r.get("gmail_message_id") for r in raw_emails if r.get("gmail_message_id")]
+        existing_ids: set[str] = set()
+        if incoming_ids:
+            existing_result = (
+                supabase.table("emails")
+                .select("gmail_message_id")
+                .eq("user_id", user_id)
+                .in_("gmail_message_id", incoming_ids)
+                .execute()
+            )
+            existing_ids = {row["gmail_message_id"] for row in (existing_result.data or [])}
+
         for raw in raw_emails:
             gmail_message_id = raw.get("gmail_message_id")
-
-            # Skip duplicates already stored
-            if gmail_message_id:
-                existing = (
-                    supabase.table("emails")
-                    .select("id")
-                    .eq("gmail_message_id", gmail_message_id)
-                    .eq("user_id", user_id)
-                    .execute()
-                )
-                if existing.data:
-                    continue
+            if gmail_message_id and gmail_message_id in existing_ids:
+                continue
 
             email_create = EmailCreate(
                 user_id=user_id,
